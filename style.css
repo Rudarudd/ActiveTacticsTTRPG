@@ -1,8 +1,7 @@
 body {
   margin: 0;
-  padding: 0;
   font-family: sans-serif;
-  /* Allow default page refresh behavior */
+  overflow-x: visible; /* Allow normal horizontal scrolling */
 }
 
 header {
@@ -22,9 +21,10 @@ header input {
   display: grid;
   grid-template-columns: 200px 1fr;
   height: calc(100vh - 50px);
-  /* Removed overflow-x on container to avoid interfering with refresh */
+  /* No forced horizontal overflow here */
 }
 
+/* Tabs styling */
 .tabs {
   background: #ddd;
   padding: 10px;
@@ -48,6 +48,7 @@ header input {
   font-weight: bold;
 }
 
+/* Content area and tab content */
 .content {
   padding: 10px;
   overflow-y: auto;
@@ -63,6 +64,7 @@ header input {
   display: block;
 }
 
+/* p5-container styling */
 #p5-container {
   position: relative;
   width: 100%;
@@ -108,7 +110,7 @@ header input {
   margin-right: 5px;
 }
 
-/* Skills container (for Additional Attributes) */
+/* Skills container (Additional Attributes) */
 #skillsContainer {
   position: absolute;
   top: 10px;
