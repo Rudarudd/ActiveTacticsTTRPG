@@ -595,8 +595,8 @@ function updateResourcesBasedOnStats() {
   if (current_mp > max_mp) current_mp = max_mp;
 }
 
-// --- Dragging for Resource UI container ---
 function startDragResourceUI() {
+  if (resourceUILocked) return;  // Don't start if locked
   // On mobile, only allow drag if two or more fingers are touching.
   if (touches.length > 0 && touches.length < 2) return;
   resourceUIDragging = true;
