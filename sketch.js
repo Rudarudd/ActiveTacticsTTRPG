@@ -186,7 +186,6 @@ function displayBars() {
   text("FF7 TTRPG Resource Tracker", 50, 10);
 }
 
-// Build the resource tracker UI with fixed rows and add a lock checkbox.
 function createResourceUI() {
   let rUI = select("#resourceUIContainer");
   rUI.html(""); // Clear container
@@ -197,8 +196,13 @@ function createResourceUI() {
   row.class("resource-row");
   let lockCheckbox = createCheckbox("Lock", false);
   lockCheckbox.parent(row);
-  lockCheckbox.changed(() => { resourceUILocked = lockCheckbox.checked(); });
   lockCheckbox.style("margin-left", "auto");
+  lockCheckbox.changed(() => { 
+    resourceUILocked = lockCheckbox.checked(); 
+    if (resourceUILocked) {
+      resourceUIDragging = false;
+    }
+  });
   
   // Row 1: "Max:" label
   row = createDiv();
@@ -330,6 +334,7 @@ function createResourceUI() {
   linkDesc.class("resource-label");
 }
 
+
 // Resource update functions
 function setMaxHp() {
   let value = parseInt(maxHpInput.value());
@@ -352,7 +357,7 @@ function resetResources() {
   current_hp = max_hp;
   current_mp = max_mp;
   current_stamina = max_stamina;
-  current_atb = max_atb;
+  current_atb = 0;
 }
 
 // Modal for resource updates.
