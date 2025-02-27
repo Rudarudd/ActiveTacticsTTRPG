@@ -43,7 +43,7 @@ header input {
   font-weight: bold;
 }
 
-/* Content area */
+/* Content area and tab content */
 .content {
   padding: 10px;
   overflow-y: auto;
@@ -58,7 +58,7 @@ header input {
   display: block;
 }
 
-/* p5-container is relative */
+/* p5-container is relative so its children can be absolutely positioned */
 #p5-container {
   position: relative;
   width: 100%;
@@ -66,12 +66,12 @@ header input {
   margin: 0 auto;
 }
 
-/* Resource Tracker UI overlay */
+/* Resource Tracker UI overlay – fixed size */
 #resourceUIContainer {
   position: absolute;
   top: 10px;
   right: 10px;
-  width: 220px; /* fixed width */
+  width: 220px;
   background: rgba(255,255,255,0.95);
   padding: 5px;
   border: 1px solid #ccc;
@@ -103,19 +103,19 @@ header input {
   margin-right: 5px;
 }
 
-/* Skills container (for Additional Attributes) */
+/* Skills container inside Stats UI – tightened */
 #skillsContainer {
   position: absolute;
   top: 10px;
   right: 10px;
-  width: 180px;  /* reduced width */
+  width: 180px;
   background: rgba(255,255,255,0.95);
-  padding: 3px;  /* tighter padding */
+  padding: 3px;
   border: 1px solid #ccc;
   cursor: move;
 }
 
-/* Mobile adjustments: move tabs to bottom */
+/* Mobile adjustments */
 @media screen and (max-width: 600px) {
   .container {
     display: flex;
