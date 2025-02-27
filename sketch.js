@@ -677,8 +677,11 @@ function mouseDragged() {
 
 // Override touchMoved for mobile dragging smoothness.
 function touchMoved() {
-  mouseDragged();
-  return false; // Prevent default scrolling
+  if (resourceUIDragging || skillsDragging) {
+    mouseDragged();
+    return false; // prevent default scrolling only during a drag
+  }
+  return true;
 }
 
 // --- Reset function ---
