@@ -592,7 +592,8 @@ function updateResourcesBasedOnStats() {
 
 // --- Dragging for Resource UI container ---
 function startDragResourceUI() {
-  if (resourceUILocked) return;
+  // On mobile, only allow drag if two or more fingers are touching.
+  if (touches.length > 0 && touches.length < 2) return;
   resourceUIDragging = true;
   let leftStr = resourceUIContainer.style("left");
   let topStr = resourceUIContainer.style("top");
@@ -601,6 +602,19 @@ function startDragResourceUI() {
   resourceUIMouseStartX = getDragX();
   resourceUIMouseStartY = getDragY();
 }
+
+function startDragSkills() {
+  if (touches.length > 0 && touches.length < 2) return;
+  skillsDragging = true;
+  skillsContainer = select("#skillsContainer");
+  let leftStr = skillsContainer.style("left");
+  let topStr = skillsContainer.style("top");
+  skillsStartX = leftStr ? parseInt(leftStr) : 10;
+  skillsStartY = topStr ? parseInt(topStr) : 10;
+  skillsMouseStartX = getDragX();
+  skillsMouseStartY = getDragY();
+}
+
 
 function stopDragResourceUI() {
   resourceUIDragging = false;
@@ -640,16 +654,26 @@ function mouseDragged() {
   if (resourceUIDragging) {
     let newX = resourceUIStartX + (currentX - resourceUIMouseStartX);
     let newY = resourceUIStartY + (currentY - resourceUIMouseStartY);
+    let boxWidth = resourceUIContainer.elt.offsetWidth;
+    let boxHeight = resourceUIContainer.elt.offsetHeight;
+    newX = constrain(newX, 0, windowWidth - boxWidth);
+    newY = constrain(newY, 0, windowHeight - boxHeight);
     resourceUIContainer.style("left", newX + "px");
     resourceUIContainer.style("top", newY + "px");
   }
+  
   if (skillsDragging) {
     let newX = skillsStartX + (currentX - skillsMouseStartX);
     let newY = skillsStartY + (currentY - skillsMouseStartY);
+    let boxWidth = skillsContainer.elt.offsetWidth;
+    let boxHeight = skillsContainer.elt.offsetHeight;
+    newX = constrain(newX, 0, windowWidth - boxWidth);
+    newY = constrain(newY, 0, windowHeight - boxHeight);
     skillsContainer.style("left", newX + "px");
     skillsContainer.style("top", newY + "px");
   }
 }
+
 
 // Override touchMoved for mobile dragging smoothness.
 function touchMoved() {
