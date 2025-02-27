@@ -2,7 +2,7 @@
 let max_hp = 25, current_hp = 25;
 let max_mp = 10, current_mp = 10;
 let max_stamina = 100, current_stamina = 100;
-let max_atb = 100, current_atb = 100;
+let max_atb = 100, current_atb = 0;
 
 // Global stat variables – all start at 1
 let stat_str = 1, stat_vit = 1, stat_dex = 1, stat_mag = 1, stat_wil = 1, stat_spr = 1, stat_lck = 1;
