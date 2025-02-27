@@ -8,13 +8,20 @@ let max_atb = 100, current_atb = 0;
 let stat_str = 1, stat_vit = 1, stat_dex = 1, stat_mag = 1, stat_wil = 1, stat_spr = 1, stat_lck = 1;
 let level = 1, exp = 1, movement = 1;
 
-// UI elements for Resources will be created in createResourceUI()
+// We'll create resource UI elements inside resourceUIContainer.
 let maxHpInput, setMaxHpButton, maxMpInput, setMaxMpButton;
 let maxStaminaInput, setMaxStaminaButton, maxAtbInput, setMaxAtbButton;
 let amountInput, positiveButton, negativeButton;
 let stmnPlus25Button, stmnMinus25Button, atbMinus50Button, resetButton;
 let staminaAtbLink = false, staminaAtbLinkButton;
 let modalDiv, cnv;
+
+// Global variable for resource UI container (to allow dragging)
+let resourceUIContainer;
+// Variables for dragging resource UI
+let resourceUIDragging = false;
+let resourceUIStartX = 0, resourceUIStartY = 0;
+let resourceUIMouseStartX = 0, resourceUIMouseStartY = 0;
 
 // For description modals
 let descriptionModal = null;
@@ -50,15 +57,24 @@ const additionalAttributes = [
 ];
 
 function setup() {
-  // Create two sub-containers inside #p5-container: one for the canvas, one for the resource UI.
+  // Create two sub-containers inside #p5-container: one for the canvas and one for the resource UI.
   let container = select("#p5-container");
-  container.html(""); // clear
+  container.html(""); // Clear any existing content.
+  
+  // Create canvas container
   let canvasContainer = createDiv();
   canvasContainer.parent(container);
   canvasContainer.id("canvasContainer");
-  let resourceUIContainer = createDiv();
-  resourceUIContainer.parent(container);
+  canvasContainer.style("position", "relative"); // For absolute positioning of resource UI.
+  
+  // Create resource UI container as a child of canvasContainer and assign globally.
+  resourceUIContainer = createDiv();
+  resourceUIContainer.parent(canvasContainer);
   resourceUIContainer.id("resourceUIContainer");
+  
+  // Make resourceUIContainer draggable.
+  resourceUIContainer.mousePressed(startDragResourceUI);
+  resourceUIContainer.mouseReleased(stopDragResourceUI);
   
   // Create canvas responsive to window size and attach to canvasContainer.
   cnv = createCanvas(min(600, windowWidth - 40), 400);
@@ -66,10 +82,10 @@ function setup() {
   textSize(16);
   textAlign(LEFT, TOP);
   
-  // Build Resource Tracker UI using our dedicated function.
+  // Build the Resource Tracker UI.
   createResourceUI();
   
-  // --- Tab Navigation (unchanged) ---
+  // --- Tab Navigation ---
   const tablinks = document.querySelectorAll('.tablink');
   const tabcontents = document.querySelectorAll('.tabcontent');
   tablinks.forEach(btn => {
@@ -81,7 +97,7 @@ function setup() {
     });
   });
   
-  // Create Stats UI in the "stats" tab.
+  // Create the Stats UI in the "stats" tab.
   createStatsUI();
 }
 
@@ -95,6 +111,7 @@ function draw() {
   displayBars();
 }
 
+// Draw resource bars on the canvas.
 function displayBars() {
   let bar_width = 300, bar_height = 20;
   let x = 50, y_hp = 35, y_mp = 75, y_stamina = 115, y_atb = 155;
@@ -109,7 +126,7 @@ function displayBars() {
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   fill(255);
-  text(`HP: ${current_hp}/${max_hp}`, x + bar_width/2, y_hp + bar_height/2);
+  text(`HP: ${current_hp}/${max_hp}`, x + bar_width / 2, y_hp + bar_height / 2);
   
   stroke(0);
   fill(128);
@@ -121,7 +138,7 @@ function displayBars() {
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   fill(255);
-  text(`MP: ${current_mp}/${max_mp}`, x + bar_width/2, y_mp + bar_height/2);
+  text(`MP: ${current_mp}/${max_mp}`, x + bar_width / 2, y_mp + bar_height / 2);
   
   stroke(0);
   fill(128);
@@ -133,7 +150,7 @@ function displayBars() {
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   fill(255);
-  text(`STMN: ${current_stamina}/${max_stamina}`, x + bar_width/2, y_stamina + bar_height/2);
+  text(`STMN: ${current_stamina}/${max_stamina}`, x + bar_width / 2, y_stamina + bar_height / 2);
   
   stroke(0);
   fill(128);
@@ -145,7 +162,7 @@ function displayBars() {
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   fill(255);
-  text(`ATB: ${current_atb}/${max_atb}`, x + bar_width/2, y_atb + bar_height/2);
+  text(`ATB: ${current_atb}/${max_atb}`, x + bar_width / 2, y_atb + bar_height / 2);
   
   textAlign(LEFT, TOP);
   textStyle(NORMAL);
@@ -153,10 +170,10 @@ function displayBars() {
   text("FF7 TTRPG Resource Tracker", 50, 10);
 }
 
-// Resource UI builder: creates rows of elements to mimic original layout.
+// Build the resource tracker UI in a row-based layout.
 function createResourceUI() {
   let rUI = select("#resourceUIContainer");
-  rUI.html(""); // clear container
+  rUI.html(""); // Clear container
   
   // Row 1: "Max:" label
   let row = createDiv();
@@ -246,11 +263,11 @@ function createResourceUI() {
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
-  let quickAdjLabel = createSpan("Quick Adjustments:");
-  quickAdjLabel.parent(row);
-  quickAdjLabel.class("resource-label");
+  let quickLabel = createSpan("Quick Adjustments:");
+  quickLabel.parent(row);
+  quickLabel.class("resource-label");
   
-  // Row 8: Quick adjust buttons
+  // Row 8: Quick adjust buttons (side by side)
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -272,7 +289,7 @@ function createResourceUI() {
   resetButton = createButton("Reset");
   resetButton.parent(row);
   resetButton.class("resource-button");
-  resetButton.mousePressed(reset);
+  resetButton.mousePressed(resetResources);
   
   // Row 9: Link toggle and description
   row = createDiv();
@@ -306,6 +323,15 @@ function setMaxAtb() {
   if (!isNaN(value) && value > 0) { max_atb = value; current_atb = value; }
 }
 
+// Renamed reset function (avoid reserved name)
+function resetResources() {
+  current_hp = max_hp;
+  current_mp = max_mp;
+  current_stamina = max_stamina;
+  current_atb = 0;
+}
+
+// Modal for resource update actions.
 function showModal(action) {
   let amount = parseInt(amountInput.value());
   if (isNaN(amount) || amount <= 0) return;
@@ -354,6 +380,7 @@ function applyResourceChange(action, resource, amount) {
   }
 }
 
+// Toggle the stamina-ATB link.
 function toggleStaminaAtbLink() {
   staminaAtbLink = !staminaAtbLink;
   if (staminaAtbLink) {
@@ -363,13 +390,6 @@ function toggleStaminaAtbLink() {
     staminaAtbLinkButton.html("Link: OFF");
     staminaAtbLinkButton.style("background-color", "red");
   }
-}
-
-function reset() {
-  current_hp = max_hp;
-  current_mp = max_mp;
-  current_stamina = max_stamina;
-  current_atb = 0;
 }
 
 // --- Stats UI Creation ---
@@ -531,4 +551,37 @@ function updateResourcesBasedOnStats() {
   let newMaxMp = 10 + (stat_wil - 1) * 5;
   max_mp = newMaxMp;
   if (current_mp > max_mp) current_mp = max_mp;
+}
+
+// --- Dragging functionality for resourceUIContainer ---
+function startDragResourceUI() {
+  resourceUIDragging = true;
+  // Get current position; if not set, default to 10px from right/top.
+  let leftStr = resourceUIContainer.style("left");
+  let topStr = resourceUIContainer.style("top");
+  resourceUIStartX = leftStr ? parseInt(leftStr) : 10;
+  resourceUIStartY = topStr ? parseInt(topStr) : 10;
+  resourceUIMouseStartX = mouseX;
+  resourceUIMouseStartY = mouseY;
+}
+
+function stopDragResourceUI() {
+  resourceUIDragging = false;
+}
+
+function mouseDragged() {
+  if (resourceUIDragging) {
+    let newX = resourceUIStartX + (mouseX - resourceUIMouseStartX);
+    let newY = resourceUIStartY + (mouseY - resourceUIMouseStartY);
+    resourceUIContainer.style("left", newX + "px");
+    resourceUIContainer.style("top", newY + "px");
+  }
+}
+
+// Rename reset to avoid reserved name.
+function resetResources() {
+  current_hp = max_hp;
+  current_mp = max_mp;
+  current_stamina = max_stamina;
+  current_atb = 0;
 }
