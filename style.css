@@ -1,3 +1,7 @@
+html, body {
+  overflow-x: auto;
+}
+
 body {
   margin: 0;
   font-family: sans-serif;
@@ -20,6 +24,7 @@ header input {
   display: grid;
   grid-template-columns: 200px 1fr;
   height: calc(100vh - 50px);
+  overflow-x: auto;
 }
 
 /* Tabs styling */
@@ -124,6 +129,7 @@ header input {
   .container {
     display: flex;
     flex-direction: column;
+    overflow-x: auto;
   }
   .content {
     order: 1;
