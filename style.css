@@ -26,12 +26,14 @@ header input {
 .tabs {
   background: #ddd;
   padding: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
 .tabs button {
-  display: block;
-  width: 100%;
-  margin-bottom: 5px;
+  display: inline-block;
+  min-width: 100px;
+  margin-right: 5px;
   padding: 10px;
   border: none;
   background: #ccc;
@@ -58,7 +60,7 @@ header input {
   display: block;
 }
 
-/* p5-container is relative so its children can be absolutely positioned */
+/* p5-container styling */
 #p5-container {
   position: relative;
   width: 100%;
@@ -66,7 +68,7 @@ header input {
   margin: 0 auto;
 }
 
-/* Resource Tracker UI overlay – fixed size */
+/* Resource Tracker UI overlay */
 #resourceUIContainer {
   position: absolute;
   top: 10px;
@@ -76,6 +78,7 @@ header input {
   padding: 5px;
   border: 1px solid #ccc;
   cursor: move;
+  box-sizing: border-box;
 }
 
 /* Resource UI row styling */
@@ -103,7 +106,7 @@ header input {
   margin-right: 5px;
 }
 
-/* Skills container inside Stats UI – tightened */
+/* Skills container (Additional Attributes) */
 #skillsContainer {
   position: absolute;
   top: 10px;
@@ -113,6 +116,7 @@ header input {
   padding: 3px;
   border: 1px solid #ccc;
   cursor: move;
+  box-sizing: border-box;
 }
 
 /* Mobile adjustments */
@@ -128,12 +132,14 @@ header input {
   .tabs {
     order: 2;
     display: flex;
-    justify-content: space-around;
+    justify-content: flex-start;
     background: #ddd;
     padding: 5px 0;
+    overflow-x: auto;
+    white-space: nowrap;
   }
   .tabs button {
-    flex: 1;
+    flex: 0 0 auto;
     margin: 0 2px;
     padding: 10px;
   }
