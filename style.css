@@ -58,7 +58,7 @@ header input {
   display: block;
 }
 
-/* p5-container: relative to allow absolute positioning for resourceUIContainer */
+/* p5-container is relative */
 #p5-container {
   position: relative;
   width: 100%;
@@ -66,23 +66,19 @@ header input {
   margin: 0 auto;
 }
 
-/* Canvas container */
-#canvasContainer {
-  /* No extra styling needed */
-}
-
-/* Resource tracker UI overlay */
+/* Resource Tracker UI overlay */
 #resourceUIContainer {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(255,255,255,0.9);
+  width: 220px; /* Fixed width */
+  background: rgba(255,255,255,0.95);
   padding: 5px;
   border: 1px solid #ccc;
   cursor: move;
 }
 
-/* Layout for resource UI rows */
+/* Resource UI row styling */
 .resource-row {
   display: flex;
   align-items: center;
@@ -107,7 +103,19 @@ header input {
   margin-right: 5px;
 }
 
-/* Mobile adjustments: move tabs to bottom */
+/* Skills container inside Stats UI */
+#skillsContainer {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 220px;
+  background: rgba(255,255,255,0.95);
+  padding: 5px;
+  border: 1px solid #ccc;
+  cursor: move;
+}
+
+/* Mobile adjustments: tabs at bottom */
 @media screen and (max-width: 600px) {
   .container {
     display: flex;
@@ -135,6 +143,14 @@ header input {
   #resourceUIContainer {
     top: 5px;
     right: 5px;
+    width: 200px;
+    padding: 3px;
+    font-size: 12px;
+  }
+  #skillsContainer {
+    top: 5px;
+    right: 5px;
+    width: 200px;
     padding: 3px;
     font-size: 12px;
   }
