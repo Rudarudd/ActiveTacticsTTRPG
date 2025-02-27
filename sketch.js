@@ -8,7 +8,7 @@ let max_atb = 100, current_atb = 0;
 let stat_str = 1, stat_vit = 1, stat_dex = 1, stat_mag = 1, stat_wil = 1, stat_spr = 1, stat_lck = 1;
 let level = 1, exp = 1, movement = 1;
 
-// UI elements for resources will be created in createResourceUI()
+// UI elements for resource tracker are created in createResourceUI()
 let maxHpInput, setMaxHpButton, maxMpInput, setMaxMpButton;
 let maxStaminaInput, setMaxStaminaButton, maxAtbInput, setMaxAtbButton;
 let amountInput, positiveButton, negativeButton;
@@ -16,17 +16,18 @@ let stmnPlus25Button, stmnMinus25Button, atbMinus50Button, resetButton;
 let staminaAtbLink = false, staminaAtbLinkButton;
 let modalDiv, cnv;
 
-// For dragging resourceUIContainer
+// Dragging for resource UI container
 let resourceUIDragging = false;
 let resourceUIStartX = 0, resourceUIStartY = 0, resourceUIMouseStartX = 0, resourceUIMouseStartY = 0;
+let resourceUILocked = false; // Default unlocked
 
-// For dragging Skills container
+// Dragging for Skills container
 let skillsDragging = false;
 let skillsStartX = 0, skillsStartY = 0, skillsMouseStartX = 0, skillsMouseStartY = 0;
+let skillsLocked = false;
 
-// Global variable for resource UI container (set in setup)
+// Global container variables (set in setup)
 let resourceUIContainer;
-// Global variable for skills container (set in createAdditionalAttributesUI)
 let skillsContainer;
 
 // For description modals
@@ -63,7 +64,7 @@ const additionalAttributes = [
 ];
 
 function setup() {
-  // Create two sub-containers inside #p5-container: one for the canvas and one for the resource UI.
+  // Create two sub‑containers inside #p5-container: one for the canvas and one for the resource UI.
   let container = select("#p5-container");
   container.html(""); // Clear any existing content.
   
@@ -71,15 +72,16 @@ function setup() {
   let canvasContainer = createDiv();
   canvasContainer.parent(container);
   canvasContainer.id("canvasContainer");
-  canvasContainer.style("position", "relative"); // For absolute positioning
+  canvasContainer.style("position", "relative");
   
   // Create resource UI container as a child of canvasContainer.
   resourceUIContainer = createDiv();
   resourceUIContainer.parent(canvasContainer);
   resourceUIContainer.id("resourceUIContainer");
-  // Set fixed size via CSS (see style.css)
   resourceUIContainer.mousePressed(startDragResourceUI);
   resourceUIContainer.mouseReleased(stopDragResourceUI);
+  resourceUIContainer.touchStarted(startDragResourceUI);
+  resourceUIContainer.touchEnded(stopDragResourceUI);
   
   // Create canvas responsive to window size and attach to canvasContainer.
   cnv = createCanvas(min(600, windowWidth - 40), 400);
@@ -174,13 +176,22 @@ function displayBars() {
   text("FF7 TTRPG Resource Tracker", 50, 10);
 }
 
-// Build the resource tracker UI in rows.
+// Build the resource tracker UI with fixed rows and add a lock checkbox.
 function createResourceUI() {
   let rUI = select("#resourceUIContainer");
   rUI.html(""); // Clear container
   
-  // Row 1: "Max:" label
+  // Row 0: Lock checkbox for Resource UI
   let row = createDiv();
+  row.parent(rUI);
+  row.class("resource-row");
+  let lockCheckbox = createCheckbox("Lock", false);
+  lockCheckbox.parent(row);
+  lockCheckbox.changed(() => { resourceUILocked = lockCheckbox.checked(); });
+  lockCheckbox.style("margin-left", "auto");
+  
+  // Row 1: "Max:" label
+  row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
   let maxLabel = createSpan("Max:");
@@ -327,14 +338,6 @@ function setMaxAtb() {
   if (!isNaN(value) && value > 0) { max_atb = value; current_atb = value; }
 }
 
-// Renamed reset function.
-function resetResources() {
-  current_hp = max_hp;
-  current_mp = max_mp;
-  current_stamina = max_stamina;
-  current_atb = 0;
-}
-
 // Modal for resource update actions.
 function showModal(action) {
   let amount = parseInt(amountInput.value());
@@ -460,15 +463,25 @@ function createAdditionalAttributesUI() {
   let addContainer = createDiv();
   addContainer.parent(statsContainer);
   addContainer.id("skillsContainer");
-  // Make skills container draggable:
+  // Make skills container draggable.
   addContainer.mousePressed(startDragSkills);
   addContainer.mouseReleased(stopDragSkills);
+  addContainer.touchStarted(startDragSkills);
+  addContainer.touchEnded(stopDragSkills);
   
   addContainer.style("border", "1px solid #ccc");
-  addContainer.style("padding", "10px");
+  addContainer.style("padding", "5px"); // tightened up
   addContainer.style("margin-top", "20px");
-  addContainer.style("width", "220px");
+  addContainer.style("width", "180px"); // reduced width
   createElement("h3", "Skills").parent(addContainer);
+  
+  // Add lock checkbox for Skills
+  let lockRow = createDiv();
+  lockRow.parent(addContainer);
+  lockRow.style("text-align", "right");
+  let skillsLockCheckbox = createCheckbox("Lock", false);
+  skillsLockCheckbox.parent(lockRow);
+  skillsLockCheckbox.changed(() => { skillsLocked = skillsLockCheckbox.checked(); });
   
   additionalAttributes.forEach(attr => {
     let attrDiv = createDiv();
@@ -562,6 +575,7 @@ function updateResourcesBasedOnStats() {
 
 // --- Dragging for Resource UI ---
 function startDragResourceUI() {
+  if (resourceUILocked) return;
   resourceUIDragging = true;
   let leftStr = resourceUIContainer.style("left");
   let topStr = resourceUIContainer.style("top");
@@ -592,6 +606,7 @@ function mouseDragged() {
 
 // --- Dragging for Skills container ---
 function startDragSkills() {
+  if (skillsLocked) return;
   skillsDragging = true;
   skillsContainer = select("#skillsContainer");
   let leftStr = skillsContainer.style("left");
@@ -606,10 +621,10 @@ function stopDragSkills() {
   skillsDragging = false;
 }
 
-// Rename reset function
+// Rename reset function.
 function resetResources() {
   current_hp = max_hp;
   current_mp = max_mp;
   current_stamina = max_stamina;
-  current_atb = 0;
+  current_atb = max_atb;
 }
