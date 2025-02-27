@@ -1,7 +1,8 @@
+/* Global styles */
 body {
   margin: 0;
   font-family: sans-serif;
-  overflow-x: visible; /* Allow normal horizontal scrolling */
+  overflow-x: visible;
 }
 
 header {
@@ -17,38 +18,62 @@ header input {
   margin-right: 10px;
 }
 
+/* Container: two columns on desktop */
 .container {
   display: grid;
   grid-template-columns: 200px 1fr;
   height: calc(100vh - 50px);
-  /* No forced horizontal overflow here */
 }
 
-/* Tabs styling */
-.tabs {
-  background: #ddd;
-  padding: 10px;
-  overflow-x: auto;
-  white-space: nowrap;
-  -webkit-overflow-scrolling: touch;
+/* Desktop tabs (min-width: 601px) - vertical list */
+@media screen and (min-width: 601px) {
+  .tabs {
+    display: flex;
+    flex-direction: column;
+    background: #ddd;
+    padding: 10px;
+    overflow-x: visible;
+    white-space: normal;
+  }
+  .tabs button {
+    display: block;
+    width: 100%;
+    margin-bottom: 5px;
+    padding: 10px;
+    border: none;
+    background: #ccc;
+    cursor: pointer;
+  }
+  .tabs button.active {
+    background: #bbb;
+    font-weight: bold;
+  }
 }
 
-.tabs button {
-  display: inline-block;
-  min-width: 100px;
-  margin-right: 5px;
-  padding: 10px;
-  border: none;
-  background: #ccc;
-  cursor: pointer;
+/* Mobile tabs (max-width: 600px) - horizontal scrolling */
+@media screen and (max-width: 600px) {
+  .container {
+    display: flex;
+    flex-direction: column;
+  }
+  .tabs {
+    order: 2;
+    display: flex;
+    justify-content: flex-start;
+    background: #ddd;
+    padding: 5px 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tabs button {
+    flex: 0 0 auto;
+    margin: 0 2px;
+    padding: 10px;
+  }
 }
 
-.tabs button.active {
-  background: #bbb;
-  font-weight: bold;
-}
-
-/* Content area and tab content */
+/* Content area */
 .content {
   padding: 10px;
   overflow-y: auto;
@@ -110,7 +135,7 @@ header input {
   margin-right: 5px;
 }
 
-/* Skills container (Additional Attributes) */
+/* Skills container (for Additional Attributes) */
 #skillsContainer {
   position: absolute;
   top: 10px;
@@ -123,34 +148,8 @@ header input {
   box-sizing: border-box;
 }
 
-/* Mobile adjustments */
+/* Mobile adjustments for draggable boxes */
 @media screen and (max-width: 600px) {
-  .container {
-    display: flex;
-    flex-direction: column;
-  }
-  .content {
-    order: 1;
-    padding: 5px;
-  }
-  .tabs {
-    order: 2;
-    display: flex;
-    justify-content: flex-start;
-    background: #ddd;
-    padding: 5px 0;
-    overflow-x: auto;
-    white-space: nowrap;
-    -webkit-overflow-scrolling: touch;
-  }
-  .tabs button {
-    flex: 0 0 auto;
-    margin: 0 2px;
-    padding: 10px;
-  }
-  #p5-container {
-    max-width: 100%;
-  }
   #resourceUIContainer,
   #skillsContainer {
     top: 5px;
