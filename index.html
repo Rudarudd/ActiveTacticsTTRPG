@@ -27,8 +27,9 @@
         <button class="tablink" data-tab="inventory">Inventory</button>
       </div>
       <div class="content">
+        <!-- Each tabcontent is hidden unless active -->
         <div id="resources" class="tabcontent active">
-          <!-- p5-container will host both the canvas and the resource tracker UI -->
+          <!-- p5-container is inside resources so that when you switch tabs, it is hidden -->
           <div id="p5-container"></div>
         </div>
         <div id="talents" class="tabcontent">
