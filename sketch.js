@@ -63,10 +63,19 @@ const additionalAttributes = [
   { name: "Ingenuity", desc: "Your problem-solving ability and technical expertise in mechanical, electronic, and creative fields. Used for hacking, crafting, repairing technology, and improvising solutions.", color: "#9b59b6" }
 ];
 
+// --- Helper functions for current pointer position (mobile support) ---
+function getDragX() {
+  return touches.length > 0 ? touches[0].x : mouseX;
+}
+
+function getDragY() {
+  return touches.length > 0 ? touches[0].y : mouseY;
+}
+
 function setup() {
   // Create two sub‑containers inside #p5-container: one for the canvas and one for the resource UI.
   let container = select("#p5-container");
-  container.html(""); // Clear existing content
+  container.html(""); // Clear any existing content
   
   // Create canvas container
   let canvasContainer = createDiv();
@@ -587,27 +596,12 @@ function startDragResourceUI() {
   let topStr = resourceUIContainer.style("top");
   resourceUIStartX = leftStr ? parseInt(leftStr) : 10;
   resourceUIStartY = topStr ? parseInt(topStr) : 10;
-  resourceUIMouseStartX = mouseX;
-  resourceUIMouseStartY = mouseY;
+  resourceUIMouseStartX = getDragX();
+  resourceUIMouseStartY = getDragY();
 }
 
 function stopDragResourceUI() {
   resourceUIDragging = false;
-}
-
-function mouseDragged() {
-  if (resourceUIDragging) {
-    let newX = resourceUIStartX + (mouseX - resourceUIMouseStartX);
-    let newY = resourceUIStartY + (mouseY - resourceUIMouseStartY);
-    resourceUIContainer.style("left", newX + "px");
-    resourceUIContainer.style("top", newY + "px");
-  }
-  if (skillsDragging) {
-    let newX = skillsStartX + (mouseX - skillsMouseStartX);
-    let newY = skillsStartY + (mouseY - skillsMouseStartY);
-    skillsContainer.style("left", newX + "px");
-    skillsContainer.style("top", newY + "px");
-  }
 }
 
 // --- Dragging for Skills container ---
@@ -619,15 +613,43 @@ function startDragSkills() {
   let topStr = skillsContainer.style("top");
   skillsStartX = leftStr ? parseInt(leftStr) : 10;
   skillsStartY = topStr ? parseInt(topStr) : 10;
-  skillsMouseStartX = mouseX;
-  skillsMouseStartY = mouseY;
+  skillsMouseStartX = getDragX();
+  skillsMouseStartY = getDragY();
 }
 
 function stopDragSkills() {
   skillsDragging = false;
 }
 
-// Renamed reset function.
+// Use helper functions for pointer position (mobile-friendly)
+function getDragX() {
+  return touches.length > 0 ? touches[0].x : mouseX;
+}
+
+function getDragY() {
+  return touches.length > 0 ? touches[0].y : mouseY;
+}
+
+// --- mouseDragged override for both containers ---
+function mouseDragged() {
+  let currentX = getDragX();
+  let currentY = getDragY();
+  
+  if (resourceUIDragging) {
+    let newX = resourceUIStartX + (currentX - resourceUIMouseStartX);
+    let newY = resourceUIStartY + (currentY - resourceUIMouseStartY);
+    resourceUIContainer.style("left", newX + "px");
+    resourceUIContainer.style("top", newY + "px");
+  }
+  if (skillsDragging) {
+    let newX = skillsStartX + (currentX - skillsMouseStartX);
+    let newY = skillsStartY + (currentY - skillsMouseStartY);
+    skillsContainer.style("left", newX + "px");
+    skillsContainer.style("top", newY + "px");
+  }
+}
+
+// --- Reset function renamed ---
 function resetResources() {
   current_hp = max_hp;
   current_mp = max_mp;
