@@ -2,7 +2,7 @@
 let max_hp = 25, current_hp = 25;
 let max_mp = 10, current_mp = 10;
 let max_stamina = 100, current_stamina = 100;
-let max_atb = 100, current_atb = 0;
+let max_atb = 100, current_atb = 100;
 
 // Global stat variables – all start at 1
 let stat_str = 1, stat_vit = 1, stat_dex = 1, stat_mag = 1, stat_wil = 1, stat_spr = 1, stat_lck = 1;
@@ -53,14 +53,15 @@ const statDescriptions = {
   "Movement": "Determines movement range per turn."
 };
 
+// Updated additional attributes; note Willpower is now hot pink (#FF69B4)
 const additionalAttributes = [
-  { name: "Athletics", desc: "Your ability to exert physical strength and endurance to overcome obstacles. Used for climbing, swimming, jumping, grappling, and feats of raw power.", color: "#e74c3c" },
-  { name: "Endurance", desc: "Your capacity to withstand physical strain, pain, and adverse conditions. Used for resisting poisons, disease, exhaustion, and enduring extreme conditions.", color: "#27ae60" },
-  { name: "Agility", desc: "Your speed, reflexes, and balance in movement and precision. Used for dodging, acrobatics, stealth, and precise motor control.", color: "#2980b9" },
-  { name: "Willpower", desc: "Your mental resilience and determination to resist external influences. Used for resisting mind control, fear effects, psychic attacks, and maintaining focus under pressure.", color: "#8e44ad" },
-  { name: "Awareness", desc: "Your ability to observe, sense, and interpret your surroundings. Used for noticing hidden details, tracking, detecting lies, and reacting to environmental threats.", color: "#f39c12" },
-  { name: "Influence", desc: "Your ability to manipulate, persuade, or command others through words and body language. Friendly Influence is used for persuasion, bartering, and diplomacy; Hostile Influence is used for intimidation and coercion.", color: "#d35400" },
-  { name: "Ingenuity", desc: "Your problem-solving ability and technical expertise in mechanical, electronic, and creative fields. Used for hacking, crafting, repairing technology, and improvising solutions.", color: "#9b59b6" }
+  { name: "Athletics", desc: "Your ability to exert physical strength and endurance to overcome obstacles. Used for climbing, swimming, jumping, grappling, and feats of raw power.", color: "#C0392B" },
+  { name: "Endurance", desc: "Your capacity to withstand physical strain, pain, and adverse conditions. Used for resisting poisons, disease, exhaustion, and enduring extreme conditions.", color: "#27AE60" },
+  { name: "Agility", desc: "Your speed, reflexes, and balance in movement and precision. Used for dodging, acrobatics, stealth, and precise motor control.", color: "#2980B9" },
+  { name: "Willpower", desc: "Your mental resilience and determination to resist external influences. Used for resisting mind control, fear effects, psychic attacks, and maintaining focus under pressure.", color: "#FF69B4" },
+  { name: "Awareness", desc: "Your ability to observe, sense, and interpret your surroundings. Used for noticing hidden details, tracking, detecting lies, and reacting to environmental threats.", color: "#F39C12" },
+  { name: "Influence", desc: "Your ability to manipulate, persuade, or command others through words and body language. Friendly Influence is used for persuasion, bartering, and diplomacy; Hostile Influence is used for intimidation and coercion.", color: "#8E44AD" },
+  { name: "Ingenuity", desc: "Your problem-solving ability and technical expertise in mechanical, electronic, and creative fields. Used for hacking, crafting, repairing technology, and improvising solutions.", color: "#2C3E50" }
 ];
 
 // --- Helper functions for current pointer position (mobile support) ---
@@ -75,7 +76,7 @@ function getDragY() {
 function setup() {
   // Create two sub‑containers inside #p5-container: one for the canvas and one for the resource UI.
   let container = select("#p5-container");
-  container.html(""); // Clear any existing content
+  container.html(""); // Clear existing content
   
   // Create canvas container
   let canvasContainer = createDiv();
@@ -141,7 +142,7 @@ function displayBars() {
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   fill(255);
-  text(`HP: ${current_hp}/${max_hp}`, x + bar_width/2, y_hp + bar_height/2);
+  text(`HP: ${current_hp}/${max_hp}`, x + bar_width / 2, y_hp + bar_height / 2);
   
   stroke(0);
   fill(128);
@@ -153,7 +154,7 @@ function displayBars() {
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   fill(255);
-  text(`MP: ${current_mp}/${max_mp}`, x + bar_width/2, y_mp + bar_height/2);
+  text(`MP: ${current_mp}/${max_mp}`, x + bar_width / 2, y_mp + bar_height / 2);
   
   stroke(0);
   fill(128);
@@ -165,7 +166,7 @@ function displayBars() {
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   fill(255);
-  text(`STMN: ${current_stamina}/${max_stamina}`, x + bar_width/2, y_stamina + bar_height/2);
+  text(`STMN: ${current_stamina}/${max_stamina}`, x + bar_width / 2, y_stamina + bar_height / 2);
   
   stroke(0);
   fill(128);
@@ -177,7 +178,7 @@ function displayBars() {
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   fill(255);
-  text(`ATB: ${current_atb}/${max_atb}`, x + bar_width/2, y_atb + bar_height/2);
+  text(`ATB: ${current_atb}/${max_atb}`, x + bar_width / 2, y_atb + bar_height / 2);
   
   textAlign(LEFT, TOP);
   textStyle(NORMAL);
@@ -415,7 +416,6 @@ function toggleStaminaAtbLink() {
 }
 
 // --- STATS UI CREATION ---
-
 function createStatsUI() {
   let statsContainer = select("#stats");
   statsContainer.html("");
@@ -449,9 +449,11 @@ function createStatInput(abbrev, name, initialValue, container, callback, linkab
   label.style("cursor", "pointer");
   label.mouseClicked(() => {
     if (linkable && statCheckboxes[abbrev] && !statCheckboxes[abbrev].checked()) {
-      if (!descriptionModal) showStatDescription(name + " (" + abbrev + ")", statDescriptions[abbrev] || "No description available.");
+      if (!descriptionModal) 
+        showStatDescription(name + " (" + abbrev + ")", statDescriptions[abbrev] || "No description available.");
     } else if (!linkable) {
-      if (!descriptionModal) showStatDescription(name + " (" + abbrev + ")", statDescriptions[abbrev] || "No description available.");
+      if (!descriptionModal) 
+        showStatDescription(name + " (" + abbrev + ")", statDescriptions[abbrev] || "No description available.");
     }
   });
   statLabelElements[abbrev] = label;
@@ -630,7 +632,7 @@ function getDragY() {
   return touches.length > 0 ? touches[0].y : mouseY;
 }
 
-// --- mouseDragged override for both containers ---
+// Override mouseDragged to update positions of draggable containers.
 function mouseDragged() {
   let currentX = getDragX();
   let currentY = getDragY();
@@ -649,7 +651,13 @@ function mouseDragged() {
   }
 }
 
-// --- Reset function renamed ---
+// Override touchMoved for mobile dragging smoothness.
+function touchMoved() {
+  mouseDragged();
+  return false; // Prevent default scrolling
+}
+
+// --- Reset function ---
 function resetResources() {
   current_hp = max_hp;
   current_mp = max_mp;
