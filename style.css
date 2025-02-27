@@ -71,7 +71,7 @@ header input {
   position: absolute;
   top: 10px;
   right: 10px;
-  width: 220px; /* Fixed width */
+  width: 220px; /* fixed width */
   background: rgba(255,255,255,0.95);
   padding: 5px;
   border: 1px solid #ccc;
@@ -103,19 +103,19 @@ header input {
   margin-right: 5px;
 }
 
-/* Skills container inside Stats UI */
+/* Skills container (for Additional Attributes) */
 #skillsContainer {
   position: absolute;
   top: 10px;
   right: 10px;
-  width: 220px;
+  width: 180px;  /* reduced width */
   background: rgba(255,255,255,0.95);
-  padding: 5px;
+  padding: 3px;  /* tighter padding */
   border: 1px solid #ccc;
   cursor: move;
 }
 
-/* Mobile adjustments: tabs at bottom */
+/* Mobile adjustments: move tabs to bottom */
 @media screen and (max-width: 600px) {
   .container {
     display: flex;
@@ -140,17 +140,11 @@ header input {
   #p5-container {
     max-width: 100%;
   }
-  #resourceUIContainer {
-    top: 5px;
-    right: 5px;
-    width: 200px;
-    padding: 3px;
-    font-size: 12px;
-  }
+  #resourceUIContainer,
   #skillsContainer {
     top: 5px;
     right: 5px;
-    width: 200px;
+    width: 160px;
     padding: 3px;
     font-size: 12px;
   }
