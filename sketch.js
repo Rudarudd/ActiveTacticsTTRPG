@@ -8,7 +8,7 @@ let max_atb = 100, current_atb = 0;
 let stat_str = 1, stat_vit = 1, stat_dex = 1, stat_mag = 1, stat_wil = 1, stat_spr = 1, stat_lck = 1;
 let level = 1, exp = 1, movement = 1;
 
-// We'll create resource UI elements inside resourceUIContainer.
+// UI elements for resources will be created in createResourceUI()
 let maxHpInput, setMaxHpButton, maxMpInput, setMaxMpButton;
 let maxStaminaInput, setMaxStaminaButton, maxAtbInput, setMaxAtbButton;
 let amountInput, positiveButton, negativeButton;
@@ -16,12 +16,18 @@ let stmnPlus25Button, stmnMinus25Button, atbMinus50Button, resetButton;
 let staminaAtbLink = false, staminaAtbLinkButton;
 let modalDiv, cnv;
 
-// Global variable for resource UI container (to allow dragging)
-let resourceUIContainer;
-// Variables for dragging resource UI
+// For dragging resourceUIContainer
 let resourceUIDragging = false;
-let resourceUIStartX = 0, resourceUIStartY = 0;
-let resourceUIMouseStartX = 0, resourceUIMouseStartY = 0;
+let resourceUIStartX = 0, resourceUIStartY = 0, resourceUIMouseStartX = 0, resourceUIMouseStartY = 0;
+
+// For dragging Skills container
+let skillsDragging = false;
+let skillsStartX = 0, skillsStartY = 0, skillsMouseStartX = 0, skillsMouseStartY = 0;
+
+// Global variable for resource UI container (set in setup)
+let resourceUIContainer;
+// Global variable for skills container (set in createAdditionalAttributesUI)
+let skillsContainer;
 
 // For description modals
 let descriptionModal = null;
@@ -65,14 +71,13 @@ function setup() {
   let canvasContainer = createDiv();
   canvasContainer.parent(container);
   canvasContainer.id("canvasContainer");
-  canvasContainer.style("position", "relative"); // For absolute positioning of resource UI.
+  canvasContainer.style("position", "relative"); // For absolute positioning
   
-  // Create resource UI container as a child of canvasContainer and assign globally.
+  // Create resource UI container as a child of canvasContainer.
   resourceUIContainer = createDiv();
   resourceUIContainer.parent(canvasContainer);
   resourceUIContainer.id("resourceUIContainer");
-  
-  // Make resourceUIContainer draggable.
+  // Set fixed size via CSS (see style.css)
   resourceUIContainer.mousePressed(startDragResourceUI);
   resourceUIContainer.mouseReleased(stopDragResourceUI);
   
@@ -111,7 +116,6 @@ function draw() {
   displayBars();
 }
 
-// Draw resource bars on the canvas.
 function displayBars() {
   let bar_width = 300, bar_height = 20;
   let x = 50, y_hp = 35, y_mp = 75, y_stamina = 115, y_atb = 155;
@@ -126,7 +130,7 @@ function displayBars() {
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   fill(255);
-  text(`HP: ${current_hp}/${max_hp}`, x + bar_width / 2, y_hp + bar_height / 2);
+  text(`HP: ${current_hp}/${max_hp}`, x + bar_width/2, y_hp + bar_height/2);
   
   stroke(0);
   fill(128);
@@ -138,7 +142,7 @@ function displayBars() {
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   fill(255);
-  text(`MP: ${current_mp}/${max_mp}`, x + bar_width / 2, y_mp + bar_height / 2);
+  text(`MP: ${current_mp}/${max_mp}`, x + bar_width/2, y_mp + bar_height/2);
   
   stroke(0);
   fill(128);
@@ -150,7 +154,7 @@ function displayBars() {
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   fill(255);
-  text(`STMN: ${current_stamina}/${max_stamina}`, x + bar_width / 2, y_stamina + bar_height / 2);
+  text(`STMN: ${current_stamina}/${max_stamina}`, x + bar_width/2, y_stamina + bar_height/2);
   
   stroke(0);
   fill(128);
@@ -162,7 +166,7 @@ function displayBars() {
   textAlign(CENTER, CENTER);
   textStyle(BOLD);
   fill(255);
-  text(`ATB: ${current_atb}/${max_atb}`, x + bar_width / 2, y_atb + bar_height / 2);
+  text(`ATB: ${current_atb}/${max_atb}`, x + bar_width/2, y_atb + bar_height/2);
   
   textAlign(LEFT, TOP);
   textStyle(NORMAL);
@@ -170,7 +174,7 @@ function displayBars() {
   text("FF7 TTRPG Resource Tracker", 50, 10);
 }
 
-// Build the resource tracker UI in a row-based layout.
+// Build the resource tracker UI in rows.
 function createResourceUI() {
   let rUI = select("#resourceUIContainer");
   rUI.html(""); // Clear container
@@ -267,7 +271,7 @@ function createResourceUI() {
   quickLabel.parent(row);
   quickLabel.class("resource-label");
   
-  // Row 8: Quick adjust buttons (side by side)
+  // Row 8: Quick adjust buttons
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -323,7 +327,7 @@ function setMaxAtb() {
   if (!isNaN(value) && value > 0) { max_atb = value; current_atb = value; }
 }
 
-// Renamed reset function (avoid reserved name)
+// Renamed reset function.
 function resetResources() {
   current_hp = max_hp;
   current_mp = max_mp;
@@ -380,7 +384,6 @@ function applyResourceChange(action, resource, amount) {
   }
 }
 
-// Toggle the stamina-ATB link.
 function toggleStaminaAtbLink() {
   staminaAtbLink = !staminaAtbLink;
   if (staminaAtbLink) {
@@ -392,7 +395,8 @@ function toggleStaminaAtbLink() {
   }
 }
 
-// --- Stats UI Creation ---
+// --- STATS UI CREATION ---
+
 function createStatsUI() {
   let statsContainer = select("#stats");
   statsContainer.html("");
@@ -455,12 +459,15 @@ function createAdditionalAttributesUI() {
   let statsContainer = select("#stats");
   let addContainer = createDiv();
   addContainer.parent(statsContainer);
+  addContainer.id("skillsContainer");
+  // Make skills container draggable:
+  addContainer.mousePressed(startDragSkills);
+  addContainer.mouseReleased(stopDragSkills);
+  
   addContainer.style("border", "1px solid #ccc");
   addContainer.style("padding", "10px");
   addContainer.style("margin-top", "20px");
-  addContainer.style("display", "inline-block");
-  addContainer.style("vertical-align", "top");
-  addContainer.style("margin-left", "20px");
+  addContainer.style("width", "220px");
   createElement("h3", "Skills").parent(addContainer);
   
   additionalAttributes.forEach(attr => {
@@ -553,10 +560,9 @@ function updateResourcesBasedOnStats() {
   if (current_mp > max_mp) current_mp = max_mp;
 }
 
-// --- Dragging functionality for resourceUIContainer ---
+// --- Dragging for Resource UI ---
 function startDragResourceUI() {
   resourceUIDragging = true;
-  // Get current position; if not set, default to 10px from right/top.
   let leftStr = resourceUIContainer.style("left");
   let topStr = resourceUIContainer.style("top");
   resourceUIStartX = leftStr ? parseInt(leftStr) : 10;
@@ -576,9 +582,31 @@ function mouseDragged() {
     resourceUIContainer.style("left", newX + "px");
     resourceUIContainer.style("top", newY + "px");
   }
+  if (skillsDragging) {
+    let newX = skillsStartX + (mouseX - skillsMouseStartX);
+    let newY = skillsStartY + (mouseY - skillsMouseStartY);
+    skillsContainer.style("left", newX + "px");
+    skillsContainer.style("top", newY + "px");
+  }
 }
 
-// Rename reset to avoid reserved name.
+// --- Dragging for Skills container ---
+function startDragSkills() {
+  skillsDragging = true;
+  skillsContainer = select("#skillsContainer");
+  let leftStr = skillsContainer.style("left");
+  let topStr = skillsContainer.style("top");
+  skillsStartX = leftStr ? parseInt(leftStr) : 10;
+  skillsStartY = topStr ? parseInt(topStr) : 10;
+  skillsMouseStartX = mouseX;
+  skillsMouseStartY = mouseY;
+}
+
+function stopDragSkills() {
+  skillsDragging = false;
+}
+
+// Rename reset function
 function resetResources() {
   current_hp = max_hp;
   current_mp = max_mp;
