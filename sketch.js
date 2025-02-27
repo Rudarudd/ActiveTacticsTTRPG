@@ -656,7 +656,7 @@ function mouseDragged() {
   let currentX = getDragX();
   let currentY = getDragY();
   
-  if (resourceUIDragging) {
+  if (resourceUIDragging && !resourceUILocked) {
     let newX = resourceUIStartX + (currentX - resourceUIMouseStartX);
     let newY = resourceUIStartY + (currentY - resourceUIMouseStartY);
     let boxWidth = resourceUIContainer.elt.offsetWidth;
@@ -667,7 +667,7 @@ function mouseDragged() {
     resourceUIContainer.style("top", newY + "px");
   }
   
-  if (skillsDragging) {
+  if (skillsDragging && !skillsLocked) {
     let newX = skillsStartX + (currentX - skillsMouseStartX);
     let newY = skillsStartY + (currentY - skillsMouseStartY);
     let boxWidth = skillsContainer.elt.offsetWidth;
