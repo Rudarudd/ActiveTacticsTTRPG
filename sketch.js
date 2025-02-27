@@ -694,5 +694,5 @@ function resetResources() {
   current_hp = max_hp;
   current_mp = max_mp;
   current_stamina = max_stamina;
-  current_atb = max_atb;
+  current_atb = 0;
 }
