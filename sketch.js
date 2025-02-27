@@ -8,7 +8,7 @@ let max_atb = 100, current_atb = 0;
 let stat_str = 1, stat_vit = 1, stat_dex = 1, stat_mag = 1, stat_wil = 1, stat_spr = 1, stat_lck = 1;
 let level = 1, exp = 1, movement = 1;
 
-// UI elements for resource tracker are created in createResourceUI()
+// UI elements for resource tracker (created in createResourceUI)
 let maxHpInput, setMaxHpButton, maxMpInput, setMaxMpButton;
 let maxStaminaInput, setMaxStaminaButton, maxAtbInput, setMaxAtbButton;
 let amountInput, positiveButton, negativeButton;
@@ -16,12 +16,12 @@ let stmnPlus25Button, stmnMinus25Button, atbMinus50Button, resetButton;
 let staminaAtbLink = false, staminaAtbLinkButton;
 let modalDiv, cnv;
 
-// Dragging for resource UI container
+// Variables for dragging resource UI container
 let resourceUIDragging = false;
 let resourceUIStartX = 0, resourceUIStartY = 0, resourceUIMouseStartX = 0, resourceUIMouseStartY = 0;
-let resourceUILocked = false; // Default unlocked
+let resourceUILocked = false; // Unlocked by default
 
-// Dragging for Skills container
+// Variables for dragging Skills container
 let skillsDragging = false;
 let skillsStartX = 0, skillsStartY = 0, skillsMouseStartX = 0, skillsMouseStartY = 0;
 let skillsLocked = false;
@@ -66,7 +66,7 @@ const additionalAttributes = [
 function setup() {
   // Create two sub‑containers inside #p5-container: one for the canvas and one for the resource UI.
   let container = select("#p5-container");
-  container.html(""); // Clear any existing content.
+  container.html(""); // Clear existing content
   
   // Create canvas container
   let canvasContainer = createDiv();
@@ -338,7 +338,14 @@ function setMaxAtb() {
   if (!isNaN(value) && value > 0) { max_atb = value; current_atb = value; }
 }
 
-// Modal for resource update actions.
+function resetResources() {
+  current_hp = max_hp;
+  current_mp = max_mp;
+  current_stamina = max_stamina;
+  current_atb = max_atb;
+}
+
+// Modal for resource updates.
 function showModal(action) {
   let amount = parseInt(amountInput.value());
   if (isNaN(amount) || amount <= 0) return;
@@ -463,19 +470,18 @@ function createAdditionalAttributesUI() {
   let addContainer = createDiv();
   addContainer.parent(statsContainer);
   addContainer.id("skillsContainer");
-  // Make skills container draggable.
   addContainer.mousePressed(startDragSkills);
   addContainer.mouseReleased(stopDragSkills);
   addContainer.touchStarted(startDragSkills);
   addContainer.touchEnded(stopDragSkills);
   
   addContainer.style("border", "1px solid #ccc");
-  addContainer.style("padding", "5px"); // tightened up
+  addContainer.style("padding", "5px");
   addContainer.style("margin-top", "20px");
-  addContainer.style("width", "180px"); // reduced width
+  addContainer.style("width", "180px");
   createElement("h3", "Skills").parent(addContainer);
   
-  // Add lock checkbox for Skills
+  // Lock checkbox for Skills
   let lockRow = createDiv();
   lockRow.parent(addContainer);
   lockRow.style("text-align", "right");
@@ -573,7 +579,7 @@ function updateResourcesBasedOnStats() {
   if (current_mp > max_mp) current_mp = max_mp;
 }
 
-// --- Dragging for Resource UI ---
+// --- Dragging for Resource UI container ---
 function startDragResourceUI() {
   if (resourceUILocked) return;
   resourceUIDragging = true;
@@ -621,7 +627,7 @@ function stopDragSkills() {
   skillsDragging = false;
 }
 
-// Rename reset function.
+// Renamed reset function.
 function resetResources() {
   current_hp = max_hp;
   current_mp = max_mp;
