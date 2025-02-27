@@ -1,4 +1,4 @@
-// Global resource variables
+// Global resource variables – starting with 25 HP and 10 MP
 let max_hp = 25, current_hp = 25;
 let max_mp = 10, current_mp = 10;
 let max_stamina = 100, current_stamina = 100;
@@ -8,7 +8,7 @@ let max_atb = 100, current_atb = 0;
 let stat_str = 1, stat_vit = 1, stat_dex = 1, stat_mag = 1, stat_wil = 1, stat_spr = 1, stat_lck = 1;
 let level = 1, exp = 1, movement = 1;
 
-// UI elements for Resources tab (existing)
+// UI elements for Resources will be created in createResourceUI()
 let maxHpInput, setMaxHpButton, maxMpInput, setMaxMpButton;
 let maxStaminaInput, setMaxStaminaButton, maxAtbInput, setMaxAtbButton;
 let amountInput, positiveButton, negativeButton;
@@ -16,19 +16,18 @@ let stmnPlus25Button, stmnMinus25Button, atbMinus50Button, resetButton;
 let staminaAtbLink = false, staminaAtbLinkButton;
 let modalDiv, cnv;
 
-// Global variable to prevent multiple description modals
+// For description modals
 let descriptionModal = null;
 
 // For linking stats to attributes:
-let statCheckboxes = {};       // Maps stat abbreviation => checkbox element (for linking)
-let statLabelElements = {};    // Maps stat abbreviation => label element (to change color)
-let attributeCheckboxes = {};  // Maps attribute name => checkbox element (for linking)
-let statLinkMapping = {};      // Maps stat abbrev => attribute object (currently linked)
-let attributeLinkMapping = {}; // Maps attribute name => stat abbrev (currently linked)
+let statCheckboxes = {};       // Maps stat abbreviation => checkbox element
+let statLabelElements = {};    // Maps stat abbreviation => label element (for color change)
+let attributeCheckboxes = {};  // Maps attribute name => checkbox element
+let statLinkMapping = {};      // Maps stat abbrev => attribute object (linked)
+let attributeLinkMapping = {}; // Maps attribute name => stat abbrev (linked)
 
-// Description mapping for stats & additional attributes
 const statDescriptions = {
-  "STR": "Affects melee and ranged phyiscal attacks (1d12 + STR).",
+  "STR": "Affects physical attack rolls (melee & ranged).",
   "VIT": "Increases HP (+5 HP per point).",
   "DEX": "Determines dodge rolls (1d12 + DEX to evade).",
   "MAG": "Affects magical attack rolls (1d12 + MAG vs MDEF).",
@@ -40,138 +39,37 @@ const statDescriptions = {
   "Movement": "Determines movement range per turn."
 };
 
-// Define additional attributes (now a total of 7) with assigned colors.
 const additionalAttributes = [
   { name: "Athletics", desc: "Your ability to exert physical strength and endurance to overcome obstacles. Used for climbing, swimming, jumping, grappling, and feats of raw power.", color: "#e74c3c" },
   { name: "Endurance", desc: "Your capacity to withstand physical strain, pain, and adverse conditions. Used for resisting poisons, disease, exhaustion, and enduring extreme conditions.", color: "#27ae60" },
   { name: "Agility", desc: "Your speed, reflexes, and balance in movement and precision. Used for dodging, acrobatics, stealth, and precise motor control.", color: "#2980b9" },
   { name: "Willpower", desc: "Your mental resilience and determination to resist external influences. Used for resisting mind control, fear effects, psychic attacks, and maintaining focus under pressure.", color: "#8e44ad" },
   { name: "Awareness", desc: "Your ability to observe, sense, and interpret your surroundings. Used for noticing hidden details, tracking, detecting lies, and reacting to environmental threats.", color: "#f39c12" },
-  { name: "Influence", desc: "Your ability to manipulate, persuade, or command others through words and body language. This skill is divided into two approaches:\nFriendly Influence - Used for persuasion, bartering, negotiation, and diplomacy to build trust or secure favorable outcomes.\nHostile Influence - Used for intimidation, deception, coercion, and threats to instill fear or manipulate others.", color: "#d35400" },
-  { name: "Ingenuity", desc: "Your problem-solving ability and technical expertise in mechanical, electronic, and creative fields. Used for hacking, crafting, repairing technology, analyzing mechanisms and improvising solutions.", color: "#9b59b6" }
+  { name: "Influence", desc: "Your ability to manipulate, persuade, or command others through words and body language. Friendly Influence is used for persuasion, bartering, and diplomacy; Hostile Influence is used for intimidation and coercion.", color: "#d35400" },
+  { name: "Ingenuity", desc: "Your problem-solving ability and technical expertise in mechanical, electronic, and creative fields. Used for hacking, crafting, repairing technology, and improvising solutions.", color: "#9b59b6" }
 ];
 
 function setup() {
-  // Attach canvas to the Resources tab container
-  cnv = createCanvas(600, 400);
-  cnv.parent('p5-container');
+  // Create two sub-containers inside #p5-container: one for the canvas, one for the resource UI.
+  let container = select("#p5-container");
+  container.html(""); // clear
+  let canvasContainer = createDiv();
+  canvasContainer.parent(container);
+  canvasContainer.id("canvasContainer");
+  let resourceUIContainer = createDiv();
+  resourceUIContainer.parent(container);
+  resourceUIContainer.id("resourceUIContainer");
+  
+  // Create canvas responsive to window size and attach to canvasContainer.
+  cnv = createCanvas(min(600, windowWidth - 40), 400);
+  cnv.parent(canvasContainer);
   textSize(16);
   textAlign(LEFT, TOP);
-
-  // --- Resource Tracker UI (unchanged) ---
-  let maxLabel = createP("Max:");
-  maxLabel.parent('p5-container');
-  maxLabel.position(610, 0);
-
-  // HP control
-  maxHpInput = createInput("100", "number");
-  maxHpInput.parent('p5-container');
-  maxHpInput.position(610, 30);
-  maxHpInput.size(50, 20);
-  setMaxHpButton = createButton("Set");
-  setMaxHpButton.parent('p5-container');
-  setMaxHpButton.position(670, 30);
-  setMaxHpButton.size(50, 20);
-  setMaxHpButton.mousePressed(setMaxHp);
-
-  // MP control
-  maxMpInput = createInput("50", "number");
-  maxMpInput.parent('p5-container');
-  maxMpInput.position(610, 70);
-  maxMpInput.size(50, 20);
-  setMaxMpButton = createButton("Set");
-  setMaxMpButton.parent('p5-container');
-  setMaxMpButton.position(670, 70);
-  setMaxMpButton.size(50, 20);
-  setMaxMpButton.mousePressed(setMaxMp);
-
-  // Stamina control
-  maxStaminaInput = createInput("100", "number");
-  maxStaminaInput.parent('p5-container');
-  maxStaminaInput.position(610, 110);
-  maxStaminaInput.size(50, 20);
-  setMaxStaminaButton = createButton("Set");
-  setMaxStaminaButton.parent('p5-container');
-  setMaxStaminaButton.position(670, 110);
-  setMaxStaminaButton.size(50, 20);
-  setMaxStaminaButton.mousePressed(setMaxStamina);
-
-  // ATB control
-  maxAtbInput = createInput("100", "number");
-  maxAtbInput.parent('p5-container');
-  maxAtbInput.position(610, 150);
-  maxAtbInput.size(50, 20);
-  setMaxAtbButton = createButton("Set");
-  setMaxAtbButton.parent('p5-container');
-  setMaxAtbButton.position(670, 150);
-  setMaxAtbButton.size(50, 20);
-  setMaxAtbButton.mousePressed(setMaxAtb);
-
-  // --- Action UI ---
-  negativeButton = createButton("–");
-  negativeButton.parent('p5-container');
-  negativeButton.position(50, 220);
-  negativeButton.size(50, 20);
-  negativeButton.mousePressed(() => showModal("negative"));
-
-  amountInput = createInput();
-  amountInput.parent('p5-container');
-  amountInput.position(106, 220);
-  amountInput.size(50, 20);
-
-  positiveButton = createButton("+");
-  positiveButton.parent('p5-container');
-  positiveButton.position(170, 220);
-  positiveButton.size(50, 20);
-  positiveButton.mousePressed(() => showModal("positive"));
-
-  // Quick Adjustments
-  let quickLabel = createP("Quick Adjustments:");
-  quickLabel.parent('p5-container');
-  quickLabel.position(50, 260);
-
-  stmnPlus25Button = createButton("STMN +25");
-  stmnPlus25Button.parent('p5-container');
-  stmnPlus25Button.position(50, 320);
-  stmnPlus25Button.size(90, 30);
-  stmnPlus25Button.mousePressed(() => { current_stamina = min(current_stamina + 25, max_stamina); });
-
-  stmnMinus25Button = createButton("STMN -25");
-  stmnMinus25Button.parent('p5-container');
-  stmnMinus25Button.position(150, 320);
-  stmnMinus25Button.size(90, 30);
-  stmnMinus25Button.mousePressed(() => {
-    current_stamina = max(current_stamina - 25, 0);
-    if (staminaAtbLink) { current_atb = min(current_atb + 25, max_atb); }
-  });
-
-  atbMinus50Button = createButton("ATB -50");
-  atbMinus50Button.parent('p5-container');
-  atbMinus50Button.position(250, 320);
-  atbMinus50Button.size(90, 30);
-  atbMinus50Button.mousePressed(() => { current_atb = max(current_atb - 50, 0); });
-
-  resetButton = createButton("Reset");
-  resetButton.parent('p5-container');
-  resetButton.position(350, 320);
-  resetButton.size(90, 30);
-  resetButton.mousePressed(reset);
-
-  staminaAtbLinkButton = createButton("Link: OFF");
-  staminaAtbLinkButton.parent('p5-container');
-  staminaAtbLinkButton.position(450, 320);
-  staminaAtbLinkButton.size(90, 30);
-  staminaAtbLinkButton.mousePressed(toggleStaminaAtbLink);
-  staminaAtbLinkButton.style("background-color", "red");
-
-  let linkDesc = createP("When ON, negative STMN adjustments add to ATB.");
-  linkDesc.parent('p5-container');
-  linkDesc.position(450, 350);
-
-  cnv.mousePressed(toggleFullscreen);
-  cnv.touchStarted(toggleFullscreen);
-
-  // --- Tab Navigation ---
+  
+  // Build Resource Tracker UI using our dedicated function.
+  createResourceUI();
+  
+  // --- Tab Navigation (unchanged) ---
   const tablinks = document.querySelectorAll('.tablink');
   const tabcontents = document.querySelectorAll('.tabcontent');
   tablinks.forEach(btn => {
@@ -183,8 +81,13 @@ function setup() {
     });
   });
   
-  // --- Create Stats UI in the Stats tab ---
+  // Create Stats UI in the "stats" tab.
   createStatsUI();
+}
+
+function windowResized() {
+  let newW = min(600, windowWidth - 40);
+  resizeCanvas(newW, 400);
 }
 
 function draw() {
@@ -196,7 +99,6 @@ function displayBars() {
   let bar_width = 300, bar_height = 20;
   let x = 50, y_hp = 35, y_mp = 75, y_stamina = 115, y_atb = 155;
   
-  // HP bar
   stroke(0);
   fill(128);
   rect(x, y_hp, bar_width, bar_height);
@@ -209,7 +111,6 @@ function displayBars() {
   fill(255);
   text(`HP: ${current_hp}/${max_hp}`, x + bar_width/2, y_hp + bar_height/2);
   
-  // MP bar
   stroke(0);
   fill(128);
   rect(x, y_mp, bar_width, bar_height);
@@ -222,7 +123,6 @@ function displayBars() {
   fill(255);
   text(`MP: ${current_mp}/${max_mp}`, x + bar_width/2, y_mp + bar_height/2);
   
-  // Stamina bar
   stroke(0);
   fill(128);
   rect(x, y_stamina, bar_width, bar_height);
@@ -235,7 +135,6 @@ function displayBars() {
   fill(255);
   text(`STMN: ${current_stamina}/${max_stamina}`, x + bar_width/2, y_stamina + bar_height/2);
   
-  // ATB bar
   stroke(0);
   fill(128);
   rect(x, y_atb, bar_width, bar_height);
@@ -248,14 +147,148 @@ function displayBars() {
   fill(255);
   text(`ATB: ${current_atb}/${max_atb}`, x + bar_width/2, y_atb + bar_height/2);
   
-  // Title for the resource tracker
   textAlign(LEFT, TOP);
   textStyle(NORMAL);
   fill(0);
   text("FF7 TTRPG Resource Tracker", 50, 10);
 }
 
-// --- Update Functions for Resource UI ---
+// Resource UI builder: creates rows of elements to mimic original layout.
+function createResourceUI() {
+  let rUI = select("#resourceUIContainer");
+  rUI.html(""); // clear container
+  
+  // Row 1: "Max:" label
+  let row = createDiv();
+  row.parent(rUI);
+  row.class("resource-row");
+  let maxLabel = createSpan("Max:");
+  maxLabel.parent(row);
+  maxLabel.class("resource-label");
+  
+  // Row 2: HP controls
+  row = createDiv();
+  row.parent(rUI);
+  row.class("resource-row");
+  let hpLabel = createSpan("HP:");
+  hpLabel.parent(row);
+  hpLabel.class("resource-label");
+  maxHpInput = createInput("25", "number");
+  maxHpInput.parent(row);
+  maxHpInput.class("resource-input");
+  setMaxHpButton = createButton("Set");
+  setMaxHpButton.parent(row);
+  setMaxHpButton.class("resource-button");
+  setMaxHpButton.mousePressed(setMaxHp);
+  
+  // Row 3: MP controls
+  row = createDiv();
+  row.parent(rUI);
+  row.class("resource-row");
+  let mpLabel = createSpan("MP:");
+  mpLabel.parent(row);
+  mpLabel.class("resource-label");
+  maxMpInput = createInput("10", "number");
+  maxMpInput.parent(row);
+  maxMpInput.class("resource-input");
+  setMaxMpButton = createButton("Set");
+  setMaxMpButton.parent(row);
+  setMaxMpButton.class("resource-button");
+  setMaxMpButton.mousePressed(setMaxMp);
+  
+  // Row 4: Stamina controls
+  row = createDiv();
+  row.parent(rUI);
+  row.class("resource-row");
+  let stLabel = createSpan("Stamina:");
+  stLabel.parent(row);
+  stLabel.class("resource-label");
+  maxStaminaInput = createInput("100", "number");
+  maxStaminaInput.parent(row);
+  maxStaminaInput.class("resource-input");
+  setMaxStaminaButton = createButton("Set");
+  setMaxStaminaButton.parent(row);
+  setMaxStaminaButton.class("resource-button");
+  setMaxStaminaButton.mousePressed(setMaxStamina);
+  
+  // Row 5: ATB controls
+  row = createDiv();
+  row.parent(rUI);
+  row.class("resource-row");
+  let atbLabel = createSpan("ATB:");
+  atbLabel.parent(row);
+  atbLabel.class("resource-label");
+  maxAtbInput = createInput("100", "number");
+  maxAtbInput.parent(row);
+  maxAtbInput.class("resource-input");
+  setMaxAtbButton = createButton("Set");
+  setMaxAtbButton.parent(row);
+  setMaxAtbButton.class("resource-button");
+  setMaxAtbButton.mousePressed(setMaxAtb);
+  
+  // Row 6: Action row – negative button, amount, positive button
+  row = createDiv();
+  row.parent(rUI);
+  row.class("resource-row");
+  negativeButton = createButton("–");
+  negativeButton.parent(row);
+  negativeButton.class("resource-button");
+  negativeButton.mousePressed(() => showModal("negative"));
+  amountInput = createInput();
+  amountInput.parent(row);
+  amountInput.class("resource-input");
+  positiveButton = createButton("+");
+  positiveButton.parent(row);
+  positiveButton.class("resource-button");
+  positiveButton.mousePressed(() => showModal("positive"));
+  
+  // Row 7: Quick Adjustments label
+  row = createDiv();
+  row.parent(rUI);
+  row.class("resource-row");
+  let quickAdjLabel = createSpan("Quick Adjustments:");
+  quickAdjLabel.parent(row);
+  quickAdjLabel.class("resource-label");
+  
+  // Row 8: Quick adjust buttons
+  row = createDiv();
+  row.parent(rUI);
+  row.class("resource-row");
+  stmnPlus25Button = createButton("STMN +25");
+  stmnPlus25Button.parent(row);
+  stmnPlus25Button.class("resource-button");
+  stmnPlus25Button.mousePressed(() => { current_stamina = min(current_stamina + 25, max_stamina); });
+  stmnMinus25Button = createButton("STMN -25");
+  stmnMinus25Button.parent(row);
+  stmnMinus25Button.class("resource-button");
+  stmnMinus25Button.mousePressed(() => {
+    current_stamina = max(current_stamina - 25, 0);
+    if (staminaAtbLink) { current_atb = min(current_atb + 25, max_atb); }
+  });
+  atbMinus50Button = createButton("ATB -50");
+  atbMinus50Button.parent(row);
+  atbMinus50Button.class("resource-button");
+  atbMinus50Button.mousePressed(() => { current_atb = max(current_atb - 50, 0); });
+  resetButton = createButton("Reset");
+  resetButton.parent(row);
+  resetButton.class("resource-button");
+  resetButton.mousePressed(reset);
+  
+  // Row 9: Link toggle and description
+  row = createDiv();
+  row.parent(rUI);
+  row.class("resource-row");
+  staminaAtbLinkButton = createButton("Link: OFF");
+  staminaAtbLinkButton.parent(row);
+  staminaAtbLinkButton.class("resource-button");
+  staminaAtbLinkButton.mousePressed(toggleStaminaAtbLink);
+  staminaAtbLinkButton.style("background-color", "red");
+  let linkDesc = createSpan("When ON, negative STMN adjustments add to ATB.");
+  linkDesc.parent(row);
+  linkDesc.class("resource-label");
+}
+
+// Resource update functions
 function setMaxHp() {
   let value = parseInt(maxHpInput.value());
   if (!isNaN(value) && value > 0) { max_hp = value; current_hp = value; }
@@ -273,7 +306,6 @@ function setMaxAtb() {
   if (!isNaN(value) && value > 0) { max_atb = value; current_atb = value; }
 }
 
-// --- Modal Pop-Up for Resource Selection (unchanged) ---
 function showModal(action) {
   let amount = parseInt(amountInput.value());
   if (isNaN(amount) || amount <= 0) return;
@@ -322,7 +354,6 @@ function applyResourceChange(action, resource, amount) {
   }
 }
 
-// --- Toggle Stamina X ATB Link ---
 function toggleStaminaAtbLink() {
   staminaAtbLink = !staminaAtbLink;
   if (staminaAtbLink) {
@@ -334,7 +365,6 @@ function toggleStaminaAtbLink() {
   }
 }
 
-// --- Reset Function ---
 function reset() {
   current_hp = max_hp;
   current_mp = max_mp;
@@ -342,23 +372,18 @@ function reset() {
   current_atb = 0;
 }
 
-// --- Fullscreen Toggle ---
-function toggleFullscreen() {
-  fullscreen(!fullscreen());
-}
-
 // --- Stats UI Creation ---
 function createStatsUI() {
   let statsContainer = select("#stats");
-  statsContainer.html(""); // Clear default content
+  statsContainer.html("");
   createElement("h2", "Stats").parent(statsContainer);
   
-  // Extra fields: Level, EXP, Movement (NOT linkable)
+  // Extra fields: Level, EXP, Movement (not linkable)
   createStatInput("Level", "Level", level, statsContainer, (val) => { level = val; }, false);
   createStatInput("EXP", "EXP", exp, statsContainer, (val) => { exp = val; }, false);
   createStatInput("Movement", "Movement", movement, statsContainer, (val) => { movement = val; }, false);
   
-  // Seven main stats (constrained between 1 and 99, linkable)
+  // Main stats (linkable)
   createStatInput("STR", "Strength", stat_str, statsContainer, (val) => { stat_str = val; }, true);
   createStatInput("VIT", "Vitality", stat_vit, statsContainer, (val) => { stat_vit = val; updateResourcesBasedOnStats(); }, true);
   createStatInput("DEX", "Dexterity", stat_dex, statsContainer, (val) => { stat_dex = val; }, true);
@@ -367,11 +392,10 @@ function createStatsUI() {
   createStatInput("SPR", "Spirit", stat_spr, statsContainer, (val) => { stat_spr = val; }, true);
   createStatInput("LCK", "Luck", stat_lck, statsContainer, (val) => { stat_lck = val; }, true);
   
-  // Create Additional Attributes UI on the right side, with block title "Skills"
+  // Additional Attributes UI titled "Skills"
   createAdditionalAttributesUI();
 }
 
-// Creates a stat input with a clickable label and, if linkable, a "Link" checkbox.
 function createStatInput(abbrev, name, initialValue, container, callback, linkable) {
   let div = createDiv();
   div.parent(container);
@@ -399,7 +423,6 @@ function createStatInput(abbrev, name, initialValue, container, callback, linkab
     callback(val);
   });
   
-  // Only add a linking checkbox if linkable.
   if (linkable) {
     let chk = createCheckbox("Link", false);
     chk.parent(div);
@@ -408,7 +431,6 @@ function createStatInput(abbrev, name, initialValue, container, callback, linkab
   }
 }
 
-// Creates the Additional Attributes UI on the right side.
 function createAdditionalAttributesUI() {
   let statsContainer = select("#stats");
   let addContainer = createDiv();
@@ -438,7 +460,6 @@ function createAdditionalAttributesUI() {
   });
 }
 
-// Checks if exactly one stat and one attribute are selected; if so, links them.
 function tryLinking() {
   let selectedStat = null;
   for (let abbrev in statCheckboxes) {
@@ -456,7 +477,6 @@ function tryLinking() {
   }
   if (!selectedStat || !selectedAttr) return;
   
-  // If the stat already has a linked attribute, remove that link.
   if (statLinkMapping[selectedStat]) {
     let oldAttr = statLinkMapping[selectedStat];
     statLabelElements[selectedStat].style("color", "black");
@@ -466,7 +486,6 @@ function tryLinking() {
     delete statLinkMapping[selectedStat];
     delete attributeLinkMapping[oldAttr.name];
   }
-  // If the attribute is already linked to a different stat, remove that link.
   if (attributeLinkMapping[selectedAttr] && attributeLinkMapping[selectedAttr] !== selectedStat) {
     let oldStat = attributeLinkMapping[selectedAttr];
     statLabelElements[oldStat].style("color", "black");
@@ -474,21 +493,17 @@ function tryLinking() {
     delete statLinkMapping[oldStat];
     delete attributeLinkMapping[selectedAttr];
   }
-  // Find the attribute object.
   let attrObj = additionalAttributes.find(a => a.name === selectedAttr);
   if (!attrObj) return;
   
-  // Link: set stat label color to attribute's color.
   statLabelElements[selectedStat].style("color", attrObj.color);
   statLinkMapping[selectedStat] = attrObj;
   attributeLinkMapping[selectedAttr] = selectedStat;
   
-  // Clear the checkboxes.
   statCheckboxes[selectedStat].checked(false);
   attributeCheckboxes[selectedAttr].checked(false);
 }
 
-// Creates a modal for stat/attribute description; only one allowed at a time.
 function showStatDescription(statName, description) {
   if (descriptionModal) return;
   descriptionModal = createDiv();
@@ -509,8 +524,6 @@ function showStatDescription(statName, description) {
   closeBtn.mousePressed(() => { descriptionModal.remove(); descriptionModal = null; });
 }
 
-// Update Resources (HP and MP) based on Vitality and Willpower.
-// Starting values: 25 HP and 10 MP at 1 point; each additional point adds +5.
 function updateResourcesBasedOnStats() {
   let newMaxHp = 25 + (stat_vit - 1) * 5;
   max_hp = newMaxHp;
@@ -519,4 +532,3 @@ function updateResourcesBasedOnStats() {
   max_mp = newMaxMp;
   if (current_mp > max_mp) current_mp = max_mp;
 }
-
