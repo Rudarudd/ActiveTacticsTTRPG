@@ -1,7 +1,48 @@
-html, body {
+body {
   margin: 0;
-  padding: 0;
+  font-family: sans-serif;
 }
-canvas {
+header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background: #f2f2f2;
+}
+header input {
+  font-size: 1em;
+}
+.container {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  height: calc(100vh - 50px);
+}
+/* Left-side tabs */
+.tabs {
+  background: #ddd;
+  padding: 10px;
+}
+.tabs button {
+  display: block;
+  width: 100%;
+  margin-bottom: 5px;
+  padding: 10px;
+  border: none;
+  background: #ccc;
+  cursor: pointer;
+}
+.tabs button.active {
+  background: #bbb;
+  font-weight: bold;
+}
+/* Content area & tab content */
+.content {
+  position: relative;
+  padding: 10px;
+}
+.tabcontent {
+  display: none;
+  height: 100%;
+}
+.tabcontent.active {
   display: block;
 }
