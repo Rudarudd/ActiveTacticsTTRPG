@@ -58,69 +58,84 @@ header input {
   display: block;
 }
 
-/* p5 container styling */
+/* p5-container: relative to allow absolute positioning for resourceUIContainer */
 #p5-container {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-/* Containers for canvas and resource UI */
+/* Canvas container */
 #canvasContainer {
-  flex: 1 1 300px;
-  margin: 5px;
+  /* No extra styling needed */
 }
 
+/* Resource tracker UI overlay */
 #resourceUIContainer {
-  flex: 1 1 200px;
-  display: flex;
-  flex-direction: column;
-  padding: 10px;
-  margin: 5px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255,255,255,0.9);
+  padding: 5px;
+  border: 1px solid #ccc;
+  cursor: move;
 }
 
-/* Resource UI elements similar to original fixed sizes */
+/* Layout for resource UI rows */
+.resource-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
 .resource-label {
-  margin: 2px 0;
   font-weight: bold;
   font-size: 14px;
+  margin-right: 5px;
 }
 
 .resource-input {
-  margin: 2px 0;
-  padding: 2px;
-  width: 50px;
+  width: 40px;
   font-size: 14px;
+  margin-right: 5px;
 }
 
 .resource-button {
-  margin: 2px 0;
-  padding: 2px 4px;
-  width: 50px;
   font-size: 14px;
+  padding: 2px 4px;
+  margin-right: 5px;
 }
 
-/* Mobile adjustments */
+/* Mobile adjustments: move tabs to bottom */
 @media screen and (max-width: 600px) {
   .container {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .content {
+    order: 1;
+    padding: 5px;
   }
   .tabs {
+    order: 2;
     display: flex;
-    overflow-x: auto;
-    padding: 5px;
+    justify-content: space-around;
+    background: #ddd;
+    padding: 5px 0;
   }
   .tabs button {
     flex: 1;
-    margin: 2px;
+    margin: 0 2px;
     padding: 10px;
   }
-  .content {
-    padding: 5px;
-  }
   #p5-container {
-    flex-direction: column;
+    max-width: 100%;
+  }
+  #resourceUIContainer {
+    top: 5px;
+    right: 5px;
+    padding: 3px;
+    font-size: 12px;
   }
 }
