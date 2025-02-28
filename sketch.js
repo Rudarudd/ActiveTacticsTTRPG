@@ -81,7 +81,7 @@ function setup() {
   canvasContainer.style("position", "relative");
   
   resourceUIContainer = createDiv();
-  resourceUIContainer.parent(select("#resources")); // Parent to #resources
+  resourceUIContainer.parent(select("#resources")); // Changed to #resources
   resourceUIContainer.id("resourceUIContainer");
   resourceUIContainer.mousePressed(startDragResourceUI);
   resourceUIContainer.mouseReleased(stopDragResourceUI);
@@ -91,13 +91,8 @@ function setup() {
   let contentDiv = select(".content");
   let contentWidth = contentDiv.elt.offsetWidth - 20;
   let contentHeight = contentDiv.elt.offsetHeight - 20;
-  let canvasWidth = contentWidth * 0.9; // 90% of content width
-  let canvasHeight;
-  if (windowWidth < 600) {
-    canvasHeight = min(contentHeight, 150, canvasWidth * 0.5); // Smaller height for mobile
-  } else {
-    canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75); // Desktop
-  }
+  let canvasWidth = min(contentWidth, 600);
+  let canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75); // Adjusted for mobile
   cnv = createCanvas(canvasWidth, canvasHeight);
   cnv.parent(canvasContainer);
   textSize(16);
@@ -123,13 +118,8 @@ function windowResized() {
   let contentDiv = select(".content");
   let contentWidth = contentDiv.elt.offsetWidth - 20;
   let contentHeight = contentDiv.elt.offsetHeight - 20;
-  let canvasWidth = contentWidth * 0.9;
-  let canvasHeight;
-  if (windowWidth < 600) {
-    canvasHeight = min(contentHeight, 150, canvasWidth * 0.5);
-  } else {
-    canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75);
-  }
+  let canvasWidth = min(contentWidth, 600);
+  let canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75); // Adjusted for mobile
   resizeCanvas(canvasWidth, canvasHeight);
 }
 
@@ -591,19 +581,16 @@ function updateResourcesBasedOnStats() {
 
 function startDragResourceUI() {
   if (resourceUILocked) return;
-  if (touches.length >= 2) { // Require two fingers on mobile
-    resourceUIDragging = true;
-    let rect = resourceUIContainer.elt.getBoundingClientRect();
-    resourceUIStartX = rect.left;
-    resourceUIStartY = rect.top;
+  
+  resourceUIDragging = true;
+  let rect = resourceUIContainer.elt.getBoundingClientRect();
+  resourceUIStartX = rect.left;
+  resourceUIStartY = rect.top;
+  
+  if (touches.length > 0) {
     resourceUIMouseStartX = touches[0].x;
     resourceUIMouseStartY = touches[0].y;
-    return false;
-  } else if (mouseIsPressed && touches.length === 0) { // For desktop
-    resourceUIDragging = true;
-    let rect = resourceUIContainer.elt.getBoundingClientRect();
-    resourceUIStartX = rect.left;
-    resourceUIStartY = rect.top;
+  } else {
     resourceUIMouseStartX = mouseX;
     resourceUIMouseStartY = mouseY;
   }
@@ -615,21 +602,17 @@ function stopDragResourceUI() {
 
 function startDragSkills() {
   if (skillsLocked) return;
-  if (touches.length >= 2) { // Require two fingers on mobile
-    skillsDragging = true;
-    skillsContainer = select("#skillsContainer");
-    let rect = skillsContainer.elt.getBoundingClientRect();
-    skillsStartX = rect.left;
-    skillsStartY = rect.top;
+  
+  skillsDragging = true;
+  skillsContainer = select("#skillsContainer");
+  let rect = skillsContainer.elt.getBoundingClientRect();
+  skillsStartX = rect.left;
+  skillsStartY = rect.top;
+  
+  if (touches.length > 0) {
     skillsMouseStartX = touches[0].x;
     skillsMouseStartY = touches[0].y;
-    return false;
-  } else if (mouseIsPressed && touches.length === 0) { // For desktop
-    skillsDragging = true;
-    skillsContainer = select("#skillsContainer");
-    let rect = skillsContainer.elt.getBoundingClientRect();
-    skillsStartX = rect.left;
-    skillsStartY = rect.top;
+  } else {
     skillsMouseStartX = mouseX;
     skillsMouseStartY = mouseY;
   }
