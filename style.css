@@ -55,6 +55,7 @@ header input {
   .container {
     display: flex;
     flex-direction: column;
+    height: calc(100vh - 50px);
   }
   .tabs {
     order: 2;
@@ -65,11 +66,17 @@ header input {
     overflow-x: auto;
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
+    max-height: 50px;
   }
   .tabs button {
     flex: 0 0 auto;
     margin: 0 2px;
     padding: 10px;
+  }
+  .content {
+    order: 1;
+    flex: 1;
+    height: auto;
   }
 }
 
@@ -78,8 +85,11 @@ header input {
   padding: 10px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  height: calc(100% - 20px);
+  box-sizing: border-box;
 }
 
+/* Ensure tabcontent fills the content area */
 .tabcontent {
   display: none;
   height: 100%;
