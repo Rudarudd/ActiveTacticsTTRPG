@@ -81,7 +81,7 @@ function setup() {
   canvasContainer.style("position", "relative");
   
   resourceUIContainer = createDiv();
-  resourceUIContainer.parent(canvasContainer);
+  resourceUIContainer.parent(select("#resources")); // Changed to #resources
   resourceUIContainer.id("resourceUIContainer");
   resourceUIContainer.mousePressed(startDragResourceUI);
   resourceUIContainer.mouseReleased(stopDragResourceUI);
@@ -92,7 +92,7 @@ function setup() {
   let contentWidth = contentDiv.elt.offsetWidth - 20;
   let contentHeight = contentDiv.elt.offsetHeight - 20;
   let canvasWidth = min(contentWidth, 600);
-  let canvasHeight = min(contentHeight, windowHeight * 0.4, canvasWidth * 0.75);
+  let canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75); // Adjusted for mobile
   cnv = createCanvas(canvasWidth, canvasHeight);
   cnv.parent(canvasContainer);
   textSize(16);
@@ -119,7 +119,7 @@ function windowResized() {
   let contentWidth = contentDiv.elt.offsetWidth - 20;
   let contentHeight = contentDiv.elt.offsetHeight - 20;
   let canvasWidth = min(contentWidth, 600);
-  let canvasHeight = min(contentHeight, windowHeight * 0.4, canvasWidth * 0.75);
+  let canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75); // Adjusted for mobile
   resizeCanvas(canvasWidth, canvasHeight);
 }
 
@@ -581,21 +581,18 @@ function updateResourcesBasedOnStats() {
 
 function startDragResourceUI() {
   if (resourceUILocked) return;
-  if (touches.length > 0) { // Mobile touch
-    resourceUIDragging = true;
-    let rect = resourceUIContainer.elt.getBoundingClientRect();
-    resourceUIStartX = rect.left;
-    resourceUIStartY = rect.top;
-    resourceUIMouseStartX = getDragX();
-    resourceUIMouseStartY = getDragY();
-    return false;
-  } else if (mouseIsPressed) { // Desktop mouse
-    resourceUIDragging = true;
-    let canvasRect = cnv.elt.getBoundingClientRect();
-    resourceUIStartX = parseInt(resourceUIContainer.style("left")) || 10;
-    resourceUIStartY = parseInt(resourceUIContainer.style("top")) || 10;
-    resourceUIMouseStartX = mouseX + canvasRect.left;
-    resourceUIMouseStartY = mouseY + canvasRect.top;
+  
+  resourceUIDragging = true;
+  let rect = resourceUIContainer.elt.getBoundingClientRect();
+  resourceUIStartX = rect.left;
+  resourceUIStartY = rect.top;
+  
+  if (touches.length > 0) {
+    resourceUIMouseStartX = touches[0].x;
+    resourceUIMouseStartY = touches[0].y;
+  } else {
+    resourceUIMouseStartX = mouseX;
+    resourceUIMouseStartY = mouseY;
   }
 }
 
@@ -605,21 +602,17 @@ function stopDragResourceUI() {
 
 function startDragSkills() {
   if (skillsLocked) return;
+  
+  skillsDragging = true;
+  skillsContainer = select("#skillsContainer");
+  let rect = skillsContainer.elt.getBoundingClientRect();
+  skillsStartX = rect.left;
+  skillsStartY = rect.top;
+  
   if (touches.length > 0) {
-    skillsDragging = true;
-    skillsContainer = select("#skillsContainer");
-    let rect = skillsContainer.elt.getBoundingClientRect();
-    skillsStartX = rect.left;
-    skillsStartY = rect.top;
-    skillsMouseStartX = getDragX();
-    skillsMouseStartY = getDragY();
-    return false;
-  } else if (mouseIsPressed) {
-    skillsDragging = true;
-    skillsContainer = select("#skillsContainer");
-    let rect = skillsContainer.elt.getBoundingClientRect();
-    skillsStartX = rect.left;
-    skillsStartY = rect.top;
+    skillsMouseStartX = touches[0].x;
+    skillsMouseStartY = touches[0].y;
+  } else {
     skillsMouseStartX = mouseX;
     skillsMouseStartY = mouseY;
   }
@@ -632,23 +625,24 @@ function stopDragSkills() {
 function mouseDragged() {
   if (!resourceUIDragging && !skillsDragging) return;
   
-  let currentX = getDragX();
-  let currentY = getDragY();
-  let contentDiv = select(".content");
-  let contentRect = contentDiv.elt.getBoundingClientRect();
+  let currentX = touches.length > 0 ? touches[0].x : mouseX;
+  let currentY = touches.length > 0 ? touches[0].y : mouseY;
   
   if (resourceUIDragging && !resourceUILocked) {
     let deltaX = currentX - resourceUIMouseStartX;
     let deltaY = currentY - resourceUIMouseStartY;
     let newX = resourceUIStartX + deltaX;
     let newY = resourceUIStartY + deltaY;
+    
+    let parentRect = select("#resources").elt.getBoundingClientRect();
     let boxWidth = resourceUIContainer.elt.offsetWidth;
     let boxHeight = resourceUIContainer.elt.offsetHeight;
-    let canvasRect = cnv.elt.getBoundingClientRect();
-    newX = constrain(newX, contentRect.left - canvasRect.left, contentRect.right - canvasRect.left - boxWidth);
-    newY = constrain(newY, contentRect.top - canvasRect.top, contentRect.bottom - canvasRect.top - boxHeight);
-    resourceUIContainer.style("left", newX + "px");
-    resourceUIContainer.style("top", newY + "px");
+    
+    newX = constrain(newX, parentRect.left, parentRect.right - boxWidth);
+    newY = constrain(newY, parentRect.top, parentRect.bottom - boxHeight);
+    
+    resourceUIContainer.style("left", (newX - parentRect.left) + "px");
+    resourceUIContainer.style("top", (newY - parentRect.top) + "px");
   }
   
   if (skillsDragging && !skillsLocked) {
@@ -656,12 +650,16 @@ function mouseDragged() {
     let deltaY = currentY - skillsMouseStartY;
     let newX = skillsStartX + deltaX;
     let newY = skillsStartY + deltaY;
+    
+    let parentRect = select("#stats").elt.getBoundingClientRect();
     let boxWidth = skillsContainer.elt.offsetWidth;
     let boxHeight = skillsContainer.elt.offsetHeight;
-    newX = constrain(newX, contentRect.left, contentRect.right - boxWidth);
-    newY = constrain(newY, contentRect.top, contentRect.bottom - boxHeight);
-    skillsContainer.style("left", newX + "px");
-    skillsContainer.style("top", newY + "px");
+    
+    newX = constrain(newX, parentRect.left, parentRect.right - boxWidth);
+    newY = constrain(newY, parentRect.top, parentRect.bottom - boxHeight);
+    
+    skillsContainer.style("left", (newX - parentRect.left) + "px");
+    skillsContainer.style("top", (newY - parentRect.top) + "px");
   }
   
   return false;
