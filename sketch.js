@@ -74,17 +74,14 @@ function getDragY() {
 }
 
 function setup() {
-  // Create two sub‑containers inside #p5-container: one for the canvas and one for the resource UI.
   let container = select("#p5-container");
-  container.html(""); // Clear existing content
+  container.html("");
   
-  // Create canvas container
   let canvasContainer = createDiv();
   canvasContainer.parent(container);
   canvasContainer.id("canvasContainer");
   canvasContainer.style("position", "relative");
   
-  // Create resource UI container as a child of canvasContainer.
   resourceUIContainer = createDiv();
   resourceUIContainer.parent(canvasContainer);
   resourceUIContainer.id("resourceUIContainer");
@@ -93,13 +90,16 @@ function setup() {
   resourceUIContainer.touchStarted(startDragResourceUI);
   resourceUIContainer.touchEnded(stopDragResourceUI);
   
-  // Create canvas responsive to window size and attach to canvasContainer.
-  cnv = createCanvas(min(600, windowWidth - 40), 400);
+  let contentDiv = select(".content");
+  let contentWidth = contentDiv.elt.offsetWidth - 20;
+  let contentHeight = contentDiv.elt.offsetHeight - 20;
+  let canvasWidth = min(contentWidth, 600);
+  let canvasHeight = min(contentHeight, canvasWidth * 0.75);
+  cnv = createCanvas(canvasWidth, canvasHeight);
   cnv.parent(canvasContainer);
   textSize(16);
   textAlign(LEFT, TOP);
   
-  // Build the Resource Tracker UI.
   createResourceUI();
   
   // --- Tab Navigation ---
@@ -114,13 +114,16 @@ function setup() {
     });
   });
   
-  // Create the Stats UI in the "stats" tab.
   createStatsUI();
 }
 
 function windowResized() {
-  let newW = min(600, windowWidth - 40);
-  resizeCanvas(newW, 400);
+  let contentDiv = select(".content");
+  let contentWidth = contentDiv.elt.offsetWidth - 20;
+  let contentHeight = contentDiv.elt.offsetHeight - 20;
+  let canvasWidth = min(contentWidth, 600);
+  let canvasHeight = min(contentHeight, canvasWidth * 0.75);
+  resizeCanvas(canvasWidth, canvasHeight);
 }
 
 function draw() {
@@ -129,8 +132,10 @@ function draw() {
 }
 
 function displayBars() {
-  let bar_width = 300, bar_height = 20;
-  let x = 50, y_hp = 35, y_mp = 75, y_stamina = 115, y_atb = 155;
+  let bar_width = width * 0.6; // 60% of canvas width
+  let bar_height = 20;
+  let x = width * 0.1; // 10% margin from left
+  let y_hp = 35, y_mp = 75, y_stamina = 115, y_atb = 155;
   
   stroke(0);
   fill(128);
@@ -183,7 +188,7 @@ function displayBars() {
   textAlign(LEFT, TOP);
   textStyle(NORMAL);
   fill(0);
-  text("FF7 TTRPG Resource Tracker", 50, 10);
+  text("FF7 TTRPG Resource Tracker", width * 0.1, 10);
 }
 
 function createResourceUI() {
@@ -334,7 +339,6 @@ function createResourceUI() {
   linkDesc.class("resource-label");
 }
 
-
 // Resource update functions
 function setMaxHp() {
   let value = parseInt(maxHpInput.value());
@@ -360,7 +364,7 @@ function resetResources() {
   current_atb = 0;
 }
 
-// Modal for resource updates.
+// Modal for resource updates
 function showModal(action) {
   let amount = parseInt(amountInput.value());
   if (isNaN(amount) || amount <= 0) return;
@@ -596,8 +600,7 @@ function updateResourcesBasedOnStats() {
 }
 
 function startDragResourceUI() {
-  if (resourceUILocked) return;  // Don't start if locked
-  // On mobile, only allow drag if two or more fingers are touching.
+  if (resourceUILocked) return;
   if (touches.length > 0 && touches.length < 2) return;
   resourceUIDragging = true;
   let leftStr = resourceUIContainer.style("left");
@@ -608,26 +611,13 @@ function startDragResourceUI() {
   resourceUIMouseStartY = getDragY();
 }
 
-function startDragSkills() {
-  if (touches.length > 0 && touches.length < 2) return;
-  skillsDragging = true;
-  skillsContainer = select("#skillsContainer");
-  let leftStr = skillsContainer.style("left");
-  let topStr = skillsContainer.style("top");
-  skillsStartX = leftStr ? parseInt(leftStr) : 10;
-  skillsStartY = topStr ? parseInt(topStr) : 10;
-  skillsMouseStartX = getDragX();
-  skillsMouseStartY = getDragY();
-}
-
-
 function stopDragResourceUI() {
   resourceUIDragging = false;
 }
 
-// --- Dragging for Skills container ---
 function startDragSkills() {
   if (skillsLocked) return;
+  if (touches.length > 0 && touches.length < 2) return;
   skillsDragging = true;
   skillsContainer = select("#skillsContainer");
   let leftStr = skillsContainer.style("left");
@@ -642,16 +632,6 @@ function stopDragSkills() {
   skillsDragging = false;
 }
 
-// Use helper functions for pointer position (mobile-friendly)
-function getDragX() {
-  return touches.length > 0 ? touches[0].x : mouseX;
-}
-
-function getDragY() {
-  return touches.length > 0 ? touches[0].y : mouseY;
-}
-
-// Override mouseDragged to update positions of draggable containers.
 function mouseDragged() {
   let currentX = getDragX();
   let currentY = getDragY();
@@ -679,20 +659,10 @@ function mouseDragged() {
   }
 }
 
-
-// Override touchMoved for mobile dragging smoothness.
 function touchMoved() {
   if (resourceUIDragging || skillsDragging) {
     mouseDragged();
-    return false; // prevent default scrolling only during a drag
+    return false;
   }
   return true;
-}
-
-// --- Reset function ---
-function resetResources() {
-  current_hp = max_hp;
-  current_mp = max_mp;
-  current_stamina = max_stamina;
-  current_atb = 0;
 }
