@@ -88,6 +88,7 @@ header input {
 .tabcontent {
   display: none;
   height: 100%;
+  position: relative; /* Added for positioning children */
 }
 
 .tabcontent.active {
@@ -99,6 +100,14 @@ header input {
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
+}
+
+#resources {
+  position: relative; /* Ensure it’s a positioning context */
+}
+
+#stats {
+  position: relative; /* Ensure it’s a positioning context */
 }
 
 #resourceUIContainer {
