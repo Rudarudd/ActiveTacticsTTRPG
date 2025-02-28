@@ -63,12 +63,23 @@ const additionalAttributes = [
   { name: "Ingenuity", desc: "Your problem-solving ability and technical expertise in mechanical, electronic, and creative fields. Used for hacking, crafting, repairing technology, and improvising solutions.", color: "#2C3E50" }
 ];
 
+// Updated functions to use averaged touch positions for mobile dragging
 function getDragX() {
-  return touches.length > 0 ? touches[0].x : mouseX;
+  if (touches.length >= 2) {
+    return (touches[0].x + touches[1].x) / 2;
+  } else if (touches.length === 1) {
+    return touches[0].x;
+  }
+  return mouseX;
 }
 
 function getDragY() {
-  return touches.length > 0 ? touches[0].y : mouseY;
+  if (touches.length >= 2) {
+    return (touches[0].y + touches[1].y) / 2;
+  } else if (touches.length === 1) {
+    return touches[0].y;
+  }
+  return mouseY;
 }
 
 function setup() {
@@ -81,7 +92,7 @@ function setup() {
   canvasContainer.style("position", "relative");
   
   resourceUIContainer = createDiv();
-  resourceUIContainer.parent(select("#resources")); // Changed to #resources
+  resourceUIContainer.parent(select("#resources"));
   resourceUIContainer.id("resourceUIContainer");
   resourceUIContainer.mousePressed(startDragResourceUI);
   resourceUIContainer.mouseReleased(stopDragResourceUI);
@@ -92,7 +103,7 @@ function setup() {
   let contentWidth = contentDiv.elt.offsetWidth - 20;
   let contentHeight = contentDiv.elt.offsetHeight - 20;
   let canvasWidth = min(contentWidth, 600);
-  let canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75); // Adjusted for mobile
+  let canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75);
   cnv = createCanvas(canvasWidth, canvasHeight);
   cnv.parent(canvasContainer);
   textSize(16);
@@ -119,7 +130,7 @@ function windowResized() {
   let contentWidth = contentDiv.elt.offsetWidth - 20;
   let contentHeight = contentDiv.elt.offsetHeight - 20;
   let canvasWidth = min(contentWidth, 600);
-  let canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75); // Adjusted for mobile
+  let canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75);
   resizeCanvas(canvasWidth, canvasHeight);
 }
 
@@ -587,13 +598,8 @@ function startDragResourceUI() {
   resourceUIStartX = rect.left;
   resourceUIStartY = rect.top;
   
-  if (touches.length > 0) {
-    resourceUIMouseStartX = touches[0].x;
-    resourceUIMouseStartY = touches[0].y;
-  } else {
-    resourceUIMouseStartX = mouseX;
-    resourceUIMouseStartY = mouseY;
-  }
+  resourceUIMouseStartX = getDragX();
+  resourceUIMouseStartY = getDragY();
 }
 
 function stopDragResourceUI() {
@@ -609,13 +615,8 @@ function startDragSkills() {
   skillsStartX = rect.left;
   skillsStartY = rect.top;
   
-  if (touches.length > 0) {
-    skillsMouseStartX = touches[0].x;
-    skillsMouseStartY = touches[0].y;
-  } else {
-    skillsMouseStartX = mouseX;
-    skillsMouseStartY = mouseY;
-  }
+  skillsMouseStartX = getDragX();
+  skillsMouseStartY = getDragY();
 }
 
 function stopDragSkills() {
@@ -625,10 +626,9 @@ function stopDragSkills() {
 function mouseDragged() {
   if (touches.length > 0 && touches.length < 2) return false;
   if (!resourceUIDragging && !skillsDragging) return;
-  if (!resourceUIDragging && !skillsDragging) return;
   
-  let currentX = touches.length > 0 ? touches[0].x : mouseX;
-  let currentY = touches.length > 0 ? touches[0].y : mouseY;
+  let currentX = getDragX();
+  let currentY = getDragY();
   
   if (resourceUIDragging && !resourceUILocked) {
     let deltaX = currentX - resourceUIMouseStartX;
