@@ -81,7 +81,7 @@ function setup() {
   canvasContainer.style("position", "relative");
   
   resourceUIContainer = createDiv();
-  resourceUIContainer.parent(select("#resources")); // Changed to #resources
+  resourceUIContainer.parent(select("#resources")); // Parent to #resources
   resourceUIContainer.id("resourceUIContainer");
   resourceUIContainer.mousePressed(startDragResourceUI);
   resourceUIContainer.mouseReleased(stopDragResourceUI);
@@ -91,8 +91,13 @@ function setup() {
   let contentDiv = select(".content");
   let contentWidth = contentDiv.elt.offsetWidth - 20;
   let contentHeight = contentDiv.elt.offsetHeight - 20;
-  let canvasWidth = min(contentWidth, 600);
-  let canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75); // Adjusted for mobile
+  let canvasWidth = contentWidth * 0.9; // 90% of content width
+  let canvasHeight;
+  if (windowWidth < 600) {
+    canvasHeight = min(contentHeight, 150, canvasWidth * 0.5); // Smaller height for mobile
+  } else {
+    canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75); // Desktop
+  }
   cnv = createCanvas(canvasWidth, canvasHeight);
   cnv.parent(canvasContainer);
   textSize(16);
@@ -118,8 +123,13 @@ function windowResized() {
   let contentDiv = select(".content");
   let contentWidth = contentDiv.elt.offsetWidth - 20;
   let contentHeight = contentDiv.elt.offsetHeight - 20;
-  let canvasWidth = min(contentWidth, 600);
-  let canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75); // Adjusted for mobile
+  let canvasWidth = contentWidth * 0.9;
+  let canvasHeight;
+  if (windowWidth < 600) {
+    canvasHeight = min(contentHeight, 150, canvasWidth * 0.5);
+  } else {
+    canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75);
+  }
   resizeCanvas(canvasWidth, canvasHeight);
 }
 
@@ -581,16 +591,19 @@ function updateResourcesBasedOnStats() {
 
 function startDragResourceUI() {
   if (resourceUILocked) return;
-  
-  resourceUIDragging = true;
-  let rect = resourceUIContainer.elt.getBoundingClientRect();
-  resourceUIStartX = rect.left;
-  resourceUIStartY = rect.top;
-  
-  if (touches.length > 0) {
+  if (touches.length >= 2) { // Require two fingers on mobile
+    resourceUIDragging = true;
+    let rect = resourceUIContainer.elt.getBoundingClientRect();
+    resourceUIStartX = rect.left;
+    resourceUIStartY = rect.top;
     resourceUIMouseStartX = touches[0].x;
     resourceUIMouseStartY = touches[0].y;
-  } else {
+    return false;
+  } else if (mouseIsPressed && touches.length === 0) { // For desktop
+    resourceUIDragging = true;
+    let rect = resourceUIContainer.elt.getBoundingClientRect();
+    resourceUIStartX = rect.left;
+    resourceUIStartY = rect.top;
     resourceUIMouseStartX = mouseX;
     resourceUIMouseStartY = mouseY;
   }
@@ -602,17 +615,21 @@ function stopDragResourceUI() {
 
 function startDragSkills() {
   if (skillsLocked) return;
-  
-  skillsDragging = true;
-  skillsContainer = select("#skillsContainer");
-  let rect = skillsContainer.elt.getBoundingClientRect();
-  skillsStartX = rect.left;
-  skillsStartY = rect.top;
-  
-  if (touches.length > 0) {
+  if (touches.length >= 2) { // Require two fingers on mobile
+    skillsDragging = true;
+    skillsContainer = select("#skillsContainer");
+    let rect = skillsContainer.elt.getBoundingClientRect();
+    skillsStartX = rect.left;
+    skillsStartY = rect.top;
     skillsMouseStartX = touches[0].x;
     skillsMouseStartY = touches[0].y;
-  } else {
+    return false;
+  } else if (mouseIsPressed && touches.length === 0) { // For desktop
+    skillsDragging = true;
+    skillsContainer = select("#skillsContainer");
+    let rect = skillsContainer.elt.getBoundingClientRect();
+    skillsStartX = rect.left;
+    skillsStartY = rect.top;
     skillsMouseStartX = mouseX;
     skillsMouseStartY = mouseY;
   }
