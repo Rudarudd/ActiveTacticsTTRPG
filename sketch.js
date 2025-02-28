@@ -581,7 +581,7 @@ function updateResourcesBasedOnStats() {
 
 function startDragResourceUI() {
   if (resourceUILocked) return;
-  
+  if (touches.length > 0 && touches.length < 2) return; // require two fingers on mobile
   resourceUIDragging = true;
   let rect = resourceUIContainer.elt.getBoundingClientRect();
   resourceUIStartX = rect.left;
@@ -602,7 +602,7 @@ function stopDragResourceUI() {
 
 function startDragSkills() {
   if (skillsLocked) return;
-  
+  if (touches.length > 0 && touches.length < 2) return; // require two fingers on mobile
   skillsDragging = true;
   skillsContainer = select("#skillsContainer");
   let rect = skillsContainer.elt.getBoundingClientRect();
@@ -623,6 +623,8 @@ function stopDragSkills() {
 }
 
 function mouseDragged() {
+  if (touches.length > 0 && touches.length < 2) return false;
+  if (!resourceUIDragging && !skillsDragging) return;
   if (!resourceUIDragging && !skillsDragging) return;
   
   let currentX = touches.length > 0 ? touches[0].x : mouseX;
