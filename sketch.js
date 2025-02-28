@@ -2,7 +2,7 @@
 let max_hp = 25, current_hp = 25;
 let max_mp = 10, current_mp = 10;
 let max_stamina = 100, current_stamina = 100;
-let max_atb = 100, current_atb = 0;
+let max_atb = 100, current_atb = 100;
 
 // Global stat variables – all start at 1
 let stat_str = 1, stat_vit = 1, stat_dex = 1, stat_mag = 1, stat_wil = 1, stat_spr = 1, stat_lck = 1;
@@ -19,7 +19,7 @@ let modalDiv, cnv;
 // Variables for dragging resource UI container
 let resourceUIDragging = false;
 let resourceUIStartX = 0, resourceUIStartY = 0, resourceUIMouseStartX = 0, resourceUIMouseStartY = 0;
-let resourceUILocked = false;
+let resourceUILocked = false; // Unlocked by default
 
 // Variables for dragging Skills container
 let skillsDragging = false;
@@ -34,11 +34,11 @@ let skillsContainer;
 let descriptionModal = null;
 
 // For linking stats to attributes:
-let statCheckboxes = {};
-let statLabelElements = {};
-let attributeCheckboxes = {};
-let statLinkMapping = {};
-let attributeLinkMapping = {};
+let statCheckboxes = {};       // Maps stat abbreviation => checkbox element
+let statLabelElements = {};    // Maps stat abbreviation => label element (for color change)
+let attributeCheckboxes = {};  // Maps attribute name => checkbox element
+let statLinkMapping = {};      // Maps stat abbrev => attribute object (linked)
+let attributeLinkMapping = {}; // Maps attribute name => stat abbrev (linked)
 
 const statDescriptions = {
   "STR": "Affects physical attack rolls (melee & ranged).",
@@ -53,6 +53,7 @@ const statDescriptions = {
   "Movement": "Determines movement range per turn."
 };
 
+// Updated additional attributes; note Willpower is now hot pink (#FF69B4)
 const additionalAttributes = [
   { name: "Athletics", desc: "Your ability to exert physical strength and endurance to overcome obstacles. Used for climbing, swimming, jumping, grappling, and feats of raw power.", color: "#C0392B" },
   { name: "Endurance", desc: "Your capacity to withstand physical strain, pain, and adverse conditions. Used for resisting poisons, disease, exhaustion, and enduring extreme conditions.", color: "#27AE60" },
@@ -63,6 +64,7 @@ const additionalAttributes = [
   { name: "Ingenuity", desc: "Your problem-solving ability and technical expertise in mechanical, electronic, and creative fields. Used for hacking, crafting, repairing technology, and improvising solutions.", color: "#2C3E50" }
 ];
 
+// --- Helper functions for current pointer position (mobile support) ---
 function getDragX() {
   return touches.length > 0 ? touches[0].x : mouseX;
 }
@@ -72,14 +74,17 @@ function getDragY() {
 }
 
 function setup() {
+  // Create two sub‑containers inside #p5-container: one for the canvas and one for the resource UI.
   let container = select("#p5-container");
-  container.html("");
+  container.html(""); // Clear existing content
   
+  // Create canvas container
   let canvasContainer = createDiv();
   canvasContainer.parent(container);
   canvasContainer.id("canvasContainer");
   canvasContainer.style("position", "relative");
   
+  // Create resource UI container as a child of canvasContainer.
   resourceUIContainer = createDiv();
   resourceUIContainer.parent(canvasContainer);
   resourceUIContainer.id("resourceUIContainer");
@@ -88,18 +93,16 @@ function setup() {
   resourceUIContainer.touchStarted(startDragResourceUI);
   resourceUIContainer.touchEnded(stopDragResourceUI);
   
-  let contentDiv = select(".content");
-  let contentWidth = contentDiv.elt.offsetWidth - 20;
-  let contentHeight = contentDiv.elt.offsetHeight - 20;
-  let canvasWidth = min(contentWidth, 600);
-  let canvasHeight = min(contentHeight, windowHeight * 0.4, canvasWidth * 0.75);
-  cnv = createCanvas(canvasWidth, canvasHeight);
+  // Create canvas responsive to window size and attach to canvasContainer.
+  cnv = createCanvas(min(600, windowWidth - 40), 400);
   cnv.parent(canvasContainer);
   textSize(16);
   textAlign(LEFT, TOP);
   
+  // Build the Resource Tracker UI.
   createResourceUI();
   
+  // --- Tab Navigation ---
   const tablinks = document.querySelectorAll('.tablink');
   const tabcontents = document.querySelectorAll('.tabcontent');
   tablinks.forEach(btn => {
@@ -111,16 +114,13 @@ function setup() {
     });
   });
   
+  // Create the Stats UI in the "stats" tab.
   createStatsUI();
 }
 
 function windowResized() {
-  let contentDiv = select(".content");
-  let contentWidth = contentDiv.elt.offsetWidth - 20;
-  let contentHeight = contentDiv.elt.offsetHeight - 20;
-  let canvasWidth = min(contentWidth, 600);
-  let canvasHeight = min(contentHeight, windowHeight * 0.4, canvasWidth * 0.75);
-  resizeCanvas(canvasWidth, canvasHeight);
+  let newW = min(600, windowWidth - 40);
+  resizeCanvas(newW, 400);
 }
 
 function draw() {
@@ -129,10 +129,8 @@ function draw() {
 }
 
 function displayBars() {
-  let bar_width = width * 0.6;
-  let bar_height = 20;
-  let x = width * 0.1;
-  let y_hp = 25, y_mp = 55, y_stamina = 85, y_atb = 115;
+  let bar_width = 300, bar_height = 20;
+  let x = 50, y_hp = 35, y_mp = 75, y_stamina = 115, y_atb = 155;
   
   stroke(0);
   fill(128);
@@ -185,26 +183,24 @@ function displayBars() {
   textAlign(LEFT, TOP);
   textStyle(NORMAL);
   fill(0);
-  text("FF7 TTRPG Resource Tracker", width * 0.1, 10);
+  text("FF7 TTRPG Resource Tracker", 50, 10);
 }
 
+// Build the resource tracker UI with fixed rows and add a lock checkbox.
 function createResourceUI() {
   let rUI = select("#resourceUIContainer");
-  rUI.html("");
+  rUI.html(""); // Clear container
   
+  // Row 0: Lock checkbox for Resource UI
   let row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
   let lockCheckbox = createCheckbox("Lock", false);
   lockCheckbox.parent(row);
+  lockCheckbox.changed(() => { resourceUILocked = lockCheckbox.checked(); });
   lockCheckbox.style("margin-left", "auto");
-  lockCheckbox.changed(() => { 
-    resourceUILocked = lockCheckbox.checked(); 
-    if (resourceUILocked) {
-      resourceUIDragging = false;
-    }
-  });
   
+  // Row 1: "Max:" label
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -212,6 +208,7 @@ function createResourceUI() {
   maxLabel.parent(row);
   maxLabel.class("resource-label");
   
+  // Row 2: HP controls
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -226,6 +223,7 @@ function createResourceUI() {
   setMaxHpButton.class("resource-button");
   setMaxHpButton.mousePressed(setMaxHp);
   
+  // Row 3: MP controls
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -240,6 +238,7 @@ function createResourceUI() {
   setMaxMpButton.class("resource-button");
   setMaxMpButton.mousePressed(setMaxMp);
   
+  // Row 4: Stamina controls
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -254,6 +253,7 @@ function createResourceUI() {
   setMaxStaminaButton.class("resource-button");
   setMaxStaminaButton.mousePressed(setMaxStamina);
   
+  // Row 5: ATB controls
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -268,6 +268,7 @@ function createResourceUI() {
   setMaxAtbButton.class("resource-button");
   setMaxAtbButton.mousePressed(setMaxAtb);
   
+  // Row 6: Action row – negative button, amount, positive button
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -283,6 +284,7 @@ function createResourceUI() {
   positiveButton.class("resource-button");
   positiveButton.mousePressed(() => showModal("positive"));
   
+  // Row 7: Quick Adjustments label
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -290,6 +292,7 @@ function createResourceUI() {
   quickLabel.parent(row);
   quickLabel.class("resource-label");
   
+  // Row 8: Quick adjust buttons
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -313,6 +316,7 @@ function createResourceUI() {
   resetButton.class("resource-button");
   resetButton.mousePressed(resetResources);
   
+  // Row 9: Link toggle and description
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -326,6 +330,7 @@ function createResourceUI() {
   linkDesc.class("resource-label");
 }
 
+// Resource update functions
 function setMaxHp() {
   let value = parseInt(maxHpInput.value());
   if (!isNaN(value) && value > 0) { max_hp = value; current_hp = value; }
@@ -347,9 +352,10 @@ function resetResources() {
   current_hp = max_hp;
   current_mp = max_mp;
   current_stamina = max_stamina;
-  current_atb = 0;
+  current_atb = max_atb;
 }
 
+// Modal for resource updates.
 function showModal(action) {
   let amount = parseInt(amountInput.value());
   if (isNaN(amount) || amount <= 0) return;
@@ -409,15 +415,18 @@ function toggleStaminaAtbLink() {
   }
 }
 
+// --- STATS UI CREATION ---
 function createStatsUI() {
   let statsContainer = select("#stats");
   statsContainer.html("");
   createElement("h2", "Stats").parent(statsContainer);
   
+  // Extra fields: Level, EXP, Movement (not linkable)
   createStatInput("Level", "Level", level, statsContainer, (val) => { level = val; }, false);
   createStatInput("EXP", "EXP", exp, statsContainer, (val) => { exp = val; }, false);
   createStatInput("Movement", "Movement", movement, statsContainer, (val) => { movement = val; }, false);
   
+  // Main stats (linkable)
   createStatInput("STR", "Strength", stat_str, statsContainer, (val) => { stat_str = val; }, true);
   createStatInput("VIT", "Vitality", stat_vit, statsContainer, (val) => { stat_vit = val; updateResourcesBasedOnStats(); }, true);
   createStatInput("DEX", "Dexterity", stat_dex, statsContainer, (val) => { stat_dex = val; }, true);
@@ -426,6 +435,7 @@ function createStatsUI() {
   createStatInput("SPR", "Spirit", stat_spr, statsContainer, (val) => { stat_spr = val; }, true);
   createStatInput("LCK", "Luck", stat_lck, statsContainer, (val) => { stat_lck = val; }, true);
   
+  // Additional Attributes UI titled "Skills"
   createAdditionalAttributesUI();
 }
 
@@ -482,6 +492,7 @@ function createAdditionalAttributesUI() {
   addContainer.style("width", "180px");
   createElement("h3", "Skills").parent(addContainer);
   
+  // Lock checkbox for Skills
   let lockRow = createDiv();
   lockRow.parent(addContainer);
   lockRow.style("text-align", "right");
@@ -579,8 +590,9 @@ function updateResourcesBasedOnStats() {
   if (current_mp > max_mp) current_mp = max_mp;
 }
 
+// --- Dragging for Resource UI container ---
 function startDragResourceUI() {
-  if (resourceUILocked) return;
+  // On mobile, only allow drag if two or more fingers are touching.
   if (touches.length > 0 && touches.length < 2) return;
   resourceUIDragging = true;
   let leftStr = resourceUIContainer.style("left");
@@ -591,13 +603,26 @@ function startDragResourceUI() {
   resourceUIMouseStartY = getDragY();
 }
 
+function startDragSkills() {
+  if (touches.length > 0 && touches.length < 2) return;
+  skillsDragging = true;
+  skillsContainer = select("#skillsContainer");
+  let leftStr = skillsContainer.style("left");
+  let topStr = skillsContainer.style("top");
+  skillsStartX = leftStr ? parseInt(leftStr) : 10;
+  skillsStartY = topStr ? parseInt(topStr) : 10;
+  skillsMouseStartX = getDragX();
+  skillsMouseStartY = getDragY();
+}
+
+
 function stopDragResourceUI() {
   resourceUIDragging = false;
 }
 
+// --- Dragging for Skills container ---
 function startDragSkills() {
   if (skillsLocked) return;
-  if (touches.length > 0 && touches.length < 2) return;
   skillsDragging = true;
   skillsContainer = select("#skillsContainer");
   let leftStr = skillsContainer.style("left");
@@ -612,39 +637,57 @@ function stopDragSkills() {
   skillsDragging = false;
 }
 
+// Use helper functions for pointer position (mobile-friendly)
+function getDragX() {
+  return touches.length > 0 ? touches[0].x : mouseX;
+}
+
+function getDragY() {
+  return touches.length > 0 ? touches[0].y : mouseY;
+}
+
+// Override mouseDragged to update positions of draggable containers.
 function mouseDragged() {
   let currentX = getDragX();
   let currentY = getDragY();
-  let contentDiv = select(".content");
-  let contentRect = contentDiv.elt.getBoundingClientRect();
   
-  if (resourceUIDragging && !resourceUILocked) {
+  if (resourceUIDragging) {
     let newX = resourceUIStartX + (currentX - resourceUIMouseStartX);
     let newY = resourceUIStartY + (currentY - resourceUIMouseStartY);
     let boxWidth = resourceUIContainer.elt.offsetWidth;
     let boxHeight = resourceUIContainer.elt.offsetHeight;
-    newX = constrain(newX, contentRect.left, contentRect.right - boxWidth);
-    newY = constrain(newY, contentRect.top, contentRect.bottom - boxHeight);
+    newX = constrain(newX, 0, windowWidth - boxWidth);
+    newY = constrain(newY, 0, windowHeight - boxHeight);
     resourceUIContainer.style("left", newX + "px");
     resourceUIContainer.style("top", newY + "px");
   }
   
-  if (skillsDragging && !skillsLocked) {
+  if (skillsDragging) {
     let newX = skillsStartX + (currentX - skillsMouseStartX);
     let newY = skillsStartY + (currentY - skillsMouseStartY);
     let boxWidth = skillsContainer.elt.offsetWidth;
     let boxHeight = skillsContainer.elt.offsetHeight;
-    newX = constrain(newX, contentRect.left, contentRect.right - boxWidth);
-    newY = constrain(newY, contentRect.top, contentRect.bottom - boxHeight);
+    newX = constrain(newX, 0, windowWidth - boxWidth);
+    newY = constrain(newY, 0, windowHeight - boxHeight);
     skillsContainer.style("left", newX + "px");
     skillsContainer.style("top", newY + "px");
   }
 }
 
+
+// Override touchMoved for mobile dragging smoothness.
 function touchMoved() {
   if (resourceUIDragging || skillsDragging) {
     mouseDragged();
-    return false;
+    return false; // prevent default scrolling only during a drag
   }
   return true;
+}
+
+// --- Reset function ---
+function resetResources() {
+  current_hp = max_hp;
+  current_mp = max_mp;
+  current_stamina = max_stamina;
+  current_atb = max_atb;
 }
