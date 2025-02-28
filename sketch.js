@@ -19,7 +19,7 @@ let modalDiv, cnv;
 // Variables for dragging resource UI container
 let resourceUIDragging = false;
 let resourceUIStartX = 0, resourceUIStartY = 0, resourceUIMouseStartX = 0, resourceUIMouseStartY = 0;
-let resourceUILocked = false; // Unlocked by default
+let resourceUILocked = false;
 
 // Variables for dragging Skills container
 let skillsDragging = false;
@@ -34,11 +34,11 @@ let skillsContainer;
 let descriptionModal = null;
 
 // For linking stats to attributes:
-let statCheckboxes = {};       // Maps stat abbreviation => checkbox element
-let statLabelElements = {};    // Maps stat abbreviation => label element (for color change)
-let attributeCheckboxes = {};  // Maps attribute name => checkbox element
-let statLinkMapping = {};      // Maps stat abbrev => attribute object (linked)
-let attributeLinkMapping = {}; // Maps attribute name => stat abbrev (linked)
+let statCheckboxes = {};
+let statLabelElements = {};
+let attributeCheckboxes = {};
+let statLinkMapping = {};
+let attributeLinkMapping = {};
 
 const statDescriptions = {
   "STR": "Affects physical attack rolls (melee & ranged).",
@@ -53,7 +53,6 @@ const statDescriptions = {
   "Movement": "Determines movement range per turn."
 };
 
-// Updated additional attributes; note Willpower is now hot pink (#FF69B4)
 const additionalAttributes = [
   { name: "Athletics", desc: "Your ability to exert physical strength and endurance to overcome obstacles. Used for climbing, swimming, jumping, grappling, and feats of raw power.", color: "#C0392B" },
   { name: "Endurance", desc: "Your capacity to withstand physical strain, pain, and adverse conditions. Used for resisting poisons, disease, exhaustion, and enduring extreme conditions.", color: "#27AE60" },
@@ -64,7 +63,6 @@ const additionalAttributes = [
   { name: "Ingenuity", desc: "Your problem-solving ability and technical expertise in mechanical, electronic, and creative fields. Used for hacking, crafting, repairing technology, and improvising solutions.", color: "#2C3E50" }
 ];
 
-// --- Helper functions for current pointer position (mobile support) ---
 function getDragX() {
   return touches.length > 0 ? touches[0].x : mouseX;
 }
@@ -94,7 +92,7 @@ function setup() {
   let contentWidth = contentDiv.elt.offsetWidth - 20;
   let contentHeight = contentDiv.elt.offsetHeight - 20;
   let canvasWidth = min(contentWidth, 600);
-  let canvasHeight = min(contentHeight, canvasWidth * 0.75);
+  let canvasHeight = min(contentHeight, windowHeight * 0.4, canvasWidth * 0.75);
   cnv = createCanvas(canvasWidth, canvasHeight);
   cnv.parent(canvasContainer);
   textSize(16);
@@ -102,7 +100,6 @@ function setup() {
   
   createResourceUI();
   
-  // --- Tab Navigation ---
   const tablinks = document.querySelectorAll('.tablink');
   const tabcontents = document.querySelectorAll('.tabcontent');
   tablinks.forEach(btn => {
@@ -122,7 +119,7 @@ function windowResized() {
   let contentWidth = contentDiv.elt.offsetWidth - 20;
   let contentHeight = contentDiv.elt.offsetHeight - 20;
   let canvasWidth = min(contentWidth, 600);
-  let canvasHeight = min(contentHeight, canvasWidth * 0.75);
+  let canvasHeight = min(contentHeight, windowHeight * 0.4, canvasWidth * 0.75);
   resizeCanvas(canvasWidth, canvasHeight);
 }
 
@@ -132,10 +129,10 @@ function draw() {
 }
 
 function displayBars() {
-  let bar_width = width * 0.6; // 60% of canvas width
+  let bar_width = width * 0.6;
   let bar_height = 20;
-  let x = width * 0.1; // 10% margin from left
-  let y_hp = 35, y_mp = 75, y_stamina = 115, y_atb = 155;
+  let x = width * 0.1;
+  let y_hp = 25, y_mp = 55, y_stamina = 85, y_atb = 115;
   
   stroke(0);
   fill(128);
@@ -193,9 +190,8 @@ function displayBars() {
 
 function createResourceUI() {
   let rUI = select("#resourceUIContainer");
-  rUI.html(""); // Clear container
+  rUI.html("");
   
-  // Row 0: Lock checkbox for Resource UI
   let row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -209,7 +205,6 @@ function createResourceUI() {
     }
   });
   
-  // Row 1: "Max:" label
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -217,7 +212,6 @@ function createResourceUI() {
   maxLabel.parent(row);
   maxLabel.class("resource-label");
   
-  // Row 2: HP controls
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -232,7 +226,6 @@ function createResourceUI() {
   setMaxHpButton.class("resource-button");
   setMaxHpButton.mousePressed(setMaxHp);
   
-  // Row 3: MP controls
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -247,7 +240,6 @@ function createResourceUI() {
   setMaxMpButton.class("resource-button");
   setMaxMpButton.mousePressed(setMaxMp);
   
-  // Row 4: Stamina controls
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -262,7 +254,6 @@ function createResourceUI() {
   setMaxStaminaButton.class("resource-button");
   setMaxStaminaButton.mousePressed(setMaxStamina);
   
-  // Row 5: ATB controls
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -277,7 +268,6 @@ function createResourceUI() {
   setMaxAtbButton.class("resource-button");
   setMaxAtbButton.mousePressed(setMaxAtb);
   
-  // Row 6: Action row – negative button, amount, positive button
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -293,7 +283,6 @@ function createResourceUI() {
   positiveButton.class("resource-button");
   positiveButton.mousePressed(() => showModal("positive"));
   
-  // Row 7: Quick Adjustments label
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -301,7 +290,6 @@ function createResourceUI() {
   quickLabel.parent(row);
   quickLabel.class("resource-label");
   
-  // Row 8: Quick adjust buttons
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -325,7 +313,6 @@ function createResourceUI() {
   resetButton.class("resource-button");
   resetButton.mousePressed(resetResources);
   
-  // Row 9: Link toggle and description
   row = createDiv();
   row.parent(rUI);
   row.class("resource-row");
@@ -339,7 +326,6 @@ function createResourceUI() {
   linkDesc.class("resource-label");
 }
 
-// Resource update functions
 function setMaxHp() {
   let value = parseInt(maxHpInput.value());
   if (!isNaN(value) && value > 0) { max_hp = value; current_hp = value; }
@@ -364,7 +350,6 @@ function resetResources() {
   current_atb = 0;
 }
 
-// Modal for resource updates
 function showModal(action) {
   let amount = parseInt(amountInput.value());
   if (isNaN(amount) || amount <= 0) return;
@@ -424,18 +409,15 @@ function toggleStaminaAtbLink() {
   }
 }
 
-// --- STATS UI CREATION ---
 function createStatsUI() {
   let statsContainer = select("#stats");
   statsContainer.html("");
   createElement("h2", "Stats").parent(statsContainer);
   
-  // Extra fields: Level, EXP, Movement (not linkable)
   createStatInput("Level", "Level", level, statsContainer, (val) => { level = val; }, false);
   createStatInput("EXP", "EXP", exp, statsContainer, (val) => { exp = val; }, false);
   createStatInput("Movement", "Movement", movement, statsContainer, (val) => { movement = val; }, false);
   
-  // Main stats (linkable)
   createStatInput("STR", "Strength", stat_str, statsContainer, (val) => { stat_str = val; }, true);
   createStatInput("VIT", "Vitality", stat_vit, statsContainer, (val) => { stat_vit = val; updateResourcesBasedOnStats(); }, true);
   createStatInput("DEX", "Dexterity", stat_dex, statsContainer, (val) => { stat_dex = val; }, true);
@@ -444,7 +426,6 @@ function createStatsUI() {
   createStatInput("SPR", "Spirit", stat_spr, statsContainer, (val) => { stat_spr = val; }, true);
   createStatInput("LCK", "Luck", stat_lck, statsContainer, (val) => { stat_lck = val; }, true);
   
-  // Additional Attributes UI titled "Skills"
   createAdditionalAttributesUI();
 }
 
@@ -501,7 +482,6 @@ function createAdditionalAttributesUI() {
   addContainer.style("width", "180px");
   createElement("h3", "Skills").parent(addContainer);
   
-  // Lock checkbox for Skills
   let lockRow = createDiv();
   lockRow.parent(addContainer);
   lockRow.style("text-align", "right");
@@ -635,14 +615,16 @@ function stopDragSkills() {
 function mouseDragged() {
   let currentX = getDragX();
   let currentY = getDragY();
+  let contentDiv = select(".content");
+  let contentRect = contentDiv.elt.getBoundingClientRect();
   
   if (resourceUIDragging && !resourceUILocked) {
     let newX = resourceUIStartX + (currentX - resourceUIMouseStartX);
     let newY = resourceUIStartY + (currentY - resourceUIMouseStartY);
     let boxWidth = resourceUIContainer.elt.offsetWidth;
     let boxHeight = resourceUIContainer.elt.offsetHeight;
-    newX = constrain(newX, 0, windowWidth - boxWidth);
-    newY = constrain(newY, 0, windowHeight - boxHeight);
+    newX = constrain(newX, contentRect.left, contentRect.right - boxWidth);
+    newY = constrain(newY, contentRect.top, contentRect.bottom - boxHeight);
     resourceUIContainer.style("left", newX + "px");
     resourceUIContainer.style("top", newY + "px");
   }
@@ -652,8 +634,8 @@ function mouseDragged() {
     let newY = skillsStartY + (currentY - skillsMouseStartY);
     let boxWidth = skillsContainer.elt.offsetWidth;
     let boxHeight = skillsContainer.elt.offsetHeight;
-    newX = constrain(newX, 0, windowWidth - boxWidth);
-    newY = constrain(newY, 0, windowHeight - boxHeight);
+    newX = constrain(newX, contentRect.left, contentRect.right - boxWidth);
+    newY = constrain(newY, contentRect.top, contentRect.bottom - boxHeight);
     skillsContainer.style("left", newX + "px");
     skillsContainer.style("top", newY + "px");
   }
