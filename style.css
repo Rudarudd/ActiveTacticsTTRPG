@@ -18,14 +18,12 @@ header input {
   margin-right: 10px;
 }
 
-/* Container: two columns on desktop */
 .container {
   display: grid;
   grid-template-columns: 200px 1fr;
   height: calc(100vh - 50px);
 }
 
-/* Desktop tabs (min-width: 601px) - vertical list */
 @media screen and (min-width: 601px) {
   .tabs {
     display: flex;
@@ -50,11 +48,11 @@ header input {
   }
 }
 
-/* Mobile tabs (max-width: 600px) - horizontal scrolling */
 @media screen and (max-width: 600px) {
   .container {
     display: flex;
     flex-direction: column;
+    height: calc(100vh - 50px);
   }
   .tabs {
     order: 2;
@@ -65,19 +63,26 @@ header input {
     overflow-x: auto;
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
+    max-height: 50px;
   }
   .tabs button {
     flex: 0 0 auto;
     margin: 0 2px;
     padding: 10px;
   }
+  .content {
+    order: 1;
+    flex: 1;
+    height: auto;
+  }
 }
 
-/* Content area */
 .content {
   padding: 10px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  height: calc(100% - 20px);
+  box-sizing: border-box;
 }
 
 .tabcontent {
@@ -89,7 +94,6 @@ header input {
   display: block;
 }
 
-/* p5-container styling */
 #p5-container {
   position: relative;
   width: 100%;
@@ -97,7 +101,6 @@ header input {
   margin: 0 auto;
 }
 
-/* Resource Tracker UI overlay */
 #resourceUIContainer {
   position: absolute;
   top: 10px;
@@ -110,7 +113,6 @@ header input {
   box-sizing: border-box;
 }
 
-/* Resource UI row styling */
 .resource-row {
   display: flex;
   align-items: center;
@@ -135,7 +137,6 @@ header input {
   margin-right: 5px;
 }
 
-/* Skills container (for Additional Attributes) */
 #skillsContainer {
   position: absolute;
   top: 10px;
@@ -148,7 +149,6 @@ header input {
   box-sizing: border-box;
 }
 
-/* Mobile adjustments for draggable boxes */
 @media screen and (max-width: 600px) {
   #resourceUIContainer,
   #skillsContainer {
