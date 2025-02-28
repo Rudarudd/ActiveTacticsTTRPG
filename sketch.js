@@ -581,7 +581,7 @@ function updateResourcesBasedOnStats() {
 
 function startDragResourceUI() {
   if (resourceUILocked) return;
-  if (touches.length > 0) {
+  if (touches.length > 0) { // Mobile touch
     resourceUIDragging = true;
     let rect = resourceUIContainer.elt.getBoundingClientRect();
     resourceUIStartX = rect.left;
@@ -589,13 +589,13 @@ function startDragResourceUI() {
     resourceUIMouseStartX = getDragX();
     resourceUIMouseStartY = getDragY();
     return false;
-  } else if (mouseIsPressed) {
+  } else if (mouseIsPressed) { // Desktop mouse
     resourceUIDragging = true;
-    let rect = resourceUIContainer.elt.getBoundingClientRect();
-    resourceUIStartX = rect.left;
-    resourceUIStartY = rect.top;
-    resourceUIMouseStartX = mouseX;
-    resourceUIMouseStartY = mouseY;
+    let canvasRect = cnv.elt.getBoundingClientRect();
+    resourceUIStartX = parseInt(resourceUIContainer.style("left")) || 10;
+    resourceUIStartY = parseInt(resourceUIContainer.style("top")) || 10;
+    resourceUIMouseStartX = mouseX + canvasRect.left;
+    resourceUIMouseStartY = mouseY + canvasRect.top;
   }
 }
 
@@ -644,8 +644,9 @@ function mouseDragged() {
     let newY = resourceUIStartY + deltaY;
     let boxWidth = resourceUIContainer.elt.offsetWidth;
     let boxHeight = resourceUIContainer.elt.offsetHeight;
-    newX = constrain(newX, contentRect.left, contentRect.right - boxWidth);
-    newY = constrain(newY, contentRect.top, contentRect.bottom - boxHeight);
+    let canvasRect = cnv.elt.getBoundingClientRect();
+    newX = constrain(newX, contentRect.left - canvasRect.left, contentRect.right - canvasRect.left - boxWidth);
+    newY = constrain(newY, contentRect.top - canvasRect.top, contentRect.bottom - canvasRect.top - boxHeight);
     resourceUIContainer.style("left", newX + "px");
     resourceUIContainer.style("top", newY + "px");
   }
