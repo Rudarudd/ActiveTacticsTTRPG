@@ -121,6 +121,11 @@ header input {
   border: 1px solid #ccc;
   cursor: move;
   box-sizing: border-box;
+  touch-action: none; /* Prevents scrolling interference on mobile */
+}
+
+#resourceUIContainer.dragging {
+  background: rgba(200, 200, 200, 0.95); /* Darker background when dragging */
 }
 
 .resource-row {
@@ -157,6 +162,11 @@ header input {
   border: 1px solid #ccc;
   cursor: move;
   box-sizing: border-box;
+  touch-action: none; /* Prevents scrolling interference on mobile */
+}
+
+#skillsContainer.dragging {
+  background: rgba(200, 200, 200, 0.95); /* Darker background when dragging */
 }
 
 @media screen and (max-width: 600px) {
