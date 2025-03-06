@@ -20,11 +20,17 @@ let modalDiv, cnv;
 let resourceUIDragging = false;
 let resourceUIStartX = 0, resourceUIStartY = 0, resourceUIMouseStartX = 0, resourceUIMouseStartY = 0;
 let resourceUILocked = false;
+let resourceTouchStartTime = 0; // Tracks touch start time for resource UI
+let resourceTouchOffsetX = 0, resourceTouchOffsetY = 0; // Offset from touch to top-left corner
 
 // Variables for dragging Skills container
 let skillsDragging = false;
 let skillsStartX = 0, skillsStartY = 0, skillsMouseStartX = 0, skillsMouseStartY = 0;
 let skillsLocked = false;
+let skillsTouchStartTime = 0; // Tracks touch start time for skills UI
+let skillsTouchOffsetX = 0, skillsTouchOffsetY = 0; // Offset from touch to top-left corner
+
+const holdThreshold = 300; // Time in milliseconds to hold before touch dragging
 
 // Global container variables (set in setup)
 let resourceUIContainer;
@@ -63,21 +69,17 @@ const additionalAttributes = [
   { name: "Ingenuity", desc: "Your problem-solving ability and technical expertise in mechanical, electronic, and creative fields. Used for hacking, crafting, repairing technology, and improvising solutions.", color: "#2C3E50" }
 ];
 
-// Updated functions to use averaged touch positions for mobile dragging
+// Updated functions to use single touch positions for mobile dragging
 function getDragX() {
-  if (touches.length >= 2) {
-    return (touches[0].x + touches[1].x) / 2;
-  } else if (touches.length === 1) {
-    return touches[0].x;
+  if (touches.length > 0) {
+    return touches[0].x; // Use single touch position
   }
   return mouseX;
 }
 
 function getDragY() {
-  if (touches.length >= 2) {
-    return (touches[0].y + touches[1].y) / 2;
-  } else if (touches.length === 1) {
-    return touches[0].y;
+  if (touches.length > 0) {
+    return touches[0].y; // Use single touch position
   }
   return mouseY;
 }
@@ -96,7 +98,7 @@ function setup() {
   resourceUIContainer.id("resourceUIContainer");
   resourceUIContainer.mousePressed(startDragResourceUI);
   resourceUIContainer.mouseReleased(stopDragResourceUI);
-  resourceUIContainer.touchStarted(startDragResourceUI);
+  resourceUIContainer.touchStarted(startTouchDragResourceUI);
   resourceUIContainer.touchEnded(stopDragResourceUI);
   
   let contentDiv = select(".content");
@@ -484,7 +486,7 @@ function createAdditionalAttributesUI() {
   addContainer.id("skillsContainer");
   addContainer.mousePressed(startDragSkills);
   addContainer.mouseReleased(stopDragSkills);
-  addContainer.touchStarted(startDragSkills);
+  addContainer.touchStarted(startTouchDragSkills);
   addContainer.touchEnded(stopDragSkills);
   
   addContainer.style("border", "1px solid #ccc");
@@ -592,40 +594,72 @@ function updateResourcesBasedOnStats() {
 
 function startDragResourceUI() {
   if (resourceUILocked) return;
-  if (touches.length > 0 && touches.length < 2) return; // require two fingers on mobile
   resourceUIDragging = true;
+  resourceUIContainer.addClass('dragging'); // Add darker background
   let rect = resourceUIContainer.elt.getBoundingClientRect();
   resourceUIStartX = rect.left;
   resourceUIStartY = rect.top;
-  
   resourceUIMouseStartX = getDragX();
   resourceUIMouseStartY = getDragY();
 }
 
+function startTouchDragResourceUI() {
+  if (resourceUILocked) return;
+  resourceTouchStartTime = millis();
+  resourceUIDragging = false;
+  let rect = resourceUIContainer.elt.getBoundingClientRect();
+  resourceUIStartX = rect.left; // Initial window position
+  resourceUIStartY = rect.top;
+  let touchX = getDragX();
+  let touchY = getDragY();
+  resourceTouchOffsetX = touchX - resourceUIStartX; // Initial offset (will be updated)
+  resourceTouchOffsetY = touchY - resourceUIStartY;
+}
+
 function stopDragResourceUI() {
   resourceUIDragging = false;
+  resourceTouchStartTime = 0;
+  resourceTouchOffsetX = 0;
+  resourceTouchOffsetY = 0;
+  resourceUIContainer.removeClass('dragging'); // Remove darker background
 }
 
 function startDragSkills() {
   if (skillsLocked) return;
-  if (touches.length > 0 && touches.length < 2) return; // require two fingers on mobile
   skillsDragging = true;
   skillsContainer = select("#skillsContainer");
+  skillsContainer.addClass('dragging'); // Add darker background
   let rect = skillsContainer.elt.getBoundingClientRect();
   skillsStartX = rect.left;
   skillsStartY = rect.top;
-  
   skillsMouseStartX = getDragX();
   skillsMouseStartY = getDragY();
 }
 
+function startTouchDragSkills() {
+  if (skillsLocked) return;
+  skillsTouchStartTime = millis();
+  skillsDragging = false;
+  skillsContainer = select("#skillsContainer");
+  let rect = skillsContainer.elt.getBoundingClientRect();
+  skillsStartX = rect.left; // Initial window position
+  skillsStartY = rect.top;
+  let touchX = getDragX();
+  let touchY = getDragY();
+  skillsTouchOffsetX = touchX - skillsStartX; // Initial offset (will be updated)
+  skillsTouchOffsetY = touchY - skillsStartY;
+}
+
 function stopDragSkills() {
   skillsDragging = false;
+  skillsTouchStartTime = 0;
+  skillsTouchOffsetX = 0;
+  skillsTouchOffsetY = 0;
+  skillsContainer.removeClass('dragging'); // Remove darker background
 }
 
 function mouseDragged() {
-  if (touches.length > 0 && touches.length < 2) return false;
-  if (!resourceUIDragging && !skillsDragging) return;
+  if (!resourceUIDragging && !skillsDragging) return false;
   
   let currentX = getDragX();
   let currentY = getDragY();
@@ -668,9 +702,65 @@ function mouseDragged() {
 }
 
 function touchMoved() {
-  if (resourceUIDragging || skillsDragging) {
-    mouseDragged();
-    return false;
+  let currentTime = millis();
+  let currentX = getDragX();
+  let currentY = getDragY();
+  
+  if (resourceTouchStartTime > 0 && !resourceUILocked) {
+    if (currentTime - resourceTouchStartTime >= holdThreshold) {
+      if (!resourceUIDragging) {
+        // Recalculate offset just before dragging starts to account for movement during hold
+        resourceTouchOffsetX = currentX - resourceUIStartX;
+        resourceTouchOffsetY = currentY - resourceUIStartY;
+        resourceUIDragging = true;
+        resourceUIContainer.addClass('dragging');
+      }
+    }
   }
-  return true;
+  
+  if (skillsTouchStartTime > 0 && !skillsLocked) {
+    if (currentTime - skillsTouchStartTime >= holdThreshold) {
+      if (!skillsDragging) {
+        // Recalculate offset just before dragging starts
+        skillsTouchOffsetX = currentX - skillsStartX;
+        skillsTouchOffsetY = currentY - skillsStartY;
+        skillsDragging = true;
+        skillsContainer.addClass('dragging');
+      }
+    }
+  }
+  
+  if (!resourceUIDragging && !skillsDragging) return false;
+  
+  if (resourceUIDragging && !resourceUILocked) {
+    let newX = currentX - resourceTouchOffsetX;
+    let newY = currentY - resourceTouchOffsetY;
+    
+    let parentRect = select("#resources").elt.getBoundingClientRect();
+    let boxWidth = resourceUIContainer.elt.offsetWidth;
+    let boxHeight = resourceUIContainer.elt.offsetHeight;
+    
+    newX = constrain(newX, parentRect.left, parentRect.right - boxWidth);
+    newY = constrain(newY, parentRect.top, parentRect.bottom - boxHeight);
+    
+    resourceUIContainer.style("left", (newX - parentRect.left) + "px");
+    resourceUIContainer.style("top", (newY - parentRect.top) + "px");
+  }
+  
+  if (skillsDragging && !skillsLocked) {
+    let newX = currentX - skillsTouchOffsetX;
+    let newY = currentY - skillsTouchOffsetY;
+    
+    let parentRect = select("#stats").elt.getBoundingClientRect();
+    let boxWidth = skillsContainer.elt.offsetWidth;
+    let boxHeight = skillsContainer.elt.offsetHeight;
+    
+    newX = constrain(newX, parentRect.left, parentRect.right - boxWidth);
+    newY = constrain(newY, parentRect.top, parentRect.bottom - boxHeight);
+    
+    skillsContainer.style("left", (newX - parentRect.left) + "px");
+    skillsContainer.style("top", (newY - parentRect.top) + "px");
+  }
+  
+  return false;
 }
