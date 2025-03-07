@@ -56,8 +56,8 @@ const additionalAttributes = [
   { name: "Ingenuity", desc: "Your problem-solving ability and technical expertise in mechanical, electronic, and creative fields. Used for hacking, crafting, repairing technology, and improvising solutions.", color: "#2C3E50" }
 ];
 
-// Default talents (for reset)
 const defaultTalents = [
+  // Physical Combat
   { name: "Relentless Fighter - Level I", level: "I", category: "Physical Combat", description: "Recover 5 Stamina per turn.", maxLevel: "II" },
   { name: "Relentless Fighter - Level II", level: "II", category: "Physical Combat", description: "Recover 10 Stamina per turn.", maxLevel: "II" },
   { name: "Heavy Hitter - Level I", level: "I", category: "Physical Combat", description: "Gain +2 melee damage on critical hits.", maxLevel: "III" },
@@ -65,8 +65,70 @@ const defaultTalents = [
   { name: "Heavy Hitter - Level III", level: "III", category: "Physical Combat", description: "Gain +6 melee damage on critical hits.", maxLevel: "III" },
   { name: "Quick Reflexes - Level I", level: "I", category: "Physical Combat", description: "Dodging costs 20 Stamina instead of 25.", maxLevel: "III" },
   { name: "Quick Reflexes - Level II", level: "II", category: "Physical Combat", description: "Dodging costs 15 Stamina instead of 25.", maxLevel: "III" },
-  { name: "Quick Reflexes - Level III", level: "III", category: "Physical Combat", description: "Dodging costs 10 Stamina instead of 25.", maxLevel: "III" }
-  // Add more default talents as needed
+  { name: "Quick Reflexes - Level III", level: "III", category: "Physical Combat", description: "Dodging costs 10 Stamina instead of 25.", maxLevel: "III" },
+  { name: "Enduring Block - Level I", level: "I", category: "Physical Combat", description: "If you fully block an attack, you recover 10 Stamina.", maxLevel: "III" },
+  { name: "Enduring Block - Level II", level: "II", category: "Physical Combat", description: "If you fully block an attack, you recover 15 Stamina.", maxLevel: "III" },
+  { name: "Enduring Block - Level III", level: "III", category: "Physical Combat", description: "If you fully block an attack, you recover 20 Stamina.", maxLevel: "III" },
+  { name: "Battlefield Awareness - Level I", level: "I", category: "Physical Combat", description: "When an enemy misses you, gain 5 ATB.", maxLevel: "III" },
+  { name: "Battlefield Awareness - Level II", level: "II", category: "Physical Combat", description: "When an enemy misses you, gain 10 ATB.", maxLevel: "III" },
+  { name: "Battlefield Awareness - Level III", level: "III", category: "Physical Combat", description: "When an enemy misses you, gain 15 ATB.", maxLevel: "III" },
+  { name: "Tactical Step - Level I", level: "I", category: "Physical Combat", description: "Moving an extra 10 ft per turn is free.", maxLevel: "II" },
+  { name: "Tactical Step - Level II", level: "II", category: "Physical Combat", description: "Moving an extra 20 ft per turn is free.", maxLevel: "II" },
+  { name: "Momentum Strike - Level I", level: "I", category: "Physical Combat", description: "If you move at least 15 ft before attacking, your attack deals +2 damage.", maxLevel: "I" },
+  { name: "Shatter Guard - Level I", level: "I", category: "Physical Combat", description: "If an enemy is blocking, your attack ignores 2 DEF.", maxLevel: "I" },
+  { name: "Grappling Mastery - Level I", level: "I", category: "Physical Combat", description: "Gain Advantage on all Grapple attempts.", maxLevel: "I" },
+
+  // Magical
+  { name: "Efficient Spellcasting - Level I", level: "I", category: "Magical", description: "Materia spells cost -5 MP (minimum 1MP cost per spell).", maxLevel: "III" },
+  { name: "Efficient Spellcasting - Level II", level: "II", category: "Magical", description: "Materia spells cost -10 MP (minimum 1MP cost per spell).", maxLevel: "III" },
+  { name: "Efficient Spellcasting - Level III", level: "III", category: "Magical", description: "Materia spells cost -15 MP (minimum 1MP cost per spell).", maxLevel: "III" },
+  { name: "Arcane Conductor - Level I", level: "I", category: "Magical", description: "If you evade a magic attack, regain 5 MP.", maxLevel: "II" },
+  { name: "Arcane Conductor - Level II", level: "II", category: "Magical", description: "If you evade a magic attack, regain 10 MP.", maxLevel: "II" },
+  { name: "Elemental Mastery - Level I", level: "I", category: "Magical", description: "Choose one element; spells of that type deal +2 damage.", maxLevel: "II" },
+  { name: "Elemental Mastery - Level II", level: "II", category: "Magical", description: "Choose one element; spells of that type deal +4 damage.", maxLevel: "II" },
+  { name: "Mana Reservoir - Level I", level: "I", category: "Magical", description: "Max MP is increased by 5.", maxLevel: "II" },
+  { name: "Mana Reservoir - Level II", level: "II", category: "Magical", description: "Max MP is increased by 10.", maxLevel: "II" },
+  { name: "Overcharged Spellcasting - Level I", level: "I", category: "Magical", description: "If you spend double MP on a spell, its damage increases by +50%.", maxLevel: "I" },
+  { name: "Dual Weave - Level I", level: "I", category: "Magical", description: "If you cast a spell, you may spend 25 ATB to cast a second spell as a bonus effect (must be a different spell).", maxLevel: "II" },
+  { name: "Dual Weave - Level II", level: "II", category: "Magical", description: "If you cast a spell, you may spend 50 ATB to cast a second spell as a bonus effect (must be a different spell).", maxLevel: "II" },
+  { name: "Weave Momentum - Level I", level: "I", category: "Magical", description: "If you cast a spell, your next attack deals +2 damage.", maxLevel: "I" },
+
+  // Ranged Combat
+  { name: "Sharpshooter - Level I", level: "I", category: "Ranged Combat", description: "Gain +1 damage on ranged attacks.", maxLevel: "III" },
+  { name: "Sharpshooter - Level II", level: "II", category: "Ranged Combat", description: "Gain +2 damage on ranged attacks.", maxLevel: "III" },
+  { name: "Sharpshooter - Level III", level: "III", category: "Ranged Combat", description: "Gain +3 damage on ranged attacks.", maxLevel: "III" },
+  { name: "Cover Fire - Level I", level: "I", category: "Ranged Combat", description: "If an ally within 30 ft is attacked, you may spend 25 ATB to make a reaction shot at the attacker.", maxLevel: "I" },
+  { name: "Eagle Eye - Level I", level: "I", category: "Ranged Combat", description: "Ignore half cover when making ranged attacks.", maxLevel: "I" },
+  { name: "Deadly Precision - Level I", level: "I", category: "Ranged Combat", description: "When making a ranged attack, you may spend 10 ATB to increase your crit range by 1.", maxLevel: "III" },
+  { name: "Deadly Precision - Level II", level: "II", category: "Ranged Combat", description: "When making a ranged attack, you may spend 20 ATB to increase your crit range by 2.", maxLevel: "III" },
+  { name: "Deadly Precision - Level III", level: "III", category: "Ranged Combat", description: "When making a ranged attack, you may spend 30 ATB to increase your crit range by 3.", maxLevel: "III" },
+
+  // Defensive
+  { name: "Guardian’s Oath - Level I", level: "I", category: "Defensive", description: "When you block for an ally, gain +2 to your Block Roll.", maxLevel: "III" },
+  { name: "Guardian’s Oath - Level II", level: "II", category: "Defensive", description: "When you block for an ally, gain +4 to your Block Roll.", maxLevel: "III" },
+  { name: "Guardian’s Oath - Level III", level: "III", category: "Defensive", description: "When you block for an ally, gain +6 to your Block Roll.", maxLevel: "III" },
+  { name: "Armor Mastery - Level I", level: "I", category: "Defensive", description: "Wearing Heavy Armor increases movement speed by 5 ft.", maxLevel: "III" },
+  { name: "Armor Mastery - Level II", level: "II", category: "Defensive", description: "Wearing Heavy Armor increases movement speed by 10 ft.", maxLevel: "III" },
+  { name: "Armor Mastery - Level III", level: "III", category: "Defensive", description: "Wearing Heavy Armor increases movement speed by 15 ft.", maxLevel: "III" },
+  { name: "Defensive Momentum - Level I", level: "I", category: "Defensive", description: "After blocking an attack, your next dodge roll gains Advantage.", maxLevel: "I" },
+  { name: "Reactive Parry - Level I", level: "I", category: "Defensive", description: "If an enemy attacks you in melee, you may spend 25 ATB to counterattack.", maxLevel: "I" },
+  { name: "Iron Will - Level I", level: "I", category: "Defensive", description: "Start encounters with an additional 25 stamina.", maxLevel: "I" },
+  { name: "Stalwart Wall - Level I", level: "I", category: "Defensive", description: "If you don’t move on your turn, you gain +2 DEF for 1 round.", maxLevel: "I" },
+
+  // Utility & Tactical
+  { name: "Tactician’s Instinct - Level I", level: "I", category: "Utility & Tactical", description: "Gain Advantage on Awareness rolls, and once per combat, you may reroll Initiative.", maxLevel: "II" },
+  { name: "Tactician’s Instinct - Level II", level: "II", category: "Utility & Tactical", description: "Gain Advantage on Awareness rolls, and once per combat, you may reroll Initiative.", maxLevel: "II" },
+  { name: "Quick Hands - Level I", level: "I", category: "Utility & Tactical", description: "Using items costs half Stamina.", maxLevel: "I" },
+  { name: "Battle Medic - Level I", level: "I", category: "Utility & Tactical", description: "Healing grants an additional 2d4 HP.", maxLevel: "III" },
+  { name: "Battle Medic - Level II", level: "II", category: "Utility & Tactical", description: "Healing grants an additional 2d6 HP.", maxLevel: "III" },
+  { name: "Battle Medic - Level III", level: "III", category: "Utility & Tactical", description: "Healing grants an additional 2d8 HP.", maxLevel: "III" },
+  { name: "Adrenaline Boost - Level I", level: "I", category: "Utility & Tactical", description: "When below half HP, immediately gain 25 Stamina.", maxLevel: "I" },
+  { name: "Improvised Combatant - Level I", level: "I", category: "Utility & Tactical", description: "Gain Advantage when using the environment for attacks (throwing objects, knocking down obstacles).", maxLevel: "I" },
+  { name: "Rushdown - Level I", level: "I", category: "Utility & Tactical", description: "Gain +5 ATB if you move at least 20 ft before attacking.", maxLevel: "II" },
+  { name: "Rushdown - Level II", level: "II", category: "Utility & Tactical", description: "Gain +10 ATB if you move at least 20 ft before attacking.", maxLevel: "II" },
+  { name: "Support Specialist - Level I", level: "I", category: "Utility & Tactical", description: "When assisting an ally, they gain +5 ATB.", maxLevel: "II" },
+  { name: "Support Specialist - Level II", level: "II", category: "Utility & Tactical", description: "When assisting an ally, they gain +10 ATB.", maxLevel: "II" },
+  { name: "Unbreakable Focus - Level I", level: "I", category: "Utility & Tactical", description: "Once per encounter, you may reroll a status effect affecting you.", maxLevel: "I" }
 ];
 
 // Working copy of talents
@@ -77,12 +139,19 @@ let traits = [];
 // Default maximum number of traits
 let maxTraits = 3;
 
-// Default traits with positive and negative effects
 const defaultTraits = [
   { name: "Grafted Weapon", category: "Combat", positive: "Cannot be unwillingly disarmed.", negative: "Disadvantage on Agility checks." },
   { name: "EX-SOLDIER", category: "Combat", positive: "Advantage on Athletics checks.", negative: "Disadvantage on Ingenuity checks." },
-  { name: "Ancient Echoes", category: "Magical", positive: "You can sense the presence of raw Materia and Lifestream energy within 60 feet, even through barriers (you do not sense refined Materia equipped to others).", negative: "Disadvantage on Awareness checks." }
-  // Add more default traits as needed
+  { name: "Ancient Echoes", category: "Magical", positive: "You can sense the presence of raw Materia and Lifestream energy within 60 feet, even through barriers (you do not sense refined Materia equipped to others).", negative: "Disadvantage on Awareness checks." },
+  { name: "Imposing Posture", category: "Utility", positive: "Advantage on all hostile Influence checks.", negative: "Disadvantage on all friendly Influence checks." },
+  { name: "Cybernetic Enhancements", category: "Utility", positive: "Start each battle with +25 ATB.", negative: "Start each battle with -25 Movement." },
+  { name: "Fractured Mind", category: "Utility", positive: "Advantage on Awareness checks.", negative: "Disadvantage on Willpower checks." },
+  { name: "Silver Tongue", category: "Utility", positive: "Advantage on Influence checks.", negative: "Disadvantage on Athletics checks." },
+  { name: "Wandering Spirit", category: "Physical", positive: "Advantage on Endurance checks.", negative: "Resting requires double the time for full benefits." },
+  { name: "Jenova’s Taint", category: "Combat", positive: "Once per turn, you can reroll an attack roll.", negative: "When using the reroll, make a Willpower check (DC 10); if failed, waste stamina without attacking." },
+  { name: "Glowing Eyes", category: "Physical", positive: "Your vision is enhanced beyond normal limits. You can see clearly in dim light and ignore visual obscurities such as smoke or fog.", negative: "Disadvantage on Stealth checks in darkness or shadowed areas." },
+  { name: "Reactive Reflexes", category: "Combat", positive: "Advantage on Dodge Rolls.", negative: "After Dodging, disadvantage on your next Attack (physical or magical)." },
+  { name: "Weakened Flesh", category: "Magical", positive: "+10 Maximum MP.", negative: "-10 Maximum HP." }
 ];
 
 // Working copy of traits
