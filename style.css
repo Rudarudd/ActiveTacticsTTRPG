@@ -104,11 +104,15 @@ header input {
 }
 
 #resources {
-  position: relative; /* Ensure it’s a positioning context */
+  position: relative;
 }
 
 #stats {
-  position: relative; /* Ensure it’s a positioning context */
+  position: relative;
+}
+
+#talents {
+  position: relative;
 }
 
 #resourceUIContainer {
@@ -121,11 +125,11 @@ header input {
   border: 1px solid #ccc;
   cursor: move;
   box-sizing: border-box;
-  touch-action: none; /* Prevents scrolling interference on mobile */
+  touch-action: none;
 }
 
 #resourceUIContainer.dragging {
-  background: rgba(200, 200, 200, 0.95); /* Darker background when dragging */
+  background: rgba(200, 200, 200, 0.95);
 }
 
 .resource-row {
@@ -162,11 +166,38 @@ header input {
   border: 1px solid #ccc;
   cursor: move;
   box-sizing: border-box;
-  touch-action: none; /* Prevents scrolling interference on mobile */
+  touch-action: none;
 }
 
 #skillsContainer.dragging {
-  background: rgba(200, 200, 200, 0.95); /* Darker background when dragging */
+  background: rgba(200, 200, 200, 0.95);
+}
+
+#talentsTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+#talentsTable th,
+#talentsTable td {
+  border: 1px solid #ccc;
+  padding: 5px;
+}
+
+#talentsTable th {
+  background: #f2f2f2;
+}
+
+#talentsTable td:last-child {
+  text-align: center;
+}
+
+#talentsTable button {
+  font-size: 12px;
+  padding: 2px 5px;
+  cursor: pointer;
+  margin: 0 2px;
 }
 
 @media screen and (max-width: 600px) {
@@ -177,5 +208,14 @@ header input {
     width: 160px;
     padding: 3px;
     font-size: 12px;
+  }
+  
+  #talentsTable {
+    font-size: 12px;
+  }
+  
+  #talentsTable button {
+    font-size: 10px;
+    padding: 1px 3px;
   }
 }
