@@ -1010,22 +1010,23 @@ function showRemoveEquipmentModal() {
     .mousePressed(() => {
       let selectedType = typeSelect.value();
       let selectedName = equipmentSelect.value();
-      let index = availableEquipment[selectedType].findIndex(item => item.name === selectedName);
-
-      if (index !== -1) {
-        // Unequip if currently equipped
-        if (equippedItems[selectedType] && equippedItems[selectedType].name === selectedName) {
-          equippedItems[selectedType] = null;
+      showConfirmationModal(`Remove ${selectedName} from ${selectedType}?`, () => {
+        let index = availableEquipment[selectedType].findIndex(item => item.name === selectedName);
+        if (index !== -1) {
+          // Unequip if currently equipped
+          if (equippedItems[selectedType] && equippedItems[selectedType].name === selectedName) {
+            equippedItems[selectedType] = null;
+          }
+          // Remove from availableEquipment
+          availableEquipment[selectedType].splice(index, 1);
+          // Clean up empty slot arrays
+          if (availableEquipment[selectedType].length === 0) {
+            delete availableEquipment[selectedType];
+          }
+          createEquipmentUI(); // Refresh the table
+          modalDiv.remove();
         }
-        // Remove from availableEquipment
-        availableEquipment[selectedType].splice(index, 1);
-        // Clean up empty slot arrays
-        if (availableEquipment[selectedType].length === 0) {
-          delete availableEquipment[selectedType];
-        }
-        createEquipmentUI(); // Refresh the table
-        modalDiv.remove();
-      }
+      });
     });
 
   let cancelBtn = createButton("Cancel")
