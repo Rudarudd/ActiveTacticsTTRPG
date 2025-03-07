@@ -209,7 +209,59 @@ function showConfirmationModal(message, onConfirm, isError = false) {
     createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
   }
 }
-
+function showEquipmentDescription(slot, item) {
+  if (modalDiv) modalDiv.remove();
+  modalDiv = createDiv()
+    .style("position", "absolute")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("max-width", "400px")
+    .style("word-wrap", "break-word");
+  
+  createElement("h3", `${slot}: ${item ? item.name : "None"}`).parent(modalDiv);
+  if (item) {
+    let details = item.description ? `${item.description}<br>` : "No description provided.<br>";
+    if (item.statRequirements && Object.keys(item.statRequirements).length > 0) {
+      let reqs = Object.entries(item.statRequirements).map(([stat, value]) => `${value} ${stat}`).join(" & ");
+      details += `Requirements: ${reqs}<br>`;
+    }
+    if (item.damageDice) {
+      let modifierText = item.modifier && item.modifier !== 0 ? (item.modifier > 0 ? `+${item.modifier}` : item.modifier) : "";
+      details += `Damage: ${item.damageDice}${modifierText}<br>`;
+    } else if (item.defense) {
+      details += `Defense: ${item.defense}${item.modifier && item.modifier !== 0 ? (item.modifier > 0 ? ` +${item.modifier}` : ` ${item.modifier}`) : ""}<br>`;
+    } else if (item.modifier && item.modifier !== 0) {
+      details += `Modifier: ${item.modifier > 0 ? `+${item.modifier}` : item.modifier}<br>`;
+    }
+    createP(details).parent(modalDiv);
+  } else {
+    createP("No description available.").parent(modalDiv);
+  }
+  createButton("Close").parent(modalDiv).style("margin-top", "10px").mousePressed(() => modalDiv.remove());
+}
+function canWieldItem(item) {
+  if (!item || !item.statRequirements) return true; // No requirements, can wield
+  let totalStats = {
+    STR: getTotalStat("STR"),
+    VIT: getTotalStat("VIT"),
+    DEX: getTotalStat("DEX"),
+    MAG: getTotalStat("MAG"),
+    WIL: getTotalStat("WIL"),
+    SPR: getTotalStat("SPR"),
+    LCK: getTotalStat("LCK")
+  };
+  for (let [stat, requiredValue] of Object.entries(item.statRequirements)) {
+    if (totalStats[stat] < requiredValue) {
+      return false; // Stat too low
+    }
+  }
+  return true; // All requirements met
+}
 function showTalentDescription(title, description) {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv()
@@ -626,7 +678,182 @@ function calculateMovement() {
   let movementInput = select("#movementInput");
   if (movementInput) movementInput.value(movement + " ft");
 }
+function showRemoveEditEquipmentModal() {
+  if (modalDiv) modalDiv.remove();
+  modalDiv = createDiv()
+    .style("position", "absolute")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("width", "300px");
 
+  createElement("h3", "Remove / Edit Equipment").parent(modalDiv);
+  let allEquipment = Object.values(availableEquipment).flat();
+  if (allEquipment.length === 0) {
+    createP("No equipment available to remove or edit.").parent(modalDiv);
+    createButton("Close").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
+    return;
+  }
+
+  let typeLabel = createSpan("Equipment Type:").parent(modalDiv).style("display", "block");
+  let typeSelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
+  Object.keys(availableEquipment).forEach(slot => {
+    if (availableEquipment[slot].length > 0) typeSelect.option(slot);
+  });
+
+  let equipmentLabel = createSpan("Select Equipment:").parent(modalDiv).style("display", "block");
+  let equipmentSelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
+
+  function updateEquipmentOptions() {
+    let selectedType = typeSelect.value();
+    equipmentSelect.html("");
+    if (availableEquipment[selectedType] && availableEquipment[selectedType].length > 0) {
+      availableEquipment[selectedType].forEach(item => equipmentSelect.option(item.name));
+    } else {
+      equipmentSelect.option("No items available");
+    }
+  }
+
+  typeSelect.changed(updateEquipmentOptions);
+  updateEquipmentOptions();
+
+  // Edit Fields
+  let nameInput = createInput("").parent(modalDiv).style("width", "100%").style("margin-bottom", "10px").attribute("placeholder", "Name");
+  let descriptionInput = createElement("textarea").parent(modalDiv).style("width", "100%").style("height", "60px").style("margin-bottom", "10px").attribute("placeholder", "Description");
+  let penaltySelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
+  ["0", "-5", "-10", "-15"].forEach(penalty => penaltySelect.option(penalty));
+  let slotsSelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
+  [0, 1, 2].forEach(slot => slotsSelect.option(slot));
+  let linkedStatSelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
+  linkedStatSelect.option("STR");
+  linkedStatSelect.option("MAG");
+  let statBonusAmountInput = createInput("0", "number").parent(modalDiv).style("width", "50px").style("margin-right", "5px");
+  let statBonusStatSelect = createSelect().parent(modalDiv).style("width", "100px").style("margin-bottom", "10px");
+  ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statBonusStatSelect.option(stat));
+  let statReq1Select = createSelect().parent(modalDiv).style("width", "80px").style("margin-right", "5px");
+  ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statReq1Select.option(stat));
+  let statReq1Input = createInput("", "number").parent(modalDiv).style("width", "50px").style("margin-bottom", "10px");
+  let statReq2Select = createSelect().parent(modalDiv).style("width", "80px").style("margin-right", "5px");
+  ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statReq2Select.option(stat));
+  let statReq2Input = createInput("", "number").parent(modalDiv).style("width", "50px").style("margin-bottom", "10px");
+  let damageDiceInput = createInput("", "text").parent(modalDiv).style("width", "80px").style("margin-right", "5px");
+  let weaponModifierInput = createInput("0", "number").parent(modalDiv).style("width", "50px").style("margin-bottom", "10px");
+  let defenseInput = createInput("0", "number").parent(modalDiv).style("width", "50px").style("margin-right", "5px");
+  let armorModifierInput = createInput("0", "number").parent(modalDiv).style("width", "50px").style("margin-bottom", "10px");
+
+  function loadEquipmentData() {
+    let selectedType = typeSelect.value();
+    let selectedName = equipmentSelect.value();
+    let item = availableEquipment[selectedType]?.find(i => i.name === selectedName);
+    if (item) {
+      nameInput.value(item.name);
+      descriptionInput.value(item.description || "");
+      penaltySelect.value(item.movementPenalty !== undefined ? String(item.movementPenalty) : "0");
+      slotsSelect.value(item.crystalSlots || 0);
+      linkedStatSelect.value(item.linkedStat || "STR");
+      statBonusAmountInput.value(item.statBonus?.amount || 0);
+      statBonusStatSelect.value(item.statBonus?.stat || "None");
+      statReq1Select.value(item.statRequirements ? Object.keys(item.statRequirements)[0] || "None" : "None");
+      statReq1Input.value(item.statRequirements ? Object.values(item.statRequirements)[0] || "" : "");
+      statReq2Select.value(item.statRequirements && Object.keys(item.statRequirements)[1] ? Object.keys(item.statRequirements)[1] : "None");
+      statReq2Input.value(item.statRequirements && Object.values(item.statRequirements)[1] ? Object.values(item.statRequirements)[1] : "");
+      damageDiceInput.value(item.damageDice || "");
+      weaponModifierInput.value(item.modifier || 0);
+      defenseInput.value(item.defense || 0);
+      armorModifierInput.value(item.modifier || 0);
+
+      // Adjust visibility based on type
+      let isWeapon = ["On-Hand", "Off-Hand"].includes(selectedType);
+      let isArmor = ["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType);
+      penaltySelect.parent().style("display", isArmor ? "block" : "none");
+      linkedStatSelect.parent().style("display", isWeapon ? "block" : "none");
+      statReq1Select.parent().style("display", isWeapon ? "block" : "none");
+      statReq2Select.parent().style("display", isWeapon ? "block" : "none");
+      damageDiceInput.parent().style("display", isWeapon ? "block" : "none");
+      defenseInput.parent().style("display", isArmor ? "block" : "none");
+    }
+  }
+
+  equipmentSelect.changed(loadEquipmentData);
+  loadEquipmentData();
+
+  createButton("Edit").parent(modalDiv).style("margin", "5px").mousePressed(() => {
+    let selectedType = typeSelect.value();
+    let selectedName = equipmentSelect.value();
+    if (selectedName === "No items available") {
+      showConfirmationModal("No equipment selected to edit.", () => {}, true);
+      return;
+    }
+    let items = availableEquipment[selectedType];
+    let index = items.findIndex(item => item.name === selectedName);
+    if (index !== -1) {
+      let modifierInput = ["On-Hand", "Off-Hand"].includes(selectedType) ? weaponModifierInput : armorModifierInput;
+      let newEquipment = createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSelect, linkedStatSelect, statBonusAmountInput, statBonusStatSelect, descriptionInput, statReq1Select, statReq1Input, statReq2Select, statReq2Input, damageDiceInput, defenseInput, modifierInput);
+      if (newEquipment) {
+        // If equipped and renamed, update equippedItems
+        if (equippedItems[selectedType] && equippedItems[selectedType].name === selectedName) {
+          if (canWieldItem(newEquipment)) {
+            equippedItems[selectedType] = newEquipment;
+          } else {
+            let totalStats = {
+              STR: getTotalStat("STR"),
+              VIT: getTotalStat("VIT"),
+              DEX: getTotalStat("DEX"),
+              MAG: getTotalStat("MAG"),
+              WIL: getTotalStat("WIL"),
+              SPR: getTotalStat("SPR"),
+              LCK: getTotalStat("LCK")
+            };
+            let missingStats = [];
+            for (let [stat, requiredValue] of Object.entries(newEquipment.statRequirements || {})) {
+              if (totalStats[stat] < requiredValue) {
+                missingStats.push(`${stat}: ${totalStats[stat]}/${requiredValue}`);
+              }
+            }
+            showConfirmationModal(`Cannot edit ${selectedName} as equipped item. New requirements not met: ${missingStats.join(", ")}.`, () => {}, true);
+            return;
+          }
+        }
+        items[index] = newEquipment; // Replace old item with edited version
+        createEquipmentUI();
+        modalDiv.remove();
+      }
+    }
+  });
+
+  createButton("Remove").parent(modalDiv).style("margin", "5px").mousePressed(() => {
+    let selectedType = typeSelect.value();
+    let selectedName = equipmentSelect.value();
+    if (selectedName === "No items available") {
+      showConfirmationModal("No equipment selected to remove.", () => {}, true);
+      return;
+    }
+    showConfirmationModal(`Remove ${selectedName} from ${selectedType}?`, () => {
+      let items = availableEquipment[selectedType];
+      let index = items.findIndex(item => item.name === selectedName);
+      if (index !== -1) {
+        if (equippedItems[selectedType] && equippedItems[selectedType].name === selectedName) {
+          equippedItems[selectedType] = null;
+          calculateMovement();
+          updateResourcesBasedOnStats();
+          updateStatBonusesDisplay();
+        }
+        items.splice(index, 1);
+        if (items.length === 0) {
+          delete availableEquipment[selectedType];
+        }
+        createEquipmentUI();
+        modalDiv.remove();
+      }
+    });
+  });
+
+  createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
+}
 function createEquipmentUI() {
   let equipmentContainerDiv = select("#equipment");
   if (!equipmentContainerDiv) {
@@ -636,18 +863,22 @@ function createEquipmentUI() {
   equipmentContainerDiv.html("");
 
   createElement("h2", "Equipment").parent(equipmentContainerDiv);
+  let equipDesc = createP("Add or remove equipment items. Select an item to equip it in a slot (weapons require stats). Click a slot name to view details. Weapons deal damage (dice + modifier); armor provides defense.").parent(equipmentContainerDiv);
+  equipDesc.style("font-size", "12px").style("color", "#666").style("margin-top", "5px").style("margin-bottom", "10px");
+
   createButton("Add Equipment").parent(equipmentContainerDiv).style("margin", "5px").mousePressed(showAddEquipmentModal);
-  createButton("Remove Equipment").parent(equipmentContainerDiv).style("margin", "5px").mousePressed(showRemoveEquipmentModal);
+  createButton("Remove / Edit Equipment").parent(equipmentContainerDiv).style("margin", "5px").mousePressed(showRemoveEditEquipmentModal); // Updated button
 
   let equipmentTable = createElement("table").parent(equipmentContainerDiv).id("equipmentTable").style("width", "100%").style("border-collapse", "collapse").style("margin-top", "10px");
   let headerRow = createElement("tr").parent(equipmentTable);
-  ["Slot", "Name", "Mov. Penalty", "Crystal Slots", "Stat Bonus", "Modifier", "Linked Stat"].forEach(header => {
+  ["Slot", "Name", "Requirements", "Damage/Defense", "Mov. Penalty", "Crystal Slots", "Stat Bonus", "Linked Stat"].forEach(header => {
     createElement("th", header).parent(headerRow).style("border", "1px solid #ccc").style("padding", "5px").style("background", "#f2f2f2");
   });
 
   Object.keys(equippedItems).forEach(slot => {
     let row = createElement("tr").parent(equipmentTable);
-    createElement("td", slot).parent(row).style("border", "1px solid #ccc").style("padding", "5px");
+    let slotCell = createElement("td", slot).parent(row).style("border", "1px solid #ccc").style("padding", "5px").style("cursor", "pointer");
+    slotCell.mousePressed(() => showEquipmentDescription(slot, equippedItems[slot]));
 
     let nameCell = createElement("td").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
     let select = slotSelects[slot] || createSelect();
@@ -663,18 +894,34 @@ function createEquipmentUI() {
     select.changed(() => equipItem(slot, select.value()));
 
     let item = equippedItems[slot];
+    let reqText = "-";
+    if (item && item.statRequirements) {
+      reqText = Object.entries(item.statRequirements).map(([stat, value]) => `${value} ${stat}`).join(" & ");
+    }
+    createElement("td", reqText).parent(row).style("border", "1px solid #ccc").style("padding", "5px");
+
+    let damageDefenseText = "-";
+    if (item && item.damageDice) {
+      let modifierText = item.modifier && item.modifier !== 0 ? (item.modifier > 0 ? `+${item.modifier}` : item.modifier) : "";
+      damageDefenseText = `${item.damageDice}${modifierText}`;
+    } else if (item && item.defense) {
+      damageDefenseText = `${item.defense}${item.modifier && item.modifier !== 0 ? (item.modifier > 0 ? ` +${item.modifier}` : ` ${item.modifier}`) : ""}`;
+    } else if (item && item.modifier && item.modifier !== 0) {
+      damageDefenseText = item.modifier > 0 ? `+${item.modifier}` : String(item.modifier);
+    }
+    createElement("td", damageDefenseText).parent(row).style("border", "1px solid #ccc").style("padding", "5px");
+
     createElement("td", item && item.movementPenalty !== undefined ? String(item.movementPenalty) + " ft" : "-").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
     let slotsCell = createElement("td", item ? String(item.crystalSlots) : "-").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
     if (item && item.crystalSlots > 0) {
       slotsCell.style("cursor", "pointer").style("color", "blue").mousePressed(() => showCrystalSlotModal(item));
     }
     createElement("td", item && item.statBonus ? `${item.statBonus.amount} ${item.statBonus.stat}` : "-").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
-    createElement("td", item && item.modifier !== undefined ? String(item.modifier) : "-").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
     createElement("td", item && item.linkedStat ? item.linkedStat : "-").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
   });
 }
 
-function createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSelect, linkedStatSelect, statBonusAmountInput, statBonusStatSelect, modifierInput) {
+function createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSelect, linkedStatSelect, statBonusAmountInput, statBonusStatSelect, descriptionInput, statReq1Select, statReq1Input, statReq2Select, statReq2Input, damageDiceInput, defenseInput, modifierInput) {
   let type = typeSelect.value();
   let name = nameInput.value().trim();
   if (!name) {
@@ -686,6 +933,20 @@ function createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSel
   let linkedStat = ["On-Hand", "Off-Hand"].includes(type) ? linkedStatSelect.value() : null;
   let statBonusAmount = parseInt(statBonusAmountInput.value()) || 0;
   let statBonusStat = statBonusStatSelect.value() === "None" ? null : statBonusStatSelect.value();
+  let description = descriptionInput.value().trim() || "No description provided.";
+
+  // Stat Requirements
+  let statRequirements = {};
+  if (statReq1Select.value() !== "None" && statReq1Input.value()) {
+    statRequirements[statReq1Select.value()] = parseInt(statReq1Input.value());
+  }
+  if (statReq2Select.value() !== "None" && statReq2Input.value() && statReq2Select.value() !== statReq1Select.value()) {
+    statRequirements[statReq2Select.value()] = parseInt(statReq2Input.value());
+  }
+
+  // Damage Dice or Defense with Modifier
+  let damageDice = ["On-Hand", "Off-Hand"].includes(type) ? damageDiceInput.value().trim() : null;
+  let defense = ["Chest", "Helm", "Gloves", "Greaves"].includes(type) ? parseInt(defenseInput.value()) || 0 : null;
   let modifier = parseInt(modifierInput.value()) || 0;
 
   return {
@@ -696,16 +957,43 @@ function createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSel
     statBonus: statBonusAmount !== 0 && statBonusStat ? { amount: statBonusAmount, stat: statBonusStat } : null,
     modifier: modifier !== 0 ? modifier : null,
     linkedStat: linkedStat,
+    description: description,
+    statRequirements: Object.keys(statRequirements).length > 0 ? statRequirements : null,
+    damageDice: damageDice || null,
+    defense: defense,
     slottedCrystals: []
   };
 }
-
 function equipItem(slot, itemName) {
   if (itemName === "None") {
     equippedItems[slot] = null;
   } else {
     let selectedItem = availableEquipment[slot].find(item => item.name === itemName);
-    if (selectedItem) equippedItems[slot] = selectedItem;
+    if (selectedItem) {
+      if (canWieldItem(selectedItem)) {
+        equippedItems[slot] = selectedItem;
+      } else {
+        let totalStats = {
+          STR: getTotalStat("STR"),
+          VIT: getTotalStat("VIT"),
+          DEX: getTotalStat("DEX"),
+          MAG: getTotalStat("MAG"),
+          WIL: getTotalStat("WIL"),
+          SPR: getTotalStat("SPR"),
+          LCK: getTotalStat("LCK")
+        };
+        let missingStats = [];
+        for (let [stat, requiredValue] of Object.entries(selectedItem.statRequirements || {})) {
+          let currentValue = totalStats[stat];
+          if (currentValue < requiredValue) {
+            missingStats.push(`${stat}: ${currentValue}/${requiredValue}`);
+          }
+        }
+        let errorMessage = `Cannot equip ${selectedItem.name}. Missing requirements: ${missingStats.join(", ")}.`;
+        showConfirmationModal(errorMessage, () => {}, true);
+        return; // Prevent equipping
+      }
+    }
   }
   calculateMovement();
   updateResourcesBasedOnStats();
@@ -733,7 +1021,7 @@ function showAddEquipmentModal() {
   typeSelect.value("On-Hand");
 
   let nameLabel = createSpan("Name:").parent(modalDiv).style("display", "block");
-  let nameInput = createInput("").parent(modalDiv).attribute("placeholder", "e.g., Iron Sword").style("width", "100%").style("margin-bottom", "10px");
+  let nameInput = createInput("").parent(modalDiv).attribute("placeholder", "e.g., Buster Sword").style("width", "100%").style("margin-bottom", "10px");
 
   let penaltyDiv = createDiv().parent(modalDiv).style("display", "none");
   let penaltyLabel = createSpan("Movement Penalty (ft):").parent(penaltyDiv).style("display", "block");
@@ -756,28 +1044,64 @@ function showAddEquipmentModal() {
   let statBonusStatSelect = createSelect().parent(statBonusDiv).style("width", "100px").style("margin-bottom", "10px");
   ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statBonusStatSelect.option(stat));
 
-  let modifierLabel = createSpan("Modifier (e.g., +damage or DEF):").parent(modalDiv).style("display", "block");
-  let modifierInput = createInput("0", "number").parent(modalDiv).style("width", "50px").style("margin-bottom", "10px");
+  let descriptionLabel = createSpan("Description:").parent(modalDiv).style("display", "block");
+  let descriptionInput = createElement("textarea").parent(modalDiv).style("width", "100%").style("height", "60px").style("margin-bottom", "10px").attribute("placeholder", "Describe the equipment...");
+
+  // Stat Requirements
+  let statReqDiv = createDiv().parent(modalDiv).style("display", "block");
+  let statReqLabel = createSpan("Stat Requirements (Weapons):").parent(statReqDiv).style("display", "block");
+  let statReq1Div = createDiv().parent(statReqDiv).style("margin-bottom", "5px");
+  let statReq1Select = createSelect().parent(statReq1Div).style("width", "80px").style("margin-right", "5px");
+  ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statReq1Select.option(stat));
+  let statReq1Input = createInput("", "number").parent(statReq1Div).style("width", "50px").attribute("placeholder", "Value");
+  
+  let statReq2Div = createDiv().parent(statReqDiv).style("margin-bottom", "10px");
+  let statReq2Select = createSelect().parent(statReq2Div).style("width", "80px").style("margin-right", "5px");
+  ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statReq2Select.option(stat));
+  let statReq2Input = createInput("", "number").parent(statReq2Div).style("width", "50px").attribute("placeholder", "Value");
+
+  // Damage Dice with Modifier (Weapons)
+  let damageDiceDiv = createDiv().parent(modalDiv).style("display", "block");
+  let damageDiceLabel = createSpan("Damage Dice + Modifier (Weapons):").parent(damageDiceDiv).style("display", "block");
+  let damageDiceInput = createInput("", "text").parent(damageDiceDiv).style("width", "80px").style("margin-right", "5px").attribute("placeholder", "e.g., 2d6");
+  let weaponModifierInput = createInput("0", "number").parent(damageDiceDiv).style("width", "50px").style("margin-bottom", "10px").attribute("placeholder", "Mod");
+
+  // Defense with Modifier (Armor)
+  let defenseDiv = createDiv().parent(modalDiv).style("display", "none");
+  let defenseLabel = createSpan("Defense + Modifier (Armor):").parent(defenseDiv).style("display", "block");
+  let defenseInput = createInput("0", "number").parent(defenseDiv).style("width", "50px").style("margin-right", "5px");
+  let armorModifierInput = createInput("0", "number").parent(defenseDiv).style("width", "50px").style("margin-bottom", "10px").attribute("placeholder", "Mod");
 
   function updateTypeVisibility() {
     let selectedType = typeSelect.value();
     if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
       penaltyDiv.style("display", "block");
       linkedStatDiv.style("display", "none");
+      statReqDiv.style("display", "none");
+      damageDiceDiv.style("display", "none");
+      defenseDiv.style("display", "block");
     } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
       penaltyDiv.style("display", "none");
       linkedStatDiv.style("display", "block");
+      statReqDiv.style("display", "block");
+      damageDiceDiv.style("display", "block");
+      defenseDiv.style("display", "none");
     } else {
       penaltyDiv.style("display", "none");
       linkedStatDiv.style("display", "none");
+      statReqDiv.style("display", "none");
+      damageDiceDiv.style("display", "none");
+      defenseDiv.style("display", "none");
     }
   }
 
   typeSelect.changed(updateTypeVisibility);
   updateTypeVisibility();
 
-  createButton("Add to Available").parent(modalDiv).style("margin", "5px").mousePressed(() => {
-    let equipment = createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSelect, linkedStatSelect, statBonusAmountInput, statBonusStatSelect, modifierInput);
+  let addButton = createButton("Add to Available").parent(modalDiv).style("margin", "5px");
+  addButton.mousePressed(() => {
+    let modifierInput = ["On-Hand", "Off-Hand"].includes(typeSelect.value()) ? weaponModifierInput : armorModifierInput;
+    let equipment = createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSelect, linkedStatSelect, statBonusAmountInput, statBonusStatSelect, descriptionInput, statReq1Select, statReq1Input, statReq2Select, statReq2Input, damageDiceInput, defenseInput, modifierInput);
     if (equipment) {
       if (!availableEquipment[equipment.type]) availableEquipment[equipment.type] = [];
       availableEquipment[equipment.type].push(equipment);
@@ -786,20 +1110,10 @@ function showAddEquipmentModal() {
     }
   });
 
-  createButton("Add and Equip").parent(modalDiv).style("margin", "5px").mousePressed(() => {
-    let equipment = createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSelect, linkedStatSelect, statBonusAmountInput, statBonusStatSelect, modifierInput);
-    if (equipment) {
-      if (!availableEquipment[equipment.type]) availableEquipment[equipment.type] = [];
-      availableEquipment[equipment.type].push(equipment);
-      equipItem(equipment.type, equipment.name);
-      modalDiv.remove();
-    }
-  });
-
   createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
 }
 
-function showRemoveEquipmentModal() {
+function showRemoveEditEquipmentModal() {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv()
     .style("position", "absolute")
@@ -812,10 +1126,10 @@ function showRemoveEquipmentModal() {
     .style("z-index", "1000")
     .style("width", "300px");
 
-  createElement("h3", "Remove Equipment").parent(modalDiv);
+  createElement("h3", "Remove / Edit Equipment").parent(modalDiv);
   let allEquipment = Object.values(availableEquipment).flat();
   if (allEquipment.length === 0) {
-    createP("No equipment available to remove.").parent(modalDiv);
+    createP("No equipment available to remove or edit.").parent(modalDiv);
     createButton("Close").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
     return;
   }
@@ -832,19 +1146,148 @@ function showRemoveEquipmentModal() {
   function updateEquipmentOptions() {
     let selectedType = typeSelect.value();
     equipmentSelect.html("");
-    if (availableEquipment[selectedType]) {
+    if (availableEquipment[selectedType] && availableEquipment[selectedType].length > 0) {
       availableEquipment[selectedType].forEach(item => equipmentSelect.option(item.name));
+    } else {
+      equipmentSelect.option("No items available");
     }
   }
 
   typeSelect.changed(updateEquipmentOptions);
   updateEquipmentOptions();
 
+  // Edit Fields with Explicit Containers
+  let nameDiv = createDiv().parent(modalDiv);
+  let nameInput = createInput("").parent(nameDiv).style("width", "100%").style("margin-bottom", "10px").attribute("placeholder", "Name");
+
+  let descDiv = createDiv().parent(modalDiv);
+  let descriptionInput = createElement("textarea").parent(descDiv).style("width", "100%").style("height", "60px").style("margin-bottom", "10px").attribute("placeholder", "Description");
+
+  let penaltyDiv = createDiv().parent(modalDiv);
+  let penaltySelect = createSelect().parent(penaltyDiv).style("width", "100%").style("margin-bottom", "10px");
+  ["0", "-5", "-10", "-15"].forEach(penalty => penaltySelect.option(penalty));
+
+  let slotsDiv = createDiv().parent(modalDiv);
+  let slotsSelect = createSelect().parent(slotsDiv).style("width", "100%").style("margin-bottom", "10px");
+  [0, 1, 2].forEach(slot => slotsSelect.option(slot));
+
+  let linkedStatDiv = createDiv().parent(modalDiv);
+  let linkedStatSelect = createSelect().parent(linkedStatDiv).style("width", "100%").style("margin-bottom", "10px");
+  linkedStatSelect.option("STR");
+  linkedStatSelect.option("MAG");
+
+  let statBonusDiv = createDiv().parent(modalDiv);
+  let statBonusAmountInput = createInput("0", "number").parent(statBonusDiv).style("width", "50px").style("margin-right", "5px");
+  let statBonusStatSelect = createSelect().parent(statBonusDiv).style("width", "100px").style("margin-bottom", "10px");
+  ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statBonusStatSelect.option(stat));
+
+  let statReq1Div = createDiv().parent(modalDiv);
+  let statReq1Select = createSelect().parent(statReq1Div).style("width", "80px").style("margin-right", "5px");
+  ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statReq1Select.option(stat));
+  let statReq1Input = createInput("", "number").parent(statReq1Div).style("width", "50px").style("margin-bottom", "10px");
+
+  let statReq2Div = createDiv().parent(modalDiv);
+  let statReq2Select = createSelect().parent(statReq2Div).style("width", "80px").style("margin-right", "5px");
+  ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statReq2Select.option(stat));
+  let statReq2Input = createInput("", "number").parent(statReq2Div).style("width", "50px").style("margin-bottom", "10px");
+
+  let damageDiceDiv = createDiv().parent(modalDiv);
+  let damageDiceInput = createInput("", "text").parent(damageDiceDiv).style("width", "80px").style("margin-right", "5px");
+  let weaponModifierInput = createInput("0", "number").parent(damageDiceDiv).style("width", "50px").style("margin-bottom", "10px");
+
+  let defenseDiv = createDiv().parent(modalDiv);
+  let defenseInput = createInput("0", "number").parent(defenseDiv).style("width", "50px").style("margin-right", "5px");
+  let armorModifierInput = createInput("0", "number").parent(defenseDiv).style("width", "50px").style("margin-bottom", "10px");
+
+  function loadEquipmentData() {
+    let selectedType = typeSelect.value();
+    let selectedName = equipmentSelect.value();
+    let item = availableEquipment[selectedType]?.find(i => i.name === selectedName);
+    if (item) {
+      nameInput.value(item.name);
+      descriptionInput.value(item.description || "");
+      penaltySelect.value(item.movementPenalty !== undefined ? String(item.movementPenalty) : "0");
+      slotsSelect.value(item.crystalSlots || 0);
+      linkedStatSelect.value(item.linkedStat || "STR");
+      statBonusAmountInput.value(item.statBonus?.amount || 0);
+      statBonusStatSelect.value(item.statBonus?.stat || "None");
+      statReq1Select.value(item.statRequirements ? Object.keys(item.statRequirements)[0] || "None" : "None");
+      statReq1Input.value(item.statRequirements ? Object.values(item.statRequirements)[0] || "" : "");
+      statReq2Select.value(item.statRequirements && Object.keys(item.statRequirements)[1] ? Object.keys(item.statRequirements)[1] : "None");
+      statReq2Input.value(item.statRequirements && Object.values(item.statRequirements)[1] ? Object.values(item.statRequirements)[1] : "");
+      damageDiceInput.value(item.damageDice || "");
+      weaponModifierInput.value(item.modifier || 0);
+      defenseInput.value(item.defense || 0);
+      armorModifierInput.value(item.modifier || 0);
+
+      // Adjust visibility based on type
+      let isWeapon = ["On-Hand", "Off-Hand"].includes(selectedType);
+      let isArmor = ["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType);
+      penaltyDiv.style("display", isArmor ? "block" : "none");
+      linkedStatDiv.style("display", isWeapon ? "block" : "none");
+      statReq1Div.style("display", isWeapon ? "block" : "none");
+      statReq2Div.style("display", isWeapon ? "block" : "none");
+      damageDiceDiv.style("display", isWeapon ? "block" : "none");
+      defenseDiv.style("display", isArmor ? "block" : "none");
+    }
+  }
+
+  equipmentSelect.changed(loadEquipmentData);
+  loadEquipmentData();
+
+  createButton("Edit").parent(modalDiv).style("margin", "5px").mousePressed(() => {
+    let selectedType = typeSelect.value();
+    let selectedName = equipmentSelect.value();
+    if (selectedName === "No items available") {
+      showConfirmationModal("No equipment selected to edit.", () => {}, true);
+      return;
+    }
+    let items = availableEquipment[selectedType];
+    let index = items.findIndex(item => item.name === selectedName);
+    if (index !== -1) {
+      let modifierInput = ["On-Hand", "Off-Hand"].includes(selectedType) ? weaponModifierInput : armorModifierInput;
+      let newEquipment = createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSelect, linkedStatSelect, statBonusAmountInput, statBonusStatSelect, descriptionInput, statReq1Select, statReq1Input, statReq2Select, statReq2Input, damageDiceInput, defenseInput, modifierInput);
+      if (newEquipment) {
+        if (equippedItems[selectedType] && equippedItems[selectedType].name === selectedName) {
+          if (canWieldItem(newEquipment)) {
+            equippedItems[selectedType] = newEquipment;
+          } else {
+            let totalStats = {
+              STR: getTotalStat("STR"),
+              VIT: getTotalStat("VIT"),
+              DEX: getTotalStat("DEX"),
+              MAG: getTotalStat("MAG"),
+              WIL: getTotalStat("WIL"),
+              SPR: getTotalStat("SPR"),
+              LCK: getTotalStat("LCK")
+            };
+            let missingStats = [];
+            for (let [stat, requiredValue] of Object.entries(newEquipment.statRequirements || {})) {
+              if (totalStats[stat] < requiredValue) {
+                missingStats.push(`${stat}: ${totalStats[stat]}/${requiredValue}`);
+              }
+            }
+            showConfirmationModal(`Cannot edit ${selectedName} as equipped item. New requirements not met: ${missingStats.join(", ")}.`, () => {}, true);
+            return;
+          }
+        }
+        items[index] = newEquipment;
+        createEquipmentUI();
+        modalDiv.remove();
+      }
+    }
+  });
+
   createButton("Remove").parent(modalDiv).style("margin", "5px").mousePressed(() => {
     let selectedType = typeSelect.value();
     let selectedName = equipmentSelect.value();
+    if (selectedName === "No items available") {
+      showConfirmationModal("No equipment selected to remove.", () => {}, true);
+      return;
+    }
     showConfirmationModal(`Remove ${selectedName} from ${selectedType}?`, () => {
-      let index = availableEquipment[selectedType].findIndex(item => item.name === selectedName);
+      let items = availableEquipment[selectedType];
+      let index = items.findIndex(item => item.name === selectedName);
       if (index !== -1) {
         if (equippedItems[selectedType] && equippedItems[selectedType].name === selectedName) {
           equippedItems[selectedType] = null;
@@ -852,8 +1295,10 @@ function showRemoveEquipmentModal() {
           updateResourcesBasedOnStats();
           updateStatBonusesDisplay();
         }
-        availableEquipment[selectedType].splice(index, 1);
-        if (availableEquipment[selectedType].length === 0) delete availableEquipment[selectedType];
+        items.splice(index, 1);
+        if (items.length === 0) {
+          delete availableEquipment[selectedType];
+        }
         createEquipmentUI();
         modalDiv.remove();
       }
@@ -861,26 +1306,6 @@ function showRemoveEquipmentModal() {
   });
 
   createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
-}
-
-function showCrystalSlotModal(item) {
-  if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv()
-    .style("position", "absolute")
-    .style("top", "50%")
-    .style("left", "50%")
-    .style("transform", "translate(-50%, -50%)")
-    .style("background", "#fff")
-    .style("padding", "20px")
-    .style("border", "2px solid #000")
-    .style("z-index", "1000")
-    .style("width", "300px");
-
-  createElement("h3", `${item.name} Crystal Slots`).parent(modalDiv);
-  createP(`This item has ${item.crystalSlots} crystal slots.`).parent(modalDiv);
-  // Placeholder for crystal slot management (not fully implemented)
-  createP("Crystal slot management is not yet implemented.").parent(modalDiv);
-  createButton("Close").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
 }
 
 // ### Talents UI ###
