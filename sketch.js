@@ -443,6 +443,34 @@ function createResourceUI() {
   atbMinus.class("resource-button small-button");
   atbMinus.mousePressed(() => { current_atb = max(current_atb - 50, 0); });
 
+  // Adjustment Row
+  let adjustmentRow = createDiv();
+  adjustmentRow.parent(rUI);
+  adjustmentRow.class("resource-row");
+  let adjustmentLabel = createSpan("Adjust: ");
+  adjustmentLabel.parent(adjustmentRow);
+  let adjustmentInput = createInput("", "number");
+  adjustmentInput.parent(adjustmentRow);
+  adjustmentInput.class("resource-input");
+  adjustmentInput.style("width", "50px");
+  let resourceSelect = createSelect();
+  resourceSelect.parent(adjustmentRow);
+  resourceSelect.option("HP");
+  resourceSelect.option("MP");
+  resourceSelect.option("STMN");
+  resourceSelect.option("ATB");
+  resourceSelect.style("margin-left", "5px");
+  let addButton = createButton("+");
+  addButton.parent(adjustmentRow);
+  addButton.class("resource-button small-button");
+  addButton.style("margin-left", "5px");
+  addButton.mousePressed(() => adjustResource(resourceSelect.value(), parseInt(adjustmentInput.value()), true));
+  let subtractButton = createButton("-");
+  subtractButton.parent(adjustmentRow);
+  subtractButton.class("resource-button small-button");
+  subtractButton.style("margin-left", "5px");
+  subtractButton.mousePressed(() => adjustResource(resourceSelect.value(), parseInt(adjustmentInput.value()), false));
+
   // Stamina-ATB Link Row
   let linkRow = createDiv();
   linkRow.parent(rUI);
@@ -463,6 +491,32 @@ function createResourceUI() {
   resetButton.parent(resetRow);
   resetButton.class("resource-button");
   resetButton.mousePressed(resetResources);
+}
+
+// Helper function to adjust resources
+function adjustResource(resource, value, isAddition) {
+  if (isNaN(value)) {
+    showConfirmationModal("Please enter a valid number.", () => {}, true);
+    return;
+  }
+  let adjustment = isAddition ? value : -value;
+  switch (resource) {
+    case "HP":
+      current_hp = constrain(current_hp + adjustment, 0, max_hp);
+      break;
+    case "MP":
+      current_mp = constrain(current_mp + adjustment, 0, max_mp);
+      break;
+    case "STMN":
+      current_stamina = constrain(current_stamina + adjustment, 0, max_stamina);
+      if (!isAddition && staminaAtbLink) {
+        current_atb = min(current_atb + value, max_atb);
+      }
+      break;
+    case "ATB":
+      current_atb = constrain(current_atb + adjustment, 0, max_atb);
+      break;
+  }
 }
 
 // Supporting functions (updated to include toggle)
