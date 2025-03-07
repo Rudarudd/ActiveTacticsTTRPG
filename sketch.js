@@ -11,26 +11,11 @@ let level = 1, exp = 1, movement = 1;
 // UI elements for resource tracker (created in createResourceUI)
 let maxHpInput, setMaxHpButton, maxMpInput, setMaxMpButton;
 let maxStaminaInput, setMaxStaminaButton, maxAtbInput, setMaxAtbButton;
-let amountInput, positiveButton, negativeButton;
-let stmnPlus25Button, stmnMinus25Button, atbMinus50Button, resetButton;
+let hpPlus, hpMinus, mpPlus, mpMinus, staminaPlus, staminaMinus, atbPlus, atbMinus;
+let resetButton;
 let staminaAtbLink = false, staminaAtbLinkButton;
-let modalDiv, cnv;
-
-// Variables for dragging resource UI container
-let resourceUIDragging = false;
-let resourceUIStartX = 0, resourceUIStartY = 0, resourceUIMouseStartX = 0, resourceUIMouseStartY = 0;
-let resourceUILocked = false;
-let resourceTouchStartTime = 0;
-let resourceTouchOffsetX = 0, resourceTouchOffsetY = 0;
-
-// Variables for dragging Skills container
-let skillsDragging = false;
-let skillsStartX = 0, skillsStartY = 0, skillsMouseStartX = 0, skillsMouseStartY = 0;
-let skillsLocked = false;
-let skillsTouchStartTime = 0;
-let skillsTouchOffsetX = 0, skillsTouchOffsetY = 0;
-
-const holdThreshold = 300;
+let cnv;
+let modalDiv = null; // For talents modals
 
 // Global container variables (set in setup)
 let resourceUIContainer;
@@ -39,18 +24,16 @@ let skillsContainer;
 // For description modals
 let descriptionModal = null;
 
-// For linking stats to attributes:
-let statCheckboxes = {};
+// For linking stats to skills
 let statLabelElements = {};
 let attributeCheckboxes = {};
 let statLinkMapping = {};
 let attributeLinkMapping = {};
-
 // For talents
 let talents = []; // Array to store talent objects
 
 const statDescriptions = {
-  "STR": "Affects physical attack rolls (melee & ranged).",
+  "STR": "Affects melee and ranged physical rolls (1d12 + STR vs DEF).",
   "VIT": "Increases HP (+5 HP per point).",
   "DEX": "Determines dodge rolls (1d12 + DEX to evade).",
   "MAG": "Affects magical attack rolls (1d12 + MAG vs MDEF).",
@@ -161,40 +144,35 @@ function getDragY() {
 }
 
 function setup() {
-  let container = select("#p5-container");
-  container.html("");
-  
-  let canvasContainer = createDiv();
-  canvasContainer.parent(container);
-  canvasContainer.id("canvasContainer");
-  canvasContainer.style("position", "relative");
-  
-  resourceUIContainer = createDiv();
-  resourceUIContainer.parent(select("#resources"));
-  resourceUIContainer.id("resourceUIContainer");
-  resourceUIContainer.mousePressed(startDragResourceUI);
-  resourceUIContainer.mouseReleased(stopDragResourceUI);
-  resourceUIContainer.touchStarted(startTouchDragResourceUI);
-  resourceUIContainer.touchEnded(stopDragResourceUI);
-  
-  skillsContainer = createDiv();
-  skillsContainer.id("skillsContainer");
-  
-  let contentDiv = select(".content");
-  let contentWidth = contentDiv.elt.offsetWidth - 20;
-  let contentHeight = contentDiv.elt.offsetHeight - 20;
-  let canvasWidth = min(contentWidth, 600);
-  let canvasHeight = max(min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75), 150); // 150px fits bars (135px) + padding
+  // Select the containers from HTML
+  let resourceBarsContainer = select("#resource-bars");
+  let resourceControlsContainer = select("#resource-controls");
+
+  // Calculate canvas size based on container width for responsiveness
+  let containerWidth = resourceBarsContainer.elt.clientWidth;
+  let canvasWidth = min(containerWidth, 600);
+  let canvasHeight = 150;
   cnv = createCanvas(canvasWidth, canvasHeight);
-  cnv.parent(canvasContainer);
+  cnv.parent(resourceBarsContainer);
   textFont("Arial");
   textSize(16);
   textAlign(LEFT, TOP);
-  
+
+  // Create resource UI container
+  resourceUIContainer = createDiv();
+  resourceUIContainer.parent(resourceControlsContainer);
+  resourceUIContainer.id("resourceUIContainer");
+
+  // Initialize skillsContainer for stats tab
+  skillsContainer = createDiv();
+  skillsContainer.id("skillsContainer");
+
+  // Populate the UI sections
   createResourceUI();
   createStatsUI();
   createTalentsUI();
-  
+
+  // Tab switching logic
   const tablinks = document.querySelectorAll('.tablink');
   const tabcontents = document.querySelectorAll('.tabcontent');
   tablinks.forEach(btn => {
@@ -205,6 +183,13 @@ function setup() {
       document.getElementById(btn.getAttribute('data-tab')).classList.add('active');
     });
   });
+}
+
+function windowResized() {
+  let resourceBarsContainer = select("#resource-bars");
+  let containerWidth = resourceBarsContainer.elt.clientWidth;
+  let canvasWidth = min(containerWidth, 600);
+  resizeCanvas(canvasWidth, 150); // Match canvasHeight from setup()
 }
 function windowResized() {
   let contentDiv = select(".content");
@@ -221,11 +206,14 @@ function draw() {
 }
 
 function displayBars() {
+  background(255);
+  
   let bar_width = width * 0.6;
   let bar_height = 20;
   let x = width * 0.1;
-  let y_hp = 25, y_mp = 55, y_stamina = 85, y_atb = 115; // Revert to original positions
+  let y_hp = 25, y_mp = 55, y_stamina = 85, y_atb = 115; // Original positions
   
+  // HP Bar
   stroke(0);
   fill(128);
   rect(x, y_hp, bar_width, bar_height);
@@ -239,6 +227,7 @@ function displayBars() {
   textSize(16);
   text(`HP: ${current_hp}/${max_hp}`, x + bar_width / 2, y_hp + bar_height / 2);
   
+  // MP Bar
   stroke(0);
   fill(128);
   rect(x, y_mp, bar_width, bar_height);
@@ -252,6 +241,7 @@ function displayBars() {
   textSize(16);
   text(`MP: ${current_mp}/${max_mp}`, x + bar_width / 2, y_mp + bar_height / 2);
   
+  // Stamina Bar
   stroke(0);
   fill(128);
   rect(x, y_stamina, bar_width, bar_height);
@@ -265,6 +255,7 @@ function displayBars() {
   textSize(16);
   text(`STMN: ${current_stamina}/${max_stamina}`, x + bar_width / 2, y_stamina + bar_height / 2);
   
+  // ATB Bar
   stroke(0);
   fill(128);
   rect(x, y_atb, bar_width, bar_height);
@@ -280,155 +271,138 @@ function displayBars() {
 }
 
 function createResourceUI() {
-  let rUI = select("#resourceUIContainer");
+  let rUI = resourceUIContainer;
   rUI.html("");
-  
-  let row = createDiv();
-  row.parent(rUI);
-  row.class("resource-row");
-  let lockCheckbox = createCheckbox("Lock", false);
-  lockCheckbox.parent(row);
-  lockCheckbox.style("margin-left", "auto");
-  lockCheckbox.changed(() => { 
-    resourceUILocked = lockCheckbox.checked(); 
-    if (resourceUILocked) {
-      resourceUIDragging = false;
-    }
-  });
-  
-  row = createDiv();
-  row.parent(rUI);
-  row.class("resource-row");
-  let maxLabel = createSpan("Max:");
-  maxLabel.parent(row);
-  maxLabel.class("resource-label");
-  
-  row = createDiv();
-  row.parent(rUI);
-  row.class("resource-row");
+
+  // HP Row
+  let hpRow = createDiv();
+  hpRow.parent(rUI);
+  hpRow.class("resource-row");
   let hpLabel = createSpan("HP:");
-  hpLabel.parent(row);
-  hpLabel.class("resource-label");
-  maxHpInput = createInput("25", "number");
-  maxHpInput.parent(row);
+  hpLabel.parent(hpRow);
+  maxHpInput = createInput(max_hp.toString(), "number");
+  maxHpInput.parent(hpRow);
   maxHpInput.class("resource-input");
-  setMaxHpButton = createButton("Set");
-  setMaxHpButton.parent(row);
+  setMaxHpButton = createButton("Set Max");
+  setMaxHpButton.parent(hpRow);
   setMaxHpButton.class("resource-button");
   setMaxHpButton.mousePressed(setMaxHp);
-  
-  row = createDiv();
-  row.parent(rUI);
-  row.class("resource-row");
+  hpPlus = createButton("+10");
+  hpPlus.parent(hpRow);
+  hpPlus.class("resource-button small-button");
+  hpPlus.mousePressed(() => { current_hp = min(current_hp + 10, max_hp); });
+  hpMinus = createButton("-10");
+  hpMinus.parent(hpRow);
+  hpMinus.class("resource-button small-button");
+  hpMinus.mousePressed(() => { current_hp = max(current_hp - 10, 0); });
+
+  // MP Row
+  let mpRow = createDiv();
+  mpRow.parent(rUI);
+  mpRow.class("resource-row");
   let mpLabel = createSpan("MP:");
-  mpLabel.parent(row);
-  mpLabel.class("resource-label");
-  maxMpInput = createInput("10", "number");
-  maxMpInput.parent(row);
+  mpLabel.parent(mpRow);
+  maxMpInput = createInput(max_mp.toString(), "number");
+  maxMpInput.parent(mpRow);
   maxMpInput.class("resource-input");
-  setMaxMpButton = createButton("Set");
-  setMaxMpButton.parent(row);
+  setMaxMpButton = createButton("Set Max");
+  setMaxMpButton.parent(mpRow);
   setMaxMpButton.class("resource-button");
   setMaxMpButton.mousePressed(setMaxMp);
-  
-  row = createDiv();
-  row.parent(rUI);
-  row.class("resource-row");
-  let stLabel = createSpan("Stamina:");
-  stLabel.parent(row);
-  stLabel.class("resource-label");
-  maxStaminaInput = createInput("100", "number");
-  maxStaminaInput.parent(row);
+  mpPlus = createButton("+5");
+  mpPlus.parent(mpRow);
+  mpPlus.class("resource-button small-button");
+  mpPlus.mousePressed(() => { current_mp = min(current_mp + 5, max_mp); });
+  mpMinus = createButton("-5");
+  mpMinus.parent(mpRow);
+  mpMinus.class("resource-button small-button");
+  mpMinus.mousePressed(() => { current_mp = max(current_mp - 5, 0); });
+
+  // Stamina Row
+  let staminaRow = createDiv();
+  staminaRow.parent(rUI);
+  staminaRow.class("resource-row");
+  let staminaLabel = createSpan("Stamina:");
+  staminaLabel.parent(staminaRow);
+  maxStaminaInput = createInput(max_stamina.toString(), "number");
+  maxStaminaInput.parent(staminaRow);
   maxStaminaInput.class("resource-input");
-  setMaxStaminaButton = createButton("Set");
-  setMaxStaminaButton.parent(row);
+  setMaxStaminaButton = createButton("Set Max");
+  setMaxStaminaButton.parent(staminaRow);
   setMaxStaminaButton.class("resource-button");
   setMaxStaminaButton.mousePressed(setMaxStamina);
-  
-  row = createDiv();
-  row.parent(rUI);
-  row.class("resource-row");
-  let atbLabel = createSpan("ATB:");
-  atbLabel.parent(row);
-  atbLabel.class("resource-label");
-  maxAtbInput = createInput("100", "number");
-  maxAtbInput.parent(row);
-  maxAtbInput.class("resource-input");
-  setMaxAtbButton = createButton("Set");
-  setMaxAtbButton.parent(row);
-  setMaxAtbButton.class("resource-button");
-  setMaxAtbButton.mousePressed(setMaxAtb);
-  
-  row = createDiv();
-  row.parent(rUI);
-  row.class("resource-row");
-  negativeButton = createButton("–");
-  negativeButton.parent(row);
-  negativeButton.class("resource-button");
-  negativeButton.mousePressed(() => showModal("negative"));
-  amountInput = createInput();
-  amountInput.parent(row);
-  amountInput.class("resource-input");
-  positiveButton = createButton("+");
-  positiveButton.parent(row);
-  positiveButton.class("resource-button");
-  positiveButton.mousePressed(() => showModal("positive"));
-  
-  row = createDiv();
-  row.parent(rUI);
-  row.class("resource-row");
-  let quickLabel = createSpan("Quick Adjustments:");
-  quickLabel.parent(row);
-  quickLabel.class("resource-label");
-  
-  row = createDiv();
-  row.parent(rUI);
-  row.class("resource-row");
-  stmnPlus25Button = createButton("STMN +25");
-  stmnPlus25Button.parent(row);
-  stmnPlus25Button.class("resource-button");
-  stmnPlus25Button.mousePressed(() => { current_stamina = min(current_stamina + 25, max_stamina); });
-  stmnMinus25Button = createButton("STMN -25");
-  stmnMinus25Button.parent(row);
-  stmnMinus25Button.class("resource-button");
-  stmnMinus25Button.mousePressed(() => {
+  staminaPlus = createButton("+25");
+  staminaPlus.parent(staminaRow);
+  staminaPlus.class("resource-button small-button");
+  staminaPlus.mousePressed(() => { current_stamina = min(current_stamina + 25, max_stamina); });
+  staminaMinus = createButton("-25");
+  staminaMinus.parent(staminaRow);
+  staminaMinus.class("resource-button small-button");
+  staminaMinus.mousePressed(() => {
     current_stamina = max(current_stamina - 25, 0);
     if (staminaAtbLink) { current_atb = min(current_atb + 25, max_atb); }
   });
-  atbMinus50Button = createButton("ATB -50");
-  atbMinus50Button.parent(row);
-  atbMinus50Button.class("resource-button");
-  atbMinus50Button.mousePressed(() => { current_atb = max(current_atb - 50, 0); });
-  resetButton = createButton("Reset");
-  resetButton.parent(row);
-  resetButton.class("resource-button");
-  resetButton.mousePressed(resetResources);
-  
-  row = createDiv();
-  row.parent(rUI);
-  row.class("resource-row");
-  staminaAtbLinkButton = createButton("Link: OFF");
-  staminaAtbLinkButton.parent(row);
+
+  // ATB Row
+  let atbRow = createDiv();
+  atbRow.parent(rUI);
+  atbRow.class("resource-row");
+  let atbLabel = createSpan("ATB:");
+  atbLabel.parent(atbRow);
+  maxAtbInput = createInput(max_atb.toString(), "number");
+  maxAtbInput.parent(atbRow);
+  maxAtbInput.class("resource-input");
+  setMaxAtbButton = createButton("Set Max");
+  setMaxAtbButton.parent(atbRow);
+  setMaxAtbButton.class("resource-button");
+  setMaxAtbButton.mousePressed(setMaxAtb);
+  atbPlus = createButton("+25");
+  atbPlus.parent(atbRow);
+  atbPlus.class("resource-button small-button");
+  atbPlus.mousePressed(() => { current_atb = min(current_atb + 25, max_atb); });
+  atbMinus = createButton("-50");
+  atbMinus.parent(atbRow);
+  atbMinus.class("resource-button small-button");
+  atbMinus.mousePressed(() => { current_atb = max(current_atb - 50, 0); });
+
+  // Stamina-ATB Link Row
+  let linkRow = createDiv();
+  linkRow.parent(rUI);
+  linkRow.class("resource-row");
+  staminaAtbLinkButton = createButton(staminaAtbLink ? "Link: ON" : "Link: OFF");
+  staminaAtbLinkButton.parent(linkRow);
   staminaAtbLinkButton.class("resource-button");
   staminaAtbLinkButton.mousePressed(toggleStaminaAtbLink);
-  staminaAtbLinkButton.style("background-color", "red");
-  let linkDesc = createSpan("When ON, negative STMN adjustments add to ATB.");
-  linkDesc.parent(row);
-  linkDesc.class("resource-label");
+  staminaAtbLinkButton.style("background-color", staminaAtbLink ? "green" : "red");
+  let linkDesc = createSpan("When ON, using STMN adds to ATB");
+  linkDesc.parent(linkRow);
+
+  // Reset Row
+  let resetRow = createDiv();
+  resetRow.parent(rUI);
+  resetRow.class("resource-row");
+  resetButton = createButton("Reset All");
+  resetButton.parent(resetRow);
+  resetButton.class("resource-button");
+  resetButton.mousePressed(resetResources);
 }
 
+// Supporting functions (updated to include toggle)
 function setMaxHp() {
   let value = parseInt(maxHpInput.value());
   if (!isNaN(value) && value > 0) { max_hp = value; current_hp = value; }
 }
+
 function setMaxMp() {
   let value = parseInt(maxMpInput.value());
   if (!isNaN(value) && value > 0) { max_mp = value; current_mp = value; }
 }
+
 function setMaxStamina() {
   let value = parseInt(maxStaminaInput.value());
   if (!isNaN(value) && value > 0) { max_stamina = value; current_stamina = value; }
 }
+
 function setMaxAtb() {
   let value = parseInt(maxAtbInput.value());
   if (!isNaN(value) && value > 0) { max_atb = value; current_atb = value; }
@@ -441,52 +415,10 @@ function resetResources() {
   current_atb = 0;
 }
 
-function showModal(action) {
-  let amount = parseInt(amountInput.value());
-  if (isNaN(amount) || amount <= 0) return;
-  if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv();
-  modalDiv.style("position", "absolute");
-  modalDiv.style("top", "50%");
-  modalDiv.style("left", "50%");
-  modalDiv.style("transform", "translate(-50%, -50%)");
-  modalDiv.style("background", "#fff");
-  modalDiv.style("padding", "20px");
-  modalDiv.style("border", "2px solid #000");
-  modalDiv.style("z-index", "1000");
-  let title = createP("Select resource to update:");
-  title.parent(modalDiv);
-  ["HP", "MP", "Stamina", "ATB"].forEach(res => {
-    let btn = createButton(res);
-    btn.parent(modalDiv);
-    btn.style("margin", "5px");
-    btn.mousePressed(() => {
-      applyResourceChange(action, res.toLowerCase(), amount);
-      modalDiv.remove();
-      modalDiv = null;
-    });
-  });
-  let cancelBtn = createButton("Cancel");
-  cancelBtn.parent(modalDiv);
-  cancelBtn.style("margin", "5px");
-  cancelBtn.mousePressed(() => { modalDiv.remove(); modalDiv = null; });
-}
-
-function applyResourceChange(action, resource, amount) {
-  if (action === "positive") {
-    if (resource === "hp") current_hp = min(current_hp + amount, max_hp);
-    else if (resource === "mp") current_mp = min(current_mp + amount, max_mp);
-    else if (resource === "stamina") current_stamina = min(current_stamina + amount, max_stamina);
-    else if (resource === "atb") current_atb = min(current_atb + amount, max_atb);
-  } else if (action === "negative") {
-    if (resource === "hp") current_hp = max(current_hp - amount, 0);
-    else if (resource === "mp") current_mp = max(current_mp - amount, 0);
-    else if (resource === "stamina") {
-      current_stamina = max(current_stamina - amount, 0);
-      if (staminaAtbLink) current_atb = min(current_atb + amount, max_atb);
-    }
-    else if (resource === "atb") current_atb = max(current_atb - amount, 0);
-  }
+function toggleStaminaAtbLink() {
+  staminaAtbLink = !staminaAtbLink;
+  staminaAtbLinkButton.html(staminaAtbLink ? "Link: ON" : "Link: OFF");
+  staminaAtbLinkButton.style("background-color", staminaAtbLink ? "green" : "red");
 }
 
 function toggleStaminaAtbLink() {
@@ -503,8 +435,19 @@ function toggleStaminaAtbLink() {
 function createStatsUI() {
   let statsContainer = select("#stats");
   statsContainer.html("");
+  
+  // Header
   createElement("h2", "Stats").parent(statsContainer);
   
+  // Description right after header
+  let statsDesc = createP("Stats determine your character’s core abilities. Click a stat name for details.");
+  statsDesc.parent(statsContainer);
+  statsDesc.style("font-size", "12px");
+  statsDesc.style("color", "#666");
+  statsDesc.style("margin-top", "5px");
+  statsDesc.style("margin-bottom", "10px");
+  
+  // Stats inputs
   createStatInput("Level", "Level", level, statsContainer, (val) => { level = val; }, false);
   createStatInput("EXP", "EXP", exp, statsContainer, (val) => { exp = val; }, false);
   createStatInput("Movement", "Movement", movement, statsContainer, (val) => { movement = val; }, false);
@@ -515,7 +458,7 @@ function createStatsUI() {
   createStatInput("MAG", "Magic", stat_mag, statsContainer, (val) => { stat_mag = val; }, true);
   createStatInput("WIL", "Willpower", stat_wil, statsContainer, (val) => { stat_wil = val; updateResourcesBasedOnStats(); }, true);
   createStatInput("SPR", "Spirit", stat_spr, statsContainer, (val) => { stat_spr = val; }, true);
-  createStatInput("LCK", "Luck", stat_lck, statsContainer, (val) => { stat_lck = val; }, true, true); // Grey out at 99
+  createStatInput("LCK", "Luck", stat_lck, statsContainer, (val) => { stat_lck = val; }, true, true);
   
   createAdditionalAttributesUI();
 }
@@ -529,13 +472,8 @@ function createStatInput(abbrev, name, initialValue, container, callback, linkab
   label.parent(div);
   label.style("cursor", "pointer");
   label.mouseClicked(() => {
-    if (linkable && statCheckboxes[abbrev] && !statCheckboxes[abbrev].checked()) {
-      if (!descriptionModal) 
-        showStatDescription(name + " (" + abbrev + ")", statDescriptions[abbrev] || "No description available.");
-    } else if (!linkable) {
-      if (!descriptionModal) 
-        showStatDescription(name + " (" + abbrev + ")", statDescriptions[abbrev] || "No description available.");
-    }
+    if (!descriptionModal) 
+      showStatDescription(name + " (" + abbrev + ")", statDescriptions[abbrev] || "No description available.");
   });
   statLabelElements[abbrev] = label;
   
@@ -555,92 +493,160 @@ function createStatInput(abbrev, name, initialValue, container, callback, linkab
       input.style("background-color", "white");
     }
   });
-  
-  if (linkable) {
-    let chk = createCheckbox("Link", false);
-    chk.parent(div);
-    chk.changed(tryLinking);
-    statCheckboxes[abbrev] = chk;
-  }
 }
 
 function createAdditionalAttributesUI() {
   let statsContainer = select("#stats");
-  skillsContainer.parent(statsContainer); // Attach skillsContainer to stats
-  skillsContainer.mousePressed(startDragSkills);
-  skillsContainer.mouseReleased(stopDragSkills);
-  skillsContainer.touchStarted(startTouchDragSkills);
-  skillsContainer.touchEnded(stopDragSkills);
+  skillsContainer.parent(statsContainer);
   
-  skillsContainer.style("border", "1px solid #ccc");
   skillsContainer.style("padding", "5px");
   skillsContainer.style("margin-top", "20px");
-  skillsContainer.style("width", "180px");
+  skillsContainer.style("width", "100%");
+  skillsContainer.style("max-width", "600px");
+  
+  // Header
   createElement("h3", "Skills").parent(skillsContainer);
   
-  let lockRow = createDiv();
-  lockRow.parent(skillsContainer);
-  lockRow.style("text-align", "right");
-  let skillsLockCheckbox = createCheckbox("Lock", false);
-  skillsLockCheckbox.parent(lockRow);
-  skillsLockCheckbox.changed(() => { skillsLocked = skillsLockCheckbox.checked(); });
+  // Description right after header
+  let skillsDesc = createP("Skills enhance specific abilities. Link a Skill to a Stat (e.g., Athletics to STR) to tie its effectiveness to that Stat’s value. Click a skill name for details. Only one Skill can link to a Stat at a time.");
+  skillsDesc.parent(skillsContainer);
+  skillsDesc.style("font-size", "12px");
+  skillsDesc.style("color", "#666");
+  skillsDesc.style("margin-top", "5px");
+  skillsDesc.style("margin-bottom", "10px");
   
+  // Skills dropdowns
   additionalAttributes.forEach(attr => {
     let attrDiv = createDiv();
     attrDiv.parent(skillsContainer);
+    attrDiv.class("resource-row");
     
     let btn = createButton(attr.name);
     btn.parent(attrDiv);
     btn.style("background-color", attr.color);
     btn.style("color", "#fff");
+    btn.class("resource-button");
     btn.mousePressed(() => { showStatDescription(attr.name, attr.desc); });
     
-    let attrChk = createCheckbox("Link", false);
-    attrChk.parent(attrDiv);
-    attrChk.changed(tryLinking);
-    attributeCheckboxes[attr.name] = attrChk;
+    let statSelect = createSelect();
+    statSelect.parent(attrDiv);
+    statSelect.option("None");
+    ["STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"].forEach(stat => {
+      statSelect.option(stat);
+    });
+    statSelect.changed(() => linkStatToSkill(attr.name, statSelect.value()));
+    statSelect.elt.onchange = () => linkStatToSkill(attr.name, statSelect.value());
+    attributeCheckboxes[attr.name] = statSelect;
   });
+  
+  updateSkillDropdowns();
+}
+function updateSkillDropdowns() {
+  const allStats = ["STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"];
+  let assignedStats = Object.values(attributeLinkMapping);
+  
+  additionalAttributes.forEach(attr => {
+    let dropdown = attributeCheckboxes[attr.name];
+    let currentStat = attributeLinkMapping[attr.name] || "None";
+    
+    dropdown.elt.innerHTML = "";
+    let noneOption = document.createElement("option");
+    noneOption.value = "None";
+    noneOption.text = "None";
+    dropdown.elt.add(noneOption);
+    
+    allStats.forEach(stat => {
+      if (!assignedStats.includes(stat) || stat === currentStat) {
+        let option = document.createElement("option");
+        option.value = stat;
+        option.text = stat;
+        dropdown.elt.add(option);
+      }
+    });
+    
+    dropdown.elt.value = currentStat;
+  });
+}
+
+function linkStatToSkill(skillName, selectedStat) {
+  console.log(`Linking ${skillName} to ${selectedStat}`);
+  
+  if (attributeLinkMapping[skillName]) {
+    let oldStat = attributeLinkMapping[skillName];
+    delete statLinkMapping[oldStat];
+    statLabelElements[oldStat].style("color", "black");
+    console.log(`Unlinked ${oldStat} from ${skillName}`);
+  }
+
+  if (selectedStat === "None") {
+    delete attributeLinkMapping[skillName];
+    console.log(`Set ${skillName} to None`);
+  } else {
+    if (statLinkMapping[selectedStat]) {
+      let oldSkill = statLinkMapping[selectedStat];
+      delete attributeLinkMapping[oldSkill];
+      attributeCheckboxes[oldSkill].value("None");
+      console.log(`Unlinked ${selectedStat} from ${oldSkill}`);
+    }
+    statLinkMapping[selectedStat] = skillName;
+    attributeLinkMapping[skillName] = selectedStat;
+    let skillColor = additionalAttributes.find(a => a.name === skillName).color;
+    statLabelElements[selectedStat].style("color", skillColor);
+    console.log(`Linked ${selectedStat} to ${skillName}, color: ${skillColor}`);
+  }
+  
+  console.log("statLinkMapping:", JSON.stringify(statLinkMapping));
+  console.log("attributeLinkMapping:", JSON.stringify(attributeLinkMapping));
+  updateSkillDropdowns();
 }
 
 function createTalentsUI() {
   let talentsContainerDiv = select("#talents");
   talentsContainerDiv.html("");
-  
+
   createElement("h2", "Talents").parent(talentsContainerDiv);
-  createElement("p", "Use buttons to add, edit, or remove talents. Click a talent's name to view its details. Use arrows to reorder.").parent(talentsContainerDiv);
-  
+
+  let talentsDesc = createP("Use buttons to add, edit, or remove talents. Click a talent's name to view its details. Use arrows to reorder.");
+  talentsDesc.parent(talentsContainerDiv);
+  talentsDesc.style("font-size", "12px");
+  talentsDesc.style("color", "#666");
+  talentsDesc.style("margin-top", "5px");
+  talentsDesc.style("margin-bottom", "10px");
+
+  // Add buttons
   let customButton = createButton("Add Custom Talent");
   customButton.parent(talentsContainerDiv);
   customButton.style("margin", "5px");
   customButton.mousePressed(showAddCustomTalentModal);
-  
+
   let existingButton = createButton("Add Existing Talent");
   existingButton.parent(talentsContainerDiv);
   existingButton.style("margin", "5px");
   existingButton.mousePressed(showAddExistingTalentModal);
-  
+
   let editExistingButton = createButton("Edit Existing Talent");
   editExistingButton.parent(talentsContainerDiv);
   editExistingButton.style("margin", "5px");
   editExistingButton.mousePressed(showEditExistingTalentModal);
-  
+
   let removeButton = createButton("Remove Existing Talent");
   removeButton.parent(talentsContainerDiv);
   removeButton.style("margin", "5px");
-  removeButton.mousePressed(showRemoveExistingTalentModal);
-  
+  removeButton.mousePressed(showRemoveExistingTalentModal); // Restored button
+
   let defaultButton = createButton("Default Talent List");
   defaultButton.parent(talentsContainerDiv);
   defaultButton.style("margin", "5px");
   defaultButton.mousePressed(() => showConfirmationModal("Reset to default talent list?", resetToDefaultTalents));
-  
+
+  // Talent table setup (unchanged)
   let talentsTable = createElement("table");
   talentsTable.parent(talentsContainerDiv);
   talentsTable.id("talentsTable");
   talentsTable.style("width", "100%");
   talentsTable.style("border-collapse", "collapse");
   talentsTable.style("margin-top", "10px");
-  
+
   let headerRow = createElement("tr");
   headerRow.parent(talentsTable);
   ["", "Name", "Level", "Category", "Actions"].forEach(header => {
@@ -650,7 +656,7 @@ function createTalentsUI() {
     th.style("padding", "5px");
     th.style("background", "#f2f2f2");
   });
-  
+
   updateTalentsTable();
 }
 
@@ -723,23 +729,23 @@ function showAddCustomTalentModal() {
   modalDiv.style("border", "2px solid #000");
   modalDiv.style("z-index", "1000");
   modalDiv.style("width", "300px");
-  
+
   createElement("h3", "Add Custom Talent").parent(modalDiv);
-  
+
   let nameLabel = createSpan("Talent Name:");
   nameLabel.parent(modalDiv);
   let nameInput = createInput("");
   nameInput.parent(modalDiv);
   nameInput.style("width", "100%");
   nameInput.style("margin-bottom", "10px");
-  
+
   let levelLabel = createSpan("Levels (select highest desired):");
   levelLabel.parent(modalDiv);
-  
+
   let levelsDiv = createDiv();
   levelsDiv.parent(modalDiv);
   levelsDiv.style("margin-bottom", "10px");
-  
+
   let levelCheckboxes = {};
   let levelDescriptions = {};
   ["I", "II", "III"].forEach(lvl => {
@@ -748,7 +754,7 @@ function showAddCustomTalentModal() {
     let chk = createCheckbox(`Level ${lvl}`, false);
     chk.parent(chkDiv);
     levelCheckboxes[lvl] = chk;
-    
+
     let descDiv = createDiv();
     descDiv.parent(levelsDiv);
     descDiv.style("display", "none");
@@ -760,10 +766,10 @@ function showAddCustomTalentModal() {
     descInput.style("height", "60px");
     descInput.style("margin-bottom", "5px");
     levelDescriptions[lvl] = { div: descDiv, input: descInput };
-    
+
     chk.changed(() => manageLevelDependencies(levelCheckboxes, levelDescriptions, lvl));
   });
-  
+
   let categoryLabel = createSpan("Category:");
   categoryLabel.parent(modalDiv);
   let categorySelect = createSelect();
@@ -775,45 +781,49 @@ function showAddCustomTalentModal() {
   categorySelect.option("Utility & Tactical");
   categorySelect.style("width", "100%");
   categorySelect.style("margin-bottom", "10px");
-  
+
   let saveBtn = createButton("Save");
   saveBtn.parent(modalDiv);
   saveBtn.style("margin", "5px");
   saveBtn.mousePressed(() => {
     let name = nameInput.value();
     let category = categorySelect.value();
-    if (!name || !category || !levelCheckboxes["I"].checked()) return;
-    
-    // Check if talent already exists in talents array
-    if (talents.some(t => t.name === name)) {
-      alert("This talent is already added!");
-      return;
-    }
-    
-    let newTalents = [];
+    if (!name || !category) return;
+
+    // Determine the highest checked level
     let maxLevel = "I";
-    ["I", "II", "III"].forEach(lvl => {
-      if (levelCheckboxes[lvl].checked() && levelDescriptions[lvl].input.value()) {
-        let talent = {
-          name: name,
-          level: lvl,
-          category: category,
-          description: levelDescriptions[lvl].input.value(),
-          maxLevel: "III" // Custom talents can go to III
-        };
-        existingTalents.push(talent);
-        newTalents.push(talent);
-        maxLevel = lvl;
+    if (levelCheckboxes["III"].checked()) maxLevel = "III";
+    else if (levelCheckboxes["II"].checked()) maxLevel = "II";
+    else if (!levelCheckboxes["I"].checked()) return; // Must have at least Level I
+
+    // Enforce sequential levels and require descriptions
+    let newTalents = [];
+    let levels = ["I", "II", "III"].slice(0, ["I", "II", "III"].indexOf(maxLevel) + 1);
+    for (let lvl of levels) {
+      let desc = levelDescriptions[lvl].input.value();
+      if (!desc) {
+        alert(`Please provide a description for Level ${lvl}.`);
+        return;
       }
-    });
+      let talent = {
+        name: name,
+        level: lvl,
+        category: category,
+        description: desc,
+        maxLevel: maxLevel
+      };
+      existingTalents.push(talent);
+      newTalents.push(talent);
+    }
+
     if (newTalents.length > 0) {
-      talents.push(newTalents.find(t => t.level === "I")); // Always start at I
+      talents.push(newTalents.find(t => t.level === "I")); // Start at Level I
       updateTalentsTable();
       modalDiv.remove();
       modalDiv = null;
     }
   });
-  
+
   let cancelBtn = createButton("Cancel");
   cancelBtn.parent(modalDiv);
   cancelBtn.style("margin", "5px");
@@ -1092,14 +1102,12 @@ function moveTalentDown(index) {
 function updateTalentsTable() {
   let talentsTable = select("#talentsTable");
   let rows = talentsTable.elt.getElementsByTagName("tr");
-  while (rows.length > 1) {
-    rows[1].remove();
-  }
-  
+  while (rows.length > 1) rows[1].remove();
+
   talents.forEach((talent, index) => {
     let row = createElement("tr");
     row.parent(talentsTable);
-    
+
     // Arrows for reordering
     let arrowCell = createElement("td");
     arrowCell.parent(row);
@@ -1112,7 +1120,7 @@ function updateTalentsTable() {
     let downArrow = createButton("↓");
     downArrow.parent(arrowCell);
     downArrow.mousePressed(() => moveTalentDown(index));
-    
+
     // Name (clickable for description)
     let nameCell = createElement("td", talent.name);
     nameCell.parent(row);
@@ -1123,7 +1131,7 @@ function updateTalentsTable() {
       let talentData = existingTalents.find(t => t.name === talent.name && t.level === talent.level);
       showStatDescription(talent.name + " (Level " + talent.level + ")", talentData?.description || "No description available.");
     });
-    
+
     // Level (dropdown)
     let levelCell = createElement("td");
     levelCell.parent(row);
@@ -1132,41 +1140,40 @@ function updateTalentsTable() {
     let levelSelect = createSelect();
     levelSelect.parent(levelCell);
     let talentLevels = existingTalents.filter(t => t.name === talent.name);
-    let maxLevel = talent.maxLevel || "III";
-    let levels = ["I"];
-    if (maxLevel === "II" || maxLevel === "III") levels.push("II");
-    if (maxLevel === "III") levels.push("III");
-    levels.forEach(lvl => levelSelect.option(lvl));
+    let availableLevels = talentLevels.map(t => t.level); // Show only existing levels
+    availableLevels.forEach(lvl => levelSelect.option(lvl));
     levelSelect.value(talent.level);
     levelSelect.changed(() => {
       let newLevel = levelSelect.value();
       let newTalentData = existingTalents.find(t => t.name === talent.name && t.level === newLevel);
       if (newTalentData) {
         talents[index] = { ...newTalentData };
-        updateTalentsTable(); // Refresh table to reflect description change
+        updateTalentsTable();
       }
     });
-    
+
     // Category
     let categoryCell = createElement("td", talent.category);
     categoryCell.parent(row);
     categoryCell.style("border", "1px solid #ccc");
     categoryCell.style("padding", "5px");
-    
-    // Actions (Remove button)
+
+    // Actions (with Remove button)
     let actionCell = createElement("td");
     actionCell.parent(row);
     actionCell.style("border", "1px solid #ccc");
     actionCell.style("padding", "5px");
     let removeBtn = createButton("Remove");
     removeBtn.parent(actionCell);
+    removeBtn.style("margin", "5px");
     removeBtn.mousePressed(() => {
-      talents.splice(index, 1);
-      updateTalentsTable();
+      showConfirmationModal(`Remove ${talent.name} (Level ${talent.level})?`, () => {
+        talents.splice(index, 1);
+        updateTalentsTable();
+      });
     });
   });
 }
-
 function showStatDescription(title, description) {
   if (descriptionModal) descriptionModal.remove();
   descriptionModal = createDiv();
@@ -1243,83 +1250,4 @@ function tryLinking() {
       statCheckboxes[oldStat].checked(false);
     }
   }
-}
-
-function startDragResourceUI() {
-  if (!resourceUILocked) {
-    resourceUIDragging = true;
-    resourceUIStartX = resourceUIContainer.position().x;
-    resourceUIStartY = resourceUIContainer.position().y;
-    resourceUIMouseStartX = mouseX;
-    resourceUIMouseStartY = mouseY;
-  }
-}
-
-function stopDragResourceUI() {
-  resourceUIDragging = false;
-}
-
-function startTouchDragResourceUI() {
-  if (!resourceUILocked && touches.length > 0) {
-    resourceTouchStartTime = millis();
-    resourceUIDragging = true;
-    resourceUIStartX = resourceUIContainer.position().x;
-    resourceUIStartY = resourceUIContainer.position().y;
-    resourceTouchOffsetX = touches[0].x - resourceUIStartX;
-    resourceTouchOffsetY = touches[0].y - resourceUIStartY;
-  }
-}
-
-function mouseDragged() {
-  if (resourceUIDragging && !resourceUILocked) {
-    let dx = mouseX - resourceUIMouseStartX;
-    let dy = mouseY - resourceUIMouseStartY;
-    resourceUIContainer.position(resourceUIStartX + dx, resourceUIStartY + dy);
-  }
-  if (skillsDragging && !skillsLocked) {
-    let dx = mouseX - skillsMouseStartX;
-    let dy = mouseY - skillsMouseStartY;
-    skillsContainer.position(skillsStartX + dx, skillsStartY + dy);
-  }
-}
-
-function touchMoved() {
-  if (resourceUIDragging && !resourceUILocked && touches.length > 0) {
-    resourceUIContainer.position(touches[0].x - resourceTouchOffsetX, touches[0].y - resourceTouchOffsetY);
-    return false;
-  }
-  if (skillsDragging && !skillsLocked && touches.length > 0) {
-    skillsContainer.position(touches[0].x - skillsTouchOffsetX, touches[0].y - skillsTouchOffsetY);
-    return false;
-  }
-}
-
-function startDragSkills() {
-  if (!skillsLocked) {
-    skillsDragging = true;
-    skillsStartX = skillsContainer.position().x;
-    skillsStartY = skillsContainer.position().y;
-    skillsMouseStartX = mouseX;
-    skillsMouseStartY = mouseY;
-  }
-}
-
-function stopDragSkills() {
-  skillsDragging = false;
-}
-
-function startTouchDragSkills() {
-  if (!skillsLocked && touches.length > 0) {
-    skillsTouchStartTime = millis();
-    skillsDragging = true;
-    skillsStartX = skillsContainer.position().x;
-    skillsStartY = skillsContainer.position().y;
-    skillsTouchOffsetX = touches[0].x - skillsStartX;
-    skillsTouchOffsetY = touches[0].y - skillsStartY;
-  }
-}
-
-function touchEnded() {
-  if (resourceUIDragging) stopDragResourceUI();
-  if (skillsDragging) stopDragSkills();
 }
