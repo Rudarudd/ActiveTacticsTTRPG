@@ -7,6 +7,7 @@ let max_atb = 100, current_atb = 0;
 // Global stat variables – all start at 1
 let stat_str = 1, stat_vit = 1, stat_dex = 1, stat_mag = 1, stat_wil = 1, stat_spr = 1, stat_lck = 1;
 let level = 1, exp = 1, movement = 65; // Base movement starts at 65 ft
+let statBonusElements = {};
 
 // UI elements for resource tracker (created in createResourceUI)
 let maxHpInput, setMaxHpButton, maxMpInput, setMaxMpButton;
@@ -49,7 +50,6 @@ let equippedItems = {
   "Accessory 2": null
 };
 
-// Add these new globals below equippedItems
 let availableEquipment = {
   "On-Hand": [],
   "Off-Hand": [],
@@ -77,7 +77,7 @@ const statDescriptions = {
   "Movement": "Determines movement range per turn."
 };
 
-// Additional attributes (unchanged)
+// Additional attributes
 const additionalAttributes = [
   { name: "Athletics", desc: "Your ability to exert physical strength and endurance to overcome obstacles. Used for climbing, swimming, jumping, grappling, and feats of raw power.", color: "#C0392B" },
   { name: "Endurance", desc: "Your capacity to withstand physical strain, pain, and adverse conditions. Used for resisting poisons, disease, exhaustion, and enduring extreme conditions.", color: "#27AE60" },
@@ -88,7 +88,7 @@ const additionalAttributes = [
   { name: "Ingenuity", desc: "Your problem-solving ability and technical expertise in mechanical, electronic, and creative fields. Used for hacking, crafting, repairing technology, and improvising solutions.", color: "#2C3E50" }
 ];
 
-// Default talents (unchanged)
+// Default talents (shortened for brevity; full list can be added back)
 const defaultTalents = [
   // Physical Combat
   { name: "Relentless Fighter - Level I", level: "I", category: "Physical Combat", description: "Recover 5 Stamina per turn.", maxLevel: "II" },
@@ -164,10 +164,11 @@ const defaultTalents = [
   { name: "Unbreakable Focus - Level I", level: "I", category: "Utility & Tactical", description: "Once per encounter, you may reroll a status effect affecting you.", maxLevel: "I" }
 ];
 
+
 // Working copy of talents
 let existingTalents = [...defaultTalents];
 
-// Default traits (unchanged)
+// Default traits (shortened for brevity; full list can be added back)
 const defaultTraits = [
   { name: "Grafted Weapon", category: "Combat", positive: "Cannot be unwillingly disarmed.", negative: "Disadvantage on Agility checks." },
   { name: "EX-SOLDIER", category: "Combat", positive: "Advantage on Athletics checks.", negative: "Disadvantage on Ingenuity checks." },
@@ -186,55 +187,95 @@ const defaultTraits = [
 // Working copy of traits
 let existingTraits = [...defaultTraits];
 
-// **Utility Functions**
+// ### Utility Functions ###
 
 function showConfirmationModal(message, onConfirm, isError = false) {
   if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv().style("position", "absolute").style("top", "50%").style("left", "50%").style("transform", "translate(-50%, -50%)").style("background", "#fff").style("padding", "20px").style("border", "2px solid #000").style("z-index", "1000").style("width", "300px");
-
+  modalDiv = createDiv()
+    .style("position", "absolute")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("width", "300px");
   createElement("p", message).parent(modalDiv);
-
   if (isError) {
-    let closeBtn = createButton("Close").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
+    createButton("Close").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
   } else {
-    let confirmBtn = createButton("Confirm").parent(modalDiv).style("margin", "5px").mousePressed(() => { onConfirm(); modalDiv.remove(); });
-    let cancelBtn = createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
+    createButton("Confirm").parent(modalDiv).style("margin", "5px").mousePressed(() => { onConfirm(); modalDiv.remove(); });
+    createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
   }
 }
 
 function showTalentDescription(title, description) {
   if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv().style("position", "absolute").style("top", "50%").style("left", "50%").style("transform", "translate(-50%, -50%)").style("background", "#fff").style("padding", "20px").style("border", "2px solid #000").style("z-index", "1000").style("max-width", "400px").style("word-wrap", "break-word");
-
+  modalDiv = createDiv()
+    .style("position", "absolute")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("max-width", "400px")
+    .style("word-wrap", "break-word");
   createElement("h3", title).parent(modalDiv);
   createP(description).parent(modalDiv);
-  let closeBtn = createButton("Close").parent(modalDiv).style("margin-top", "10px").mousePressed(() => modalDiv.remove());
+  createButton("Close").parent(modalDiv).style("margin-top", "10px").mousePressed(() => modalDiv.remove());
 }
 
 function showTraitDescription(name, positive, negative) {
   if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv().style("position", "absolute").style("top", "50%").style("left", "50%").style("transform", "translate(-50%, -50%)").style("background", "#fff").style("padding", "20px").style("border", "2px solid #000").style("z-index", "1000").style("width", "300px");
-
+  modalDiv = createDiv()
+    .style("position", "absolute")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("width", "300px");
   createElement("h3", name).parent(modalDiv);
   createP(`(+) ${positive}<br>(-) ${negative}`).parent(modalDiv);
-  let closeBtn = createButton("Close").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
+  createButton("Close").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
 }
 
 function showStatDescription(title, description) {
   if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv().style("position", "absolute").style("top", "50%").style("left", "50%").style("transform", "translate(-50%, -50%)").style("background", "#fff").style("padding", "20px").style("border", "2px solid #000").style("z-index", "1000").style("max-width", "400px").style("word-wrap", "break-word");
-
+  modalDiv = createDiv()
+    .style("position", "absolute")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("max-width", "400px")
+    .style("word-wrap", "break-word");
   createElement("h3", title).parent(modalDiv);
   createP(description).parent(modalDiv);
-  let closeBtn = createButton("Close").parent(modalDiv).style("margin-top", "10px").mousePressed(() => modalDiv.remove());
+  createButton("Close").parent(modalDiv).style("margin-top", "10px").mousePressed(() => modalDiv.remove());
 }
 
-// **p5.js Setup and Draw**
+// ### p5.js Setup and Draw ###
 
 function setup() {
   let resourceBarsContainer = select("#resource-bars");
+  if (!resourceBarsContainer) {
+    console.error("No #resource-bars div found in HTML!");
+    return;
+  }
   let resourceControlsContainer = select("#resource-controls");
-
+  if (!resourceControlsContainer) {
+    console.error("No #resource-controls div found in HTML!");
+    return;
+  }
   let containerWidth = resourceBarsContainer.elt.clientWidth;
   let canvasWidth = min(containerWidth, 600);
   let canvasHeight = 150;
@@ -245,7 +286,6 @@ function setup() {
   textAlign(LEFT, TOP);
 
   resourceUIContainer = createDiv().parent(resourceControlsContainer).id("resourceUIContainer");
-
   skillsContainer = createDiv().id("skillsContainer");
 
   createResourceUI();
@@ -254,6 +294,7 @@ function setup() {
   createTraitsUI();
   createEquipmentUI();
 
+  // Tab functionality (requires tablink and tabcontent classes in HTML)
   const tablinks = document.querySelectorAll('.tablink');
   const tabcontents = document.querySelectorAll('.tabcontent');
   tablinks.forEach(btn => {
@@ -279,13 +320,11 @@ function draw() {
 }
 
 function displayBars() {
-  background(255);
-  
   let bar_width = width * 0.6;
   let bar_height = 20;
   let x = width * 0.1;
   let y_hp = 25, y_mp = 55, y_stamina = 85, y_atb = 115;
-  
+
   stroke(0);
   fill(128);
   rect(x, y_hp, bar_width, bar_height);
@@ -298,7 +337,7 @@ function displayBars() {
   fill(255);
   textSize(16);
   text(`HP: ${current_hp}/${max_hp}`, x + bar_width / 2, y_hp + bar_height / 2);
-  
+
   stroke(0);
   fill(128);
   rect(x, y_mp, bar_width, bar_height);
@@ -306,12 +345,9 @@ function displayBars() {
   fill(128, 0, 128);
   let mp_width = (current_mp / max_mp) * bar_width;
   rect(x, y_mp, mp_width, bar_height);
-  textAlign(CENTER, CENTER);
-  textStyle(BOLD);
   fill(255);
-  textSize(16);
   text(`MP: ${current_mp}/${max_mp}`, x + bar_width / 2, y_mp + bar_height / 2);
-  
+
   stroke(0);
   fill(128);
   rect(x, y_stamina, bar_width, bar_height);
@@ -319,12 +355,9 @@ function displayBars() {
   fill(0, 150, 0);
   let stamina_width = (current_stamina / max_stamina) * bar_width;
   rect(x, y_stamina, stamina_width, bar_height);
-  textAlign(CENTER, CENTER);
-  textStyle(BOLD);
   fill(255);
-  textSize(16);
   text(`STMN: ${current_stamina}/${max_stamina}`, x + bar_width / 2, y_stamina + bar_height / 2);
-  
+
   stroke(0);
   fill(128);
   rect(x, y_atb, bar_width, bar_height);
@@ -332,34 +365,32 @@ function displayBars() {
   fill(0, 0, 255);
   let atb_width = (current_atb / max_atb) * bar_width;
   rect(x, y_atb, atb_width, bar_height);
-  textAlign(CENTER, CENTER);
-  textStyle(BOLD);
   fill(255);
-  textSize(16);
   text(`ATB: ${current_atb}/${max_atb}`, x + bar_width / 2, y_atb + bar_height / 2);
 }
 
-// **Resource UI** (unchanged)
+// ### Resource UI ###
+
 function createResourceUI() {
   let rUI = resourceUIContainer;
   rUI.html("");
 
   let hpRow = createDiv().parent(rUI).class("resource-row");
-  let hpLabel = createSpan("HP:").parent(hpRow);
+  createSpan("HP:").parent(hpRow);
   maxHpInput = createInput(max_hp.toString(), "number").parent(hpRow).class("resource-input");
   setMaxHpButton = createButton("Set Max").parent(hpRow).class("resource-button").mousePressed(setMaxHp);
   hpPlus = createButton("+10").parent(hpRow).class("resource-button small-button").mousePressed(() => { current_hp = min(current_hp + 10, max_hp); });
   hpMinus = createButton("-10").parent(hpRow).class("resource-button small-button").mousePressed(() => { current_hp = max(current_hp - 10, 0); });
 
   let mpRow = createDiv().parent(rUI).class("resource-row");
-  let mpLabel = createSpan("MP:").parent(mpRow);
+  createSpan("MP:").parent(mpRow);
   maxMpInput = createInput(max_mp.toString(), "number").parent(mpRow).class("resource-input");
   setMaxMpButton = createButton("Set Max").parent(mpRow).class("resource-button").mousePressed(setMaxMp);
   mpPlus = createButton("+5").parent(mpRow).class("resource-button small-button").mousePressed(() => { current_mp = min(current_mp + 5, max_mp); });
   mpMinus = createButton("-5").parent(mpRow).class("resource-button small-button").mousePressed(() => { current_mp = max(current_mp - 5, 0); });
 
   let staminaRow = createDiv().parent(rUI).class("resource-row");
-  let staminaLabel = createSpan("STMN:").parent(staminaRow);
+  createSpan("STMN:").parent(staminaRow);
   maxStaminaInput = createInput(max_stamina.toString(), "number").parent(staminaRow).class("resource-input");
   setMaxStaminaButton = createButton("Set Max").parent(staminaRow).class("resource-button").mousePressed(setMaxStamina);
   staminaPlus = createButton("+25").parent(staminaRow).class("resource-button small-button").mousePressed(() => { current_stamina = min(current_stamina + 25, max_stamina); });
@@ -369,26 +400,26 @@ function createResourceUI() {
   });
 
   let atbRow = createDiv().parent(rUI).class("resource-row");
-  let atbLabel = createSpan("ATB:").parent(atbRow);
+  createSpan("ATB:").parent(atbRow);
   maxAtbInput = createInput(max_atb.toString(), "number").parent(atbRow).class("resource-input");
   setMaxAtbButton = createButton("Set Max").parent(atbRow).class("resource-button").mousePressed(setMaxAtb);
   atbPlus = createButton("+25").parent(atbRow).class("resource-button small-button").mousePressed(() => { current_atb = min(current_atb + 25, max_atb); });
   atbMinus = createButton("-50").parent(atbRow).class("resource-button small-button").mousePressed(() => { current_atb = max(current_atb - 50, 0); });
 
   let adjustmentRow = createDiv().parent(rUI).class("resource-row");
-  let adjustmentLabel = createSpan("Adjust: ").parent(adjustmentRow);
+  createSpan("Adjust: ").parent(adjustmentRow);
   let adjustmentInput = createInput("", "number").parent(adjustmentRow).class("resource-input").style("width", "50px");
   let resourceSelect = createSelect().parent(adjustmentRow).style("margin-left", "5px");
   resourceSelect.option("HP");
   resourceSelect.option("MP");
   resourceSelect.option("STMN");
   resourceSelect.option("ATB");
-  let addButton = createButton("+").parent(adjustmentRow).class("resource-button small-button").style("margin-left", "5px").mousePressed(() => adjustResource(resourceSelect.value(), parseInt(adjustmentInput.value()), true));
-  let subtractButton = createButton("-").parent(adjustmentRow).class("resource-button small-button").style("margin-left", "5px").mousePressed(() => adjustResource(resourceSelect.value(), parseInt(adjustmentInput.value()), false));
+  createButton("+").parent(adjustmentRow).class("resource-button small-button").style("margin-left", "5px").mousePressed(() => adjustResource(resourceSelect.value(), parseInt(adjustmentInput.value()), true));
+  createButton("-").parent(adjustmentRow).class("resource-button small-button").style("margin-left", "5px").mousePressed(() => adjustResource(resourceSelect.value(), parseInt(adjustmentInput.value()), false));
 
   let linkRow = createDiv().parent(rUI).class("resource-row");
   staminaAtbLinkButton = createButton(staminaAtbLink ? "Link: ON" : "Link: OFF").parent(linkRow).class("resource-button").mousePressed(toggleStaminaAtbLink).style("background-color", staminaAtbLink ? "green" : "red");
-  let linkDesc = createSpan("When ON, using STMN adds to ATB").parent(linkRow);
+  createSpan("When ON, using STMN adds to ATB").parent(linkRow);
 
   let resetRow = createDiv().parent(rUI).class("resource-row");
   resetButton = createButton("Reset All").parent(resetRow).class("resource-button").mousePressed(resetResources);
@@ -452,31 +483,29 @@ function toggleStaminaAtbLink() {
   staminaAtbLinkButton.style("background-color", staminaAtbLink ? "green" : "red");
 }
 
-// **Stats UI** (unchanged)
+// ### Stats UI ###
+
 function createStatsUI() {
   let statsContainer = select("#stats");
+  if (!statsContainer) {
+    console.error("No #stats div found in HTML!");
+    return;
+  }
   statsContainer.html("");
-  
+
   createElement("h2", "Stats").parent(statsContainer);
-  
   let statsDesc = createP("Stats determine your character’s core abilities. Click a stat name for details.").parent(statsContainer);
-  statsDesc.style("font-size", "12px");
-  statsDesc.style("color", "#666");
-  statsDesc.style("margin-top", "5px");
-  statsDesc.style("margin-bottom", "10px");
-  
+  statsDesc.style("font-size", "12px").style("color", "#666").style("margin-top", "5px").style("margin-bottom", "10px");
+
   createStatInput("Level", "Level", level, statsContainer, (val) => { level = val; }, false);
   createStatInput("EXP", "EXP", exp, statsContainer, (val) => { exp = val; }, false);
-  
+
   let movementDiv = createDiv().parent(statsContainer).style("margin", "5px");
   let movementLabel = createSpan("Movement: ").parent(movementDiv).style("cursor", "pointer");
-  movementLabel.mouseClicked(() => {
-    if (!descriptionModal) 
-      showStatDescription("Movement", statDescriptions["Movement"] || "No description available.");
-  });
+  movementLabel.mouseClicked(() => showStatDescription("Movement", statDescriptions["Movement"] || "No description available."));
   statLabelElements["Movement"] = movementLabel;
   let movementInput = createInput(movement + " ft", "text").parent(movementDiv).style("width", "50px").attribute("readonly", "true").style("background-color", "#e0e0e0").id("movementInput");
-  
+
   createStatInput("STR", "Strength", stat_str, statsContainer, (val) => { stat_str = val; }, true);
   createStatInput("VIT", "Vitality", stat_vit, statsContainer, (val) => { stat_vit = val; updateResourcesBasedOnStats(); }, true);
   createStatInput("DEX", "Dexterity", stat_dex, statsContainer, (val) => { stat_dex = val; }, true);
@@ -484,30 +513,16 @@ function createStatsUI() {
   createStatInput("WIL", "Willpower", stat_wil, statsContainer, (val) => { stat_wil = val; updateResourcesBasedOnStats(); }, true);
   createStatInput("SPR", "Spirit", stat_spr, statsContainer, (val) => { stat_spr = val; }, true);
   createStatInput("LCK", "Luck", stat_lck, statsContainer, (val) => { stat_lck = val; }, true, true);
-  
-  createAdditionalAttributesUI();
-}
 
-function updateResourcesBasedOnStats() {
-  max_hp = 25 + (stat_vit - 1) * 5;
-  current_hp = min(current_hp, max_hp);
-  maxHpInput.value(max_hp);
-  
-  max_mp = 10 + (stat_wil - 1) * 5;
-  current_mp = min(current_mp, max_mp);
-  maxMpInput.value(max_mp);
+  createAdditionalAttributesUI();
 }
 
 function createStatInput(abbrev, name, initialValue, container, callback, linkable, greyOutAtMax = false) {
   let div = createDiv().parent(container).style("margin", "5px");
-  
   let label = createSpan(name + " (" + abbrev + "): ").parent(div).style("cursor", "pointer");
-  label.mouseClicked(() => {
-    if (!descriptionModal) 
-      showStatDescription(name + " (" + abbrev + ")", statDescriptions[abbrev] || "No description available.");
-  });
+  label.mouseClicked(() => showStatDescription(name + " (" + abbrev + ")", statDescriptions[abbrev] || "No description available."));
   statLabelElements[abbrev] = label;
-  
+
   let input = createInput(initialValue.toString(), "number").parent(div).style("width", "50px");
   input.changed(() => {
     let val = int(input.value());
@@ -515,56 +530,51 @@ function createStatInput(abbrev, name, initialValue, container, callback, linkab
     input.value(val);
     callback(val);
     if (greyOutAtMax && val === 99) {
-      input.attribute("disabled", "true");
-      input.style("background-color", "#ccc");
+      input.attribute("disabled", "true").style("background-color", "#ccc");
     } else if (greyOutAtMax) {
-      input.removeAttribute("disabled");
-      input.style("background-color", "white");
+      input.removeAttribute("disabled").style("background-color", "white");
     }
   });
+
+  let bonusSpan = createSpan().parent(div).style("color", "green").style("margin-left", "5px");
+  statBonusElements[abbrev] = bonusSpan;
 }
 
 function createAdditionalAttributesUI() {
   let statsContainer = select("#stats");
+  if (!statsContainer) return;
   skillsContainer.parent(statsContainer).style("padding", "5px").style("margin-top", "20px").style("width", "100%").style("max-width", "600px");
-  
+
   createElement("h3", "Skills").parent(skillsContainer);
-  
   let skillsDesc = createP("Skills enhance specific abilities. Link a Skill to a Stat (e.g., Athletics to STR) to tie its effectiveness to that Stat’s value. Click a skill name for details. Only one Skill can link to a Stat at a time.").parent(skillsContainer);
-  skillsDesc.style("font-size", "12px");
-  skillsDesc.style("color", "#666");
-  skillsDesc.style("margin-top", "5px");
-  skillsDesc.style("margin-bottom", "10px");
-  
+  skillsDesc.style("font-size", "12px").style("color", "#666").style("margin-top", "5px").style("margin-bottom", "10px");
+
   additionalAttributes.forEach(attr => {
     let attrDiv = createDiv().parent(skillsContainer).class("resource-row");
-    
-    let btn = createButton(attr.name).parent(attrDiv).style("background-color", attr.color).style("color", "#fff").class("resource-button").mousePressed(() => { showStatDescription(attr.name, attr.desc); });
-    
+    let btn = createButton(attr.name).parent(attrDiv).style("background-color", attr.color).style("color", "#fff").class("resource-button").mousePressed(() => showStatDescription(attr.name, attr.desc));
     let statSelect = createSelect().parent(attrDiv);
     statSelect.option("None");
     ["STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statSelect.option(stat));
     statSelect.changed(() => linkStatToSkill(attr.name, statSelect.value()));
     attributeCheckboxes[attr.name] = statSelect;
   });
-  
+
   updateSkillDropdowns();
 }
 
 function updateSkillDropdowns() {
   const allStats = ["STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"];
   let assignedStats = Object.values(attributeLinkMapping);
-  
+
   additionalAttributes.forEach(attr => {
     let dropdown = attributeCheckboxes[attr.name];
     let currentStat = attributeLinkMapping[attr.name] || "None";
-    
     dropdown.elt.innerHTML = "";
     let noneOption = document.createElement("option");
     noneOption.value = "None";
     noneOption.text = "None";
     dropdown.elt.add(noneOption);
-    
+
     allStats.forEach(stat => {
       if (!assignedStats.includes(stat) || stat === currentStat) {
         let option = document.createElement("option");
@@ -573,7 +583,6 @@ function updateSkillDropdowns() {
         dropdown.elt.add(option);
       }
     });
-    
     dropdown.elt.value = currentStat;
   });
 }
@@ -598,11 +607,11 @@ function linkStatToSkill(skillName, selectedStat) {
     let skillColor = additionalAttributes.find(a => a.name === skillName).color;
     statLabelElements[selectedStat].style("color", skillColor);
   }
-  
+
   updateSkillDropdowns();
 }
 
-// **Equipment System**
+// ### Equipment System ###
 
 function calculateMovement() {
   let totalPenalty = 0;
@@ -615,111 +624,56 @@ function calculateMovement() {
   });
   movement = Math.max(25, 65 + totalPenalty); // Base 65 ft, minimum 25 ft
   let movementInput = select("#movementInput");
-  if (movementInput) {
-    movementInput.value(movement + " ft");
-  }
+  if (movementInput) movementInput.value(movement + " ft");
 }
+
 function createEquipmentUI() {
   let equipmentContainerDiv = select("#equipment");
   if (!equipmentContainerDiv) {
-    console.error("No #equipment div found in HTML! Please add <div id='equipment'></div> to your HTML.");
+    console.error("No #equipment div found in HTML!");
     return;
   }
-  equipmentContainerDiv.html(""); // Clear existing content
+  equipmentContainerDiv.html("");
 
   createElement("h2", "Equipment").parent(equipmentContainerDiv);
+  createButton("Add Equipment").parent(equipmentContainerDiv).style("margin", "5px").mousePressed(showAddEquipmentModal);
+  createButton("Remove Equipment").parent(equipmentContainerDiv).style("margin", "5px").mousePressed(showRemoveEquipmentModal);
 
-  // Add buttons
-  let addButton = createButton("Add Equipment")
-    .parent(equipmentContainerDiv)
-    .style("margin", "5px")
-    .mousePressed(showAddEquipmentModal);
-
-  let removeButton = createButton("Remove Equipment")
-    .parent(equipmentContainerDiv)
-    .style("margin", "5px")
-    .mousePressed(showRemoveEquipmentModal); // New function we'll define
-
-  let equipmentTable = createElement("table")
-    .parent(equipmentContainerDiv)
-    .id("equipmentTable")
-    .style("width", "100%")
-    .style("border-collapse", "collapse")
-    .style("margin-top", "10px");
-
+  let equipmentTable = createElement("table").parent(equipmentContainerDiv).id("equipmentTable").style("width", "100%").style("border-collapse", "collapse").style("margin-top", "10px");
   let headerRow = createElement("tr").parent(equipmentTable);
   ["Slot", "Name", "Mov. Penalty", "Crystal Slots", "Stat Bonus", "Modifier", "Linked Stat"].forEach(header => {
-    createElement("th", header)
-      .parent(headerRow)
-      .style("border", "1px solid #ccc")
-      .style("padding", "5px")
-      .style("background", "#f2f2f2");
+    createElement("th", header).parent(headerRow).style("border", "1px solid #ccc").style("padding", "5px").style("background", "#f2f2f2");
   });
 
   Object.keys(equippedItems).forEach(slot => {
     let row = createElement("tr").parent(equipmentTable);
+    createElement("td", slot).parent(row).style("border", "1px solid #ccc").style("padding", "5px");
 
-    createElement("td", slot)
-      .parent(row)
-      .style("border", "1px solid #ccc")
-      .style("padding", "5px");
-
-    let nameCell = createElement("td")
-      .parent(row)
-      .style("border", "1px solid #ccc")
-      .style("padding", "5px");
+    let nameCell = createElement("td").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
     let select = slotSelects[slot] || createSelect();
-    select.parent(nameCell)
-      .style("width", "150px");
+    select.parent(nameCell).style("width", "150px");
     slotSelects[slot] = select;
-
-    select.html(""); // Clear existing options
+    select.html("");
     select.option("None", "None");
     if (availableEquipment[slot]) {
-      availableEquipment[slot].forEach(item => {
-        select.option(item.name, item.name);
-      });
+      availableEquipment[slot].forEach(item => select.option(item.name, item.name));
     }
     let currentItem = equippedItems[slot];
     select.value(currentItem ? currentItem.name : "None");
-
-    select.changed(() => {
-      let selectedName = select.value();
-      equipItem(slot, selectedName);
-    });
+    select.changed(() => equipItem(slot, select.value()));
 
     let item = equippedItems[slot];
-    createElement("td", item && item.movementPenalty !== undefined ? String(item.movementPenalty) + " ft" : "-")
-      .parent(row)
-      .style("border", "1px solid #ccc")
-      .style("padding", "5px");
-
-    let slotsCell = createElement("td", item ? String(item.crystalSlots) : "-")
-      .parent(row)
-      .style("border", "1px solid #ccc")
-      .style("padding", "5px");
+    createElement("td", item && item.movementPenalty !== undefined ? String(item.movementPenalty) + " ft" : "-").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
+    let slotsCell = createElement("td", item ? String(item.crystalSlots) : "-").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
     if (item && item.crystalSlots > 0) {
-      slotsCell.style("cursor", "pointer")
-        .style("color", "blue")
-        .mousePressed(() => showCrystalSlotModal(item));
+      slotsCell.style("cursor", "pointer").style("color", "blue").mousePressed(() => showCrystalSlotModal(item));
     }
-
-    createElement("td", item && item.statBonus ? `${item.statBonus.amount} ${item.statBonus.stat}` : "-")
-      .parent(row)
-      .style("border", "1px solid #ccc")
-      .style("padding", "5px");
-
-    createElement("td", item && item.modifier !== undefined ? String(item.modifier) : "-")
-      .parent(row)
-      .style("border", "1px solid #ccc")
-      .style("padding", "5px");
-
-    createElement("td", item && item.linkedStat ? item.linkedStat : "-")
-      .parent(row)
-      .style("border", "1px solid #ccc")
-      .style("padding", "5px");
+    createElement("td", item && item.statBonus ? `${item.statBonus.amount} ${item.statBonus.stat}` : "-").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
+    createElement("td", item && item.modifier !== undefined ? String(item.modifier) : "-").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
+    createElement("td", item && item.linkedStat ? item.linkedStat : "-").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
   });
 }
+
 function createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSelect, linkedStatSelect, statBonusAmountInput, statBonusStatSelect, modifierInput) {
   let type = typeSelect.value();
   let name = nameInput.value().trim();
@@ -745,75 +699,18 @@ function createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSel
     slottedCrystals: []
   };
 }
+
 function equipItem(slot, itemName) {
   if (itemName === "None") {
     equippedItems[slot] = null;
   } else {
     let selectedItem = availableEquipment[slot].find(item => item.name === itemName);
-    if (selectedItem) {
-      equippedItems[slot] = selectedItem;
-    }
+    if (selectedItem) equippedItems[slot] = selectedItem;
   }
   calculateMovement();
-  updateResourcesBasedOnStats(); // If equipment affects stats like VIT or WIL
-  createEquipmentUI(); // Refresh the table with updated stats
-}
-
-function updateEquipmentTable() {
-  let equipmentTable = select("#equipmentTable");
-  if (!equipmentTable) return;
-
-  // Remove existing rows (except header)
-  let rows = equipmentTable.elt.getElementsByTagName("tr");
-  while (rows.length > 1) rows[1].remove();
-
-  // Populate table with equipment data
-  Object.keys(equippedItems).forEach(slot => {
-    let item = equippedItems[slot];
-    let row = createElement("tr").parent(equipmentTable);
-
-    // Slot name (always a string)
-    createElement("td", slot).parent(row).style("border", "1px solid #ccc").style("padding", "5px");
-
-    // Item name (string or "-")
-    createElement("td", item ? item.name : "-").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
-
-    // Movement penalty (convert to string, handle undefined)
-    createElement("td", item && item.movementPenalty !== undefined ? String(item.movementPenalty) + " ft" : "-")
-      .parent(row).style("border", "1px solid #ccc").style("padding", "5px");
-
-    // Crystal slots (convert to string)
-    let slotsCell = createElement("td", item ? String(item.crystalSlots) : "-")
-      .parent(row).style("border", "1px solid #ccc").style("padding", "5px");
-    if (item && item.crystalSlots > 0) {
-      slotsCell.style("cursor", "pointer").style("color", "blue").mousePressed(() => showCrystalSlotModal(item));
-    }
-
-    // Stat bonus (already a string via template literal)
-    createElement("td", item && item.statBonus ? `${item.statBonus.amount} ${item.statBonus.stat}` : "-")
-      .parent(row).style("border", "1px solid #ccc").style("padding", "5px");
-
-    // Modifier (convert to string, handle undefined)
-    createElement("td", item && item.modifier !== undefined ? String(item.modifier) : "-")
-      .parent(row).style("border", "1px solid #ccc").style("padding", "5px");
-
-    // Linked stat (string or "-")
-    createElement("td", item && item.linkedStat ? item.linkedStat : "-")
-      .parent(row).style("border", "1px solid #ccc").style("padding", "5px");
-
-    // Action cell with remove button
-    let actionCell = createElement("td").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
-    if (item) {
-      let removeBtn = createButton("Remove")
-        .parent(actionCell)
-        .style("margin", "5px")
-        .mousePressed(() => {
-          equippedItems[slot] = null;
-          calculateMovement();
-          updateEquipmentTable();
-        });
-    }
-  });
+  updateResourcesBasedOnStats();
+  createEquipmentUI();
+  updateStatBonusesDisplay();
 }
 
 function showAddEquipmentModal() {
@@ -830,11 +727,10 @@ function showAddEquipmentModal() {
     .style("width", "300px");
 
   createElement("h3", "Add Equipment").parent(modalDiv);
-
   let typeLabel = createSpan("Equipment Type:").parent(modalDiv).style("display", "block");
   let typeSelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
   ["On-Hand", "Off-Hand", "Chest", "Helm", "Gloves", "Greaves", "Accessory 1", "Accessory 2"].forEach(type => typeSelect.option(type));
-  typeSelect.value("On-Hand"); // Default to "On-Hand"
+  typeSelect.value("On-Hand");
 
   let nameLabel = createSpan("Name:").parent(modalDiv).style("display", "block");
   let nameInput = createInput("").parent(modalDiv).attribute("placeholder", "e.g., Iron Sword").style("width", "100%").style("margin-bottom", "10px");
@@ -848,7 +744,7 @@ function showAddEquipmentModal() {
   let slotsSelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
   [0, 1, 2].forEach(slot => slotsSelect.option(slot));
 
-  let linkedStatDiv = createDiv().parent(modalDiv).style("display", "block"); // Default to visible for "On-Hand"
+  let linkedStatDiv = createDiv().parent(modalDiv).style("display", "block");
   let linkedStatLabel = createSpan("Linked Stat (Weapons):").parent(linkedStatDiv).style("display", "block");
   let linkedStatSelect = createSelect().parent(linkedStatDiv).style("width", "100%").style("margin-bottom", "10px");
   linkedStatSelect.option("STR");
@@ -863,7 +759,6 @@ function showAddEquipmentModal() {
   let modifierLabel = createSpan("Modifier (e.g., +damage or DEF):").parent(modalDiv).style("display", "block");
   let modifierInput = createInput("0", "number").parent(modalDiv).style("width", "50px").style("margin-bottom", "10px");
 
-  // Update visibility based on type selection
   function updateTypeVisibility() {
     let selectedType = typeSelect.value();
     if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
@@ -879,70 +774,31 @@ function showAddEquipmentModal() {
   }
 
   typeSelect.changed(updateTypeVisibility);
-  updateTypeVisibility(); // Call immediately to set initial state
+  updateTypeVisibility();
 
-  let addBtn = createButton("Add to Available")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => {
-      let equipment = createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSelect, linkedStatSelect, statBonusAmountInput, statBonusStatSelect, modifierInput);
-      if (equipment) {
-        if (!availableEquipment[equipment.type]) {
-          availableEquipment[equipment.type] = [];
-        }
-        availableEquipment[equipment.type].push(equipment);
-        createEquipmentUI(); // Refresh table with new item in dropdown
-        modalDiv.remove();
-      }
-    });
-
-  let addAndEquipBtn = createButton("Add and Equip")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => {
-      let equipment = createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSelect, linkedStatSelect, statBonusAmountInput, statBonusStatSelect, modifierInput);
-      if (equipment) {
-        if (!availableEquipment[equipment.type]) {
-          availableEquipment[equipment.type] = [];
-        }
-        availableEquipment[equipment.type].push(equipment);
-        equipItem(equipment.type, equipment.name); // Equip and refresh table
-        modalDiv.remove();
-      }
-    });
-
-  let cancelBtn = createButton("Cancel")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => modalDiv.remove());
-}
-// **Talents UI** (unchanged)
-function createTalentsUI() {
-  let talentsContainerDiv = select("#talents");
-  talentsContainerDiv.html("");
-
-  createElement("h2", "Talents").parent(talentsContainerDiv);
-
-  let talentsDesc = createP("Use buttons to add, edit, or remove talents. Click a talent's name to view its details. Use arrows to reorder.").parent(talentsContainerDiv);
-  talentsDesc.style("font-size", "12px");
-  talentsDesc.style("color", "#666");
-  talentsDesc.style("margin-top", "5px");
-  talentsDesc.style("margin-bottom", "10px");
-
-  let customButton = createButton("Add Custom Talent").parent(talentsContainerDiv).style("margin", "5px").mousePressed(showAddCustomTalentModal);
-  let addEditButton = createButton("Add / Edit Existing Talents").parent(talentsContainerDiv).style("margin", "5px").mousePressed(showAddEditTalentsModal);
-  let removeButton = createButton("Remove Existing Talent").parent(talentsContainerDiv).style("margin", "5px").mousePressed(showRemoveExistingTalentModal);
-  let defaultButton = createButton("Default Talent List").parent(talentsContainerDiv).style("margin", "5px").mousePressed(() => showConfirmationModal("Reset to default talent list?", resetToDefaultTalents));
-
-  let talentsTable = createElement("table").parent(talentsContainerDiv).id("talentsTable").style("width", "100%").style("border-collapse", "collapse").style("margin-top", "10px");
-
-  let headerRow = createElement("tr").parent(talentsTable);
-  ["", "Name", "Level", "Category", "Actions"].forEach(header => {
-    let th = createElement("th", header).parent(headerRow).style("border", "1px solid #ccc").style("padding", "5px").style("background", "#f2f2f2");
+  createButton("Add to Available").parent(modalDiv).style("margin", "5px").mousePressed(() => {
+    let equipment = createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSelect, linkedStatSelect, statBonusAmountInput, statBonusStatSelect, modifierInput);
+    if (equipment) {
+      if (!availableEquipment[equipment.type]) availableEquipment[equipment.type] = [];
+      availableEquipment[equipment.type].push(equipment);
+      createEquipmentUI();
+      modalDiv.remove();
+    }
   });
 
-  updateTalentsTable();
+  createButton("Add and Equip").parent(modalDiv).style("margin", "5px").mousePressed(() => {
+    let equipment = createEquipmentFromModal(typeSelect, nameInput, penaltySelect, slotsSelect, linkedStatSelect, statBonusAmountInput, statBonusStatSelect, modifierInput);
+    if (equipment) {
+      if (!availableEquipment[equipment.type]) availableEquipment[equipment.type] = [];
+      availableEquipment[equipment.type].push(equipment);
+      equipItem(equipment.type, equipment.name);
+      modalDiv.remove();
+    }
+  });
+
+  createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
 }
+
 function showRemoveEquipmentModal() {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv()
@@ -957,121 +813,122 @@ function showRemoveEquipmentModal() {
     .style("width", "300px");
 
   createElement("h3", "Remove Equipment").parent(modalDiv);
-
-  // Check if there’s anything to remove
   let allEquipment = Object.values(availableEquipment).flat();
   if (allEquipment.length === 0) {
     createP("No equipment available to remove.").parent(modalDiv);
-    let closeBtn = createButton("Close")
-      .parent(modalDiv)
-      .style("margin", "5px")
-      .mousePressed(() => modalDiv.remove());
+    createButton("Close").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
     return;
   }
 
-  // Dropdown to select equipment type
   let typeLabel = createSpan("Equipment Type:").parent(modalDiv).style("display", "block");
   let typeSelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
   Object.keys(availableEquipment).forEach(slot => {
-    if (availableEquipment[slot].length > 0) {
-      typeSelect.option(slot);
-    }
+    if (availableEquipment[slot].length > 0) typeSelect.option(slot);
   });
-  if (typeSelect.elt.options.length === 0) {
-    createP("No equipment available to remove.").parent(modalDiv);
-    let closeBtn = createButton("Close")
-      .parent(modalDiv)
-      .style("margin", "5px")
-      .mousePressed(() => modalDiv.remove());
-    return;
-  }
 
-  // Dropdown to select specific equipment
   let equipmentLabel = createSpan("Select Equipment:").parent(modalDiv).style("display", "block");
   let equipmentSelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
 
-  // Update equipment options based on type selection
   function updateEquipmentOptions() {
     let selectedType = typeSelect.value();
-    equipmentSelect.html(""); // Clear current options
+    equipmentSelect.html("");
     if (availableEquipment[selectedType]) {
-      availableEquipment[selectedType].forEach(item => {
-        equipmentSelect.option(item.name);
-      });
+      availableEquipment[selectedType].forEach(item => equipmentSelect.option(item.name));
     }
   }
 
   typeSelect.changed(updateEquipmentOptions);
-  updateEquipmentOptions(); // Set initial options
+  updateEquipmentOptions();
 
-  let removeBtn = createButton("Remove")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => {
-      let selectedType = typeSelect.value();
-      let selectedName = equipmentSelect.value();
-      showConfirmationModal(`Remove ${selectedName} from ${selectedType}?`, () => {
-        let index = availableEquipment[selectedType].findIndex(item => item.name === selectedName);
-        if (index !== -1) {
-          // Unequip if currently equipped
-          if (equippedItems[selectedType] && equippedItems[selectedType].name === selectedName) {
-            equippedItems[selectedType] = null;
-          }
-          // Remove from availableEquipment
-          availableEquipment[selectedType].splice(index, 1);
-          // Clean up empty slot arrays
-          if (availableEquipment[selectedType].length === 0) {
-            delete availableEquipment[selectedType];
-          }
-          createEquipmentUI(); // Refresh the table
-          modalDiv.remove();
+  createButton("Remove").parent(modalDiv).style("margin", "5px").mousePressed(() => {
+    let selectedType = typeSelect.value();
+    let selectedName = equipmentSelect.value();
+    showConfirmationModal(`Remove ${selectedName} from ${selectedType}?`, () => {
+      let index = availableEquipment[selectedType].findIndex(item => item.name === selectedName);
+      if (index !== -1) {
+        if (equippedItems[selectedType] && equippedItems[selectedType].name === selectedName) {
+          equippedItems[selectedType] = null;
+          calculateMovement();
+          updateResourcesBasedOnStats();
+          updateStatBonusesDisplay();
         }
-      });
+        availableEquipment[selectedType].splice(index, 1);
+        if (availableEquipment[selectedType].length === 0) delete availableEquipment[selectedType];
+        createEquipmentUI();
+        modalDiv.remove();
+      }
     });
+  });
 
-  let cancelBtn = createButton("Cancel")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => modalDiv.remove());
+  createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
 }
-function manageLevelDependencies(levelCheckboxes, levelDescriptions, lvl) {
-  if (lvl === "I") {
-    if (!levelCheckboxes["I"].checked()) {
-      levelCheckboxes["II"].checked(false);
-      levelCheckboxes["III"].checked(false);
-      levelDescriptions["II"].div.style("display", "none");
-      levelDescriptions["III"].div.style("display", "none");
-    }
-  } else if (lvl === "II") {
-    if (levelCheckboxes["II"].checked()) {
-      levelCheckboxes["I"].checked(true);
-      levelDescriptions["I"].div.style("display", "block");
-    } else {
-      levelCheckboxes["III"].checked(false);
-      levelDescriptions["III"].div.style("display", "none");
-    }
-  } else if (lvl === "III") {
-    if (levelCheckboxes["III"].checked()) {
-      levelCheckboxes["I"].checked(true);
-      levelCheckboxes["II"].checked(true);
-      levelDescriptions["I"].div.style("display", "block");
-      levelDescriptions["II"].div.style("display", "block");
-    }
+
+function showCrystalSlotModal(item) {
+  if (modalDiv) modalDiv.remove();
+  modalDiv = createDiv()
+    .style("position", "absolute")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("width", "300px");
+
+  createElement("h3", `${item.name} Crystal Slots`).parent(modalDiv);
+  createP(`This item has ${item.crystalSlots} crystal slots.`).parent(modalDiv);
+  // Placeholder for crystal slot management (not fully implemented)
+  createP("Crystal slot management is not yet implemented.").parent(modalDiv);
+  createButton("Close").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
+}
+
+// ### Talents UI ###
+
+function createTalentsUI() {
+  let talentsContainerDiv = select("#talents");
+  if (!talentsContainerDiv) {
+    console.error("No #talents div found in HTML!");
+    return;
   }
-  levelDescriptions[lvl].div.style("display", levelCheckboxes[lvl].checked() ? "block" : "none");
+  talentsContainerDiv.html("");
+
+  createElement("h2", "Talents").parent(talentsContainerDiv);
+  let talentsDesc = createP("Use buttons to add, edit, or remove talents. Click a talent's name to view its details. Use arrows to reorder.").parent(talentsContainerDiv);
+  talentsDesc.style("font-size", "12px").style("color", "#666").style("margin-top", "5px").style("margin-bottom", "10px");
+
+  createButton("Add Custom Talent").parent(talentsContainerDiv).style("margin", "5px").mousePressed(showAddCustomTalentModal);
+  createButton("Add / Edit Existing Talents").parent(talentsContainerDiv).style("margin", "5px").mousePressed(showAddEditTalentsModal);
+  createButton("Remove Existing Talent").parent(talentsContainerDiv).style("margin", "5px").mousePressed(showRemoveExistingTalentModal);
+  createButton("Default Talent List").parent(talentsContainerDiv).style("margin", "5px").mousePressed(() => showConfirmationModal("Reset to default talent list?", resetToDefaultTalents));
+
+  let talentsTable = createElement("table").parent(talentsContainerDiv).id("talentsTable").style("width", "100%").style("border-collapse", "collapse").style("margin-top", "10px");
+  let headerRow = createElement("tr").parent(talentsTable);
+  ["", "Name", "Level", "Category", "Actions"].forEach(header => {
+    createElement("th", header).parent(headerRow).style("border", "1px solid #ccc").style("padding", "5px").style("background", "#f2f2f2");
+  });
+
+  updateTalentsTable();
 }
 
 function showAddCustomTalentModal() {
   if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv().style("position", "absolute").style("top", "50%").style("left", "50%").style("transform", "translate(-50%, -50%)").style("background", "#fff").style("padding", "20px").style("border", "2px solid #000").style("z-index", "1000").style("width", "300px");
+  modalDiv = createDiv()
+    .style("position", "absolute")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("width", "300px");
 
   createElement("h3", "Add Custom Talent").parent(modalDiv);
-
   let nameLabel = createSpan("Talent Name:").parent(modalDiv);
   let nameInput = createInput("").parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
 
   let levelLabel = createSpan("Levels (select highest desired):").parent(modalDiv);
-
   let levelsDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
 
   let levelCheckboxes = {};
@@ -1080,24 +937,18 @@ function showAddCustomTalentModal() {
     let chkDiv = createDiv().parent(levelsDiv);
     let chk = createCheckbox(`Level ${lvl}`, false).parent(chkDiv);
     levelCheckboxes[lvl] = chk;
-
     let descDiv = createDiv().parent(levelsDiv).style("display", "none");
     let descLabel = createSpan(`Description ${lvl}:`).parent(descDiv);
     let descInput = createElement("textarea").parent(descDiv).style("width", "100%").style("height", "60px").style("margin-bottom", "5px");
     levelDescriptions[lvl] = { div: descDiv, input: descInput };
-
     chk.changed(() => manageLevelDependencies(levelCheckboxes, levelDescriptions, lvl));
   });
 
   let categoryLabel = createSpan("Category:").parent(modalDiv);
   let categorySelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
-  categorySelect.option("Physical Combat");
-  categorySelect.option("Magical");
-  categorySelect.option("Ranged Combat");
-  categorySelect.option("Defensive");
-  categorySelect.option("Utility & Tactical");
+  ["Physical Combat", "Magical", "Ranged Combat", "Defensive", "Utility & Tactical"].forEach(cat => categorySelect.option(cat));
 
-  let saveBtn = createButton("Save").parent(modalDiv).style("margin", "5px").mousePressed(() => {
+  createButton("Save").parent(modalDiv).style("margin", "5px").mousePressed(() => {
     let name = nameInput.value();
     let category = categorySelect.value();
     if (!name || !category) {
@@ -1111,72 +962,67 @@ function showAddCustomTalentModal() {
       return;
     }
 
-    let maxLevelIndex = checkedLevels.reduce((max, lvl) => 
-      ["I", "II", "III"].indexOf(lvl) > ["I", "II", "III"].indexOf(max) ? lvl : max, "I");
+    let maxLevelIndex = checkedLevels.reduce((max, lvl) => ["I", "II", "III"].indexOf(lvl) > ["I", "II", "III"].indexOf(max) ? lvl : max, "I");
     let requiredLevels = ["I", "II", "III"].slice(0, ["I", "II", "III"].indexOf(maxLevelIndex) + 1);
-    for (let i = 0; i < requiredLevels.length; i++) {
-      let lvl = requiredLevels[i];
+    for (let lvl of requiredLevels) {
       if (!checkedLevels.includes(lvl)) {
-        alert(`Please ensure Level ${i + 1} is selected and described, as all prior levels are required.`);
+        alert(`Please ensure Level ${["I", "II", "III"].indexOf(lvl) + 1} is selected and described.`);
         return;
       }
-    }
-
-    let newTalents = [];
-    let levels = ["I", "II", "III"].slice(0, ["I", "II", "III"].indexOf(maxLevelIndex) + 1);
-    for (let lvl of levels) {
       let desc = levelDescriptions[lvl].input.value();
       if (!desc) {
         alert(`Please provide a description for Level ${lvl}.`);
         return;
       }
+    }
+
+    let newTalents = [];
+    requiredLevels.forEach(lvl => {
       let fullName = `${name} - Level ${lvl}`;
       let talent = {
         name: fullName,
         level: lvl,
         category: category,
-        description: desc,
+        description: levelDescriptions[lvl].input.value(),
         maxLevel: maxLevelIndex
       };
       existingTalents.push(talent);
       newTalents.push(talent);
-    }
+    });
 
-    if (newTalents.length > 0) {
-      talents = talents.filter(t => !t.name.startsWith(name));
-      let levelOneTalent = newTalents.find(t => t.level === "I");
-      if (levelOneTalent) {
-        talents.push(levelOneTalent);
-      }
-      updateTalentsTable();
-      modalDiv.remove();
-      modalDiv = null;
-    }
+    talents = talents.filter(t => !t.name.startsWith(name));
+    let levelOneTalent = newTalents.find(t => t.level === "I");
+    if (levelOneTalent) talents.push(levelOneTalent);
+    updateTalentsTable();
+    modalDiv.remove();
   });
 
-  let cancelBtn = createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => { modalDiv.remove(); modalDiv = null; });
+  createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
 }
 
 function showAddEditTalentsModal() {
   if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv().style("position", "absolute").style("top", "50%").style("left", "50%").style("transform", "translate(-50%, -50%)").style("background", "#fff").style("padding", "20px").style("border", "2px solid #000").style("z-index", "1000").style("width", "300px");
+  modalDiv = createDiv()
+    .style("position", "absolute")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("width", "300px");
 
   createElement("h3", "Add / Edit Existing Talents").parent(modalDiv);
-
   let talentNames = [...new Set(existingTalents.map(t => t.name.split(" - Level")[0]))];
   let talentSelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
   talentNames.forEach(name => talentSelect.option(name));
 
   let categoryLabel = createSpan("Category:").parent(modalDiv);
   let categorySelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
-  categorySelect.option("Physical Combat");
-  categorySelect.option("Magical");
-  categorySelect.option("Ranged Combat");
-  categorySelect.option("Defensive");
-  categorySelect.option("Utility & Tactical");
+  ["Physical Combat", "Magical", "Ranged Combat", "Defensive", "Utility & Tactical"].forEach(cat => categorySelect.option(cat));
 
   let levelsDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-
   let levelCheckboxes = {};
   let levelDescriptions = {};
 
@@ -1190,14 +1036,12 @@ function showAddEditTalentsModal() {
       let isChecked = talentLevels.some(t => t.level === lvl);
       let chk = createCheckbox(`Level ${lvl}`, isChecked).parent(chkDiv);
       levelCheckboxes[lvl] = chk;
-
       let descDiv = createDiv().parent(levelsDiv).style("display", isChecked ? "block" : "none");
       let descLabel = createSpan(`Description ${lvl}:`).parent(descDiv);
       let descInput = createElement("textarea").parent(descDiv).style("width", "100%").style("height", "60px").style("margin-bottom", "5px");
       let existingDesc = talentLevels.find(t => t.level === lvl)?.description || "";
       descInput.value(existingDesc);
       levelDescriptions[lvl] = { div: descDiv, input: descInput };
-
       chk.changed(() => manageLevelDependencies(levelCheckboxes, levelDescriptions, lvl));
     });
 
@@ -1207,122 +1051,107 @@ function showAddEditTalentsModal() {
   talentSelect.changed(updateModal);
   if (talentNames.length > 0) updateModal();
 
-  let addToCharacterBtn = createButton("Add to Character").parent(modalDiv).style("margin", "5px").mousePressed(() => {
+  createButton("Add to Character").parent(modalDiv).style("margin", "5px").mousePressed(() => {
     let selectedName = talentSelect.value();
     if (!selectedName) {
       alert("Please select a talent name.");
       return;
     }
-
     let checkedLevels = Object.keys(levelCheckboxes).filter(lvl => levelCheckboxes[lvl].checked());
-    if (checkedLevels.length > 0) {
-      let maxLevelIndex = checkedLevels.reduce((max, lvl) => 
-        ["I", "II", "III"].indexOf(lvl) > ["I", "II", "III"].indexOf(max) ? lvl : max, "I");
-      let requiredLevels = ["I", "II", "III"].slice(0, ["I", "II", "III"].indexOf(maxLevelIndex) + 1);
-      for (let i = 0; i < requiredLevels.length; i++) {
-        let lvl = requiredLevels[i];
-        if (!checkedLevels.includes(lvl)) {
-          alert(`Please ensure Level ${i + 1} is selected and described, as all prior levels are required.`);
-          return;
-        }
-      }
-
-      talents = talents.filter(t => !t.name.startsWith(selectedName));
-      let initialLevel = "I";
-      let desc = levelDescriptions[initialLevel].input.value();
-      if (!desc) {
-        alert(`Please provide a description for Level ${initialLevel}.`);
-        return;
-      }
-      let fullName = `${selectedName} - Level ${initialLevel}`;
-      let talentToAdd = {
-        name: fullName,
-        level: initialLevel,
-        category: categorySelect.value(),
-        description: desc
-      };
-      talents.push(talentToAdd);
-      updateTalentsTable();
+    if (checkedLevels.length === 0) {
+      alert("Please select at least one level.");
+      return;
     }
+    talents = talents.filter(t => !t.name.startsWith(selectedName));
+    let initialLevel = "I";
+    let desc = levelDescriptions[initialLevel].input.value();
+    if (!desc) {
+      alert(`Please provide a description for Level ${initialLevel}.`);
+      return;
+    }
+    let fullName = `${selectedName} - Level ${initialLevel}`;
+    talents.push({ name: fullName, level: initialLevel, category: categorySelect.value(), description: desc });
+    updateTalentsTable();
   });
 
-  let saveBtn = createButton("Save").parent(modalDiv).style("margin", "5px").mousePressed(() => {
+  createButton("Save").parent(modalDiv).style("margin", "5px").mousePressed(() => {
     let selectedName = talentSelect.value();
     let category = categorySelect.value();
     if (!selectedName) {
       alert("Please select a talent name.");
       return;
     }
-
     let checkedLevels = Object.keys(levelCheckboxes).filter(lvl => levelCheckboxes[lvl].checked());
     if (checkedLevels.length > 0) {
-      let maxLevelIndex = checkedLevels.reduce((max, lvl) => 
-        ["I", "II", "III"].indexOf(lvl) > ["I", "II", "III"].indexOf(max) ? lvl : max, "I");
+      let maxLevelIndex = checkedLevels.reduce((max, lvl) => ["I", "II", "III"].indexOf(lvl) > ["I", "II", "III"].indexOf(max) ? lvl : max, "I");
       let requiredLevels = ["I", "II", "III"].slice(0, ["I", "II", "III"].indexOf(maxLevelIndex) + 1);
-      for (let i = 0; i < requiredLevels.length; i++) {
-        let lvl = requiredLevels[i];
+      for (let lvl of requiredLevels) {
         if (!checkedLevels.includes(lvl)) {
-          alert(`Please ensure Level ${i + 1} is selected and described, as all prior levels are required.`);
+          alert(`Please ensure Level ${["I", "II", "III"].indexOf(lvl) + 1} is selected and described.`);
+          return;
+        }
+        let desc = levelDescriptions[lvl].input.value();
+        if (!desc) {
+          alert(`Please provide a description for Level ${lvl}.`);
           return;
         }
       }
-
       for (let lvl in levelCheckboxes) {
         let fullName = `${selectedName} - Level ${lvl}`;
         if (levelCheckboxes[lvl].checked()) {
-          let desc = levelDescriptions[lvl].input.value();
-          if (!desc) {
-            alert(`Please provide a description for Level ${lvl}.`);
-            return;
-          }
           let existingIndex = existingTalents.findIndex(t => t.name === fullName);
           if (existingIndex >= 0) {
-            existingTalents[existingIndex].description = desc;
+            existingTalents[existingIndex].description = levelDescriptions[lvl].input.value();
             existingTalents[existingIndex].category = category;
           } else {
             existingTalents.push({
               name: fullName,
               level: lvl,
               category,
-              description: desc,
+              description: levelDescriptions[lvl].input.value(),
               maxLevel: maxLevelIndex
             });
           }
         } else {
           let existingIndex = existingTalents.findIndex(t => t.name === fullName);
-          if (existingIndex >= 0) {
-            existingTalents.splice(existingIndex, 1);
-          }
+          if (existingIndex >= 0) existingTalents.splice(existingIndex, 1);
         }
       }
+      updateTalentsTable();
     }
-    updateTalentsTable();
   });
 
-  let closeBtn = createButton("Close").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
+  createButton("Close").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
 }
 
 function showRemoveExistingTalentModal() {
   if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv().style("position", "absolute").style("top", "50%").style("left", "50%").style("transform", "translate(-50%, -50%)").style("background", "#fff").style("padding", "20px").style("border", "2px solid #000").style("z-index", "1000").style("width", "300px");
+  modalDiv = createDiv()
+    .style("position", "absolute")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("width", "300px");
 
   createElement("h3", "Remove Existing Talent").parent(modalDiv);
-
   let talentLabel = createSpan("Select Talent to Remove:").parent(modalDiv);
   let talentSelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
   let uniqueNames = [...new Set(existingTalents.map(t => t.name.split(" - Level")[0]))];
   uniqueNames.forEach(name => talentSelect.option(name));
 
-  let removeBtn = createButton("Remove").parent(modalDiv).style("margin", "5px").mousePressed(() => {
+  createButton("Remove").parent(modalDiv).style("margin", "5px").mousePressed(() => {
     let selectedName = talentSelect.value();
     existingTalents = existingTalents.filter(t => !t.name.startsWith(selectedName + " - Level"));
     talents = talents.filter(t => !t.name.startsWith(selectedName + " - Level"));
     updateTalentsTable();
     modalDiv.remove();
-    modalDiv = null;
   });
 
-  let cancelBtn = createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => { modalDiv.remove(); modalDiv = null; });
+  createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
 }
 
 function resetToDefaultTalents() {
@@ -1345,21 +1174,45 @@ function moveTalentDown(index) {
   }
 }
 
+function manageLevelDependencies(levelCheckboxes, levelDescriptions, lvl) {
+  if (lvl === "I") {
+    if (!levelCheckboxes["I"].checked()) {
+      levelCheckboxes["II"].checked(false);
+      levelCheckboxes["III"].checked(false);
+      levelDescriptions["II"].div.style("display", "none");
+      levelDescriptions["III"].div.style("display", "none");
+    }
+  } else if (lvl === "II") {
+    if (levelCheckboxes["II"].checked()) {
+      levelCheckboxes["I"].checked(true);
+      levelDescriptions["I"].div.style("display", "block");
+    } else {
+      levelCheckboxes["III"].checked(false);
+      levelDescriptions["III"].div.style("display", "none");
+    }
+  } else if (lvl === "III") {
+    if (levelCheckboxes["III"].checked()) { // Fixed syntax error
+      levelCheckboxes["I"].checked(true);
+      levelCheckboxes["II"].checked(true);
+      levelDescriptions["I"].div.style("display", "block");
+      levelDescriptions["II"].div.style("display", "block");
+    }
+  }
+  levelDescriptions[lvl].div.style("display", levelCheckboxes[lvl].checked() ? "block" : "none");
+}
 function updateTalentsTable() {
   let talentsTable = select("#talentsTable");
+  if (!talentsTable) return;
   let rows = talentsTable.elt.getElementsByTagName("tr");
   while (rows.length > 1) rows[1].remove();
 
   talents.forEach((talent, index) => {
     let row = createElement("tr").parent(talentsTable);
-
     let arrowCell = createElement("td").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
-    let upArrow = createButton("↑").parent(arrowCell).style("margin-right", "5px").mousePressed(() => moveTalentUp(index));
-    let downArrow = createButton("↓").parent(arrowCell).mousePressed(() => moveTalentDown(index));
+    createButton("↑").parent(arrowCell).style("margin-right", "5px").mousePressed(() => moveTalentUp(index));
+    createButton("↓").parent(arrowCell).mousePressed(() => moveTalentDown(index));
 
-    let nameCell = createElement("td", talent.name.split(" - Level")[0]).parent(row).style("border", "1px solid #ccc").style("padding", "5px").style("cursor", "pointer").mousePressed(() => {
-      showTalentDescription(talent.name, talent.description);
-    });
+    let nameCell = createElement("td", talent.name.split(" - Level")[0]).parent(row).style("border", "1px solid #ccc").style("padding", "5px").style("cursor", "pointer").mousePressed(() => showTalentDescription(talent.name, talent.description));
 
     let levelCell = createElement("td").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
     let levelSelect = createSelect().parent(levelCell);
@@ -1377,10 +1230,9 @@ function updateTalentsTable() {
       }
     });
 
-    let categoryCell = createElement("td", talent.category).parent(row).style("border", "1px solid #ccc").style("padding", "5px");
-
+    createElement("td", talent.category).parent(row).style("border", "1px solid #ccc").style("padding", "5px");
     let actionCell = createElement("td").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
-    let removeBtn = createButton("Remove").parent(actionCell).style("margin", "5px").mousePressed(() => {
+    createButton("Remove").parent(actionCell).style("margin", "5px").mousePressed(() => {
       showConfirmationModal(`Remove ${talent.name}?`, () => {
         talents.splice(index, 1);
         updateTalentsTable();
@@ -1389,20 +1241,22 @@ function updateTalentsTable() {
   });
 }
 
-// **Traits UI** (unchanged)
+// ### Traits UI ###
+
 function createTraitsUI() {
   let traitsContainerDiv = select("#traits");
+  if (!traitsContainerDiv) {
+    console.error("No #traits div found in HTML!");
+    return;
+  }
   traitsContainerDiv.html("");
 
   createElement("h2", "Traits").parent(traitsContainerDiv);
   let traitsDesc = createP("Traits provide static positive and negative effects. A player can have a maximum of 3 traits by default. Adjust the max traits below if needed.").parent(traitsContainerDiv);
-  traitsDesc.style("font-size", "12px");
-  traitsDesc.style("color", "#666");
-  traitsDesc.style("margin-top", "5px");
-  traitsDesc.style("margin-bottom", "10px");
+  traitsDesc.style("font-size", "12px").style("color", "#666").style("margin-top", "5px").style("margin-bottom", "10px");
 
   let maxTraitsDiv = createDiv().parent(traitsContainerDiv).class("resource-row");
-  let maxTraitsLabel = createSpan("Max Traits: ").parent(maxTraitsDiv);
+  createSpan("Max Traits: ").parent(maxTraitsDiv);
   let maxTraitsInput = createInput(maxTraits.toString(), "number").parent(maxTraitsDiv).class("resource-input").style("width", "50px").changed(() => {
     let newMax = parseInt(maxTraitsInput.value());
     if (newMax < traits.length) {
@@ -1412,31 +1266,38 @@ function createTraitsUI() {
     }
   });
 
-  let customButton = createButton("Add Custom Trait").parent(traitsContainerDiv).style("margin", "5px").mousePressed(showAddCustomTraitModal);
-  let addEditButton = createButton("Add / Edit Existing Traits").parent(traitsContainerDiv).style("margin", "5px").mousePressed(showAddEditTraitsModal);
-  let removeButton = createButton("Remove Existing Trait").parent(traitsContainerDiv).style("margin", "5px").mousePressed(showRemoveExistingTraitModal);
-  let defaultButton = createButton("Default Trait List").parent(traitsContainerDiv).style("margin", "5px").mousePressed(() => showConfirmationModal("Reset to default trait list?", resetToDefaultTraits));
+  createButton("Add Custom Trait").parent(traitsContainerDiv).style("margin", "5px").mousePressed(showAddCustomTraitModal);
+  createButton("Add / Edit Existing Traits").parent(traitsContainerDiv).style("margin", "5px").mousePressed(showAddEditTraitsModal);
+  createButton("Remove Existing Trait").parent(traitsContainerDiv).style("margin", "5px").mousePressed(showRemoveExistingTraitModal);
+  createButton("Default Trait List").parent(traitsContainerDiv).style("margin", "5px").mousePressed(() => showConfirmationModal("Reset to default trait list?", resetToDefaultTraits));
 
   let traitsTable = createElement("table").parent(traitsContainerDiv).id("traitsTable").style("width", "100%").style("border-collapse", "collapse").style("margin-top", "10px");
 
   let headerRow = createElement("tr").parent(traitsTable);
   ["Name", "Category", "Actions"].forEach(header => {
-    let th = createElement("th", header).parent(headerRow).style("border", "1px solid #ccc").style("padding", "5px").style("background", "#f2f2f2");
+    createElement("th", header).parent(headerRow).style("border", "1px solid #ccc").style("padding", "5px").style("background", "#f2f2f2");
   });
 
   updateTraitsTable();
-}
-
+} // Added closing brace
 function showAddCustomTraitModal() {
   if (traits.length >= maxTraits) {
     showConfirmationModal(`You have reached the maximum number of traits (${maxTraits}). Remove a trait to add a new one.`, () => {}, true);
     return;
   }
   if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv().style("position", "absolute").style("top", "50%").style("left", "50%").style("transform", "translate(-50%, -50%)").style("background", "#fff").style("padding", "20px").style("border", "2px solid #000").style("z-index", "1000").style("width", "300px");
+  modalDiv = createDiv()
+    .style("position", "absolute")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("width", "300px");
 
   createElement("h3", "Add Custom Trait").parent(modalDiv);
-
   let nameInput = createInput("").parent(modalDiv).attribute("placeholder", "Trait Name").style("width", "100%").style("margin-bottom", "10px");
 
   let categorySelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
@@ -1456,7 +1317,10 @@ function showAddCustomTraitModal() {
     let category = categorySelect.value();
     let positive = positiveInput.value();
     let negative = negativeInput.value();
-    if (!name || !category || !positive || !negative) return;
+    if (!name || !category || !positive || !negative) {
+      alert("Please fill in all fields.");
+      return;
+    }
 
     if (traits.some(t => t.name === name)) {
       alert("This trait is already added!");
@@ -1470,15 +1334,23 @@ function showAddCustomTraitModal() {
     modalDiv.remove();
   });
 
-  let cancelBtn = createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
+  createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
 }
 
 function showAddEditTraitsModal() {
   if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv().style("position", "absolute").style("top", "50%").style("left", "50%").style("transform", "translate(-50%, -50%)").style("background", "#fff").style("padding", "20px").style("border", "2px solid #000").style("z-index", "1000").style("width", "300px");
+  modalDiv = createDiv()
+    .style("position", "absolute")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("width", "300px");
 
   createElement("h3", "Add / Edit Existing Traits").parent(modalDiv);
-
   let traitSelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
   existingTraits.forEach((trait, index) => traitSelect.option(trait.name, index));
 
@@ -1564,27 +1436,34 @@ function showAddEditTraitsModal() {
 
 function showRemoveExistingTraitModal() {
   if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv().style("position", "absolute").style("top", "50%").style("left", "50%").style("transform", "translate(-50%, -50%)").style("background", "#fff").style("padding", "20px").style("border", "2px solid #000").style("z-index", "1000").style("width", "300px");
+  modalDiv = createDiv()
+    .style("position", "absolute")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("width", "300px");
 
   createElement("h3", "Remove Existing Trait").parent(modalDiv);
-
   let traitLabel = createSpan("Select Trait to Remove:").parent(modalDiv);
   let traitSelect = createSelect().parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
   let uniqueNames = [...new Set(existingTraits.map(t => t.name))];
   uniqueNames.forEach(name => traitSelect.option(name));
 
-  let removeBtn = createButton("Remove").parent(modalDiv).style("margin", "5px").mousePressed(() => {
+  createButton("Remove").parent(modalDiv).style("margin", "5px").mousePressed(() => {
     let selectedName = traitSelect.value();
     showConfirmationModal(`Remove ${selectedName}?`, () => {
       existingTraits = existingTraits.filter(t => t.name !== selectedName);
       traits = traits.filter(t => t.name !== selectedName);
       updateTraitsTable();
       modalDiv.remove();
-      modalDiv = null;
     });
   });
 
-  let cancelBtn = createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => { modalDiv.remove(); modalDiv = null; });
+  createButton("Cancel").parent(modalDiv).style("margin", "5px").mousePressed(() => modalDiv.remove());
 }
 
 function resetToDefaultTraits() {
@@ -1595,20 +1474,75 @@ function resetToDefaultTraits() {
 
 function updateTraitsTable() {
   let traitsTable = select("#traitsTable");
+  if (!traitsTable) return;
   let rows = traitsTable.elt.getElementsByTagName("tr");
   while (rows.length > 1) rows[1].remove();
 
   traits.forEach((trait, index) => {
     let row = createElement("tr").parent(traitsTable);
-
     let nameCell = createElement("td", trait.name).parent(row).style("border", "1px solid #ccc").style("padding", "5px").style("cursor", "pointer").mousePressed(() => showTraitDescription(trait.name, trait.positive, trait.negative));
-    let categoryCell = createElement("td", trait.category).parent(row).style("border", "1px solid #ccc").style("padding", "5px");
+    createElement("td", trait.category).parent(row).style("border", "1px solid #ccc").style("padding", "5px");
     let actionCell = createElement("td").parent(row).style("border", "1px solid #ccc").style("padding", "5px");
-    let removeBtn = createButton("Remove").parent(actionCell).style("margin", "5px").mousePressed(() => {
+    createButton("Remove").parent(actionCell).style("margin", "5px").mousePressed(() => {
       showConfirmationModal(`Remove ${trait.name}?`, () => {
         traits.splice(index, 1);
         updateTraitsTable();
       });
     });
   });
+}
+
+// ### Stat and Resource Management ###
+
+function getStatBonuses() {
+  let bonuses = {};
+  for (let slot in equippedItems) {
+    let item = equippedItems[slot];
+    if (item && item.statBonus) {
+      let stat = item.statBonus.stat;
+      let amount = item.statBonus.amount;
+      bonuses[stat] = (bonuses[stat] || 0) + amount;
+    }
+  }
+  return bonuses;
+}
+
+function getTotalStat(statName) {
+  let baseStat;
+  switch (statName) {
+    case "STR": baseStat = stat_str; break;
+    case "VIT": baseStat = stat_vit; break;
+    case "DEX": baseStat = stat_dex; break;
+    case "MAG": baseStat = stat_mag; break;
+    case "WIL": baseStat = stat_wil; break;
+    case "SPR": baseStat = stat_spr; break;
+    case "LCK": baseStat = stat_lck; break;
+    default: return 0;
+  }
+  let bonuses = getStatBonuses();
+  return baseStat + (bonuses[statName] || 0);
+}
+
+function updateResourcesBasedOnStats() {
+  let totalVIT = getTotalStat("VIT");
+  max_hp = 25 + (totalVIT - 1) * 5;
+  current_hp = min(current_hp, max_hp);
+  maxHpInput.value(max_hp);
+
+  let totalWIL = getTotalStat("WIL");
+  max_mp = 10 + (totalWIL - 1) * 5;
+  current_mp = min(current_mp, max_mp);
+  maxMpInput.value(max_mp);
+}
+
+function updateStatBonusesDisplay() {
+  let bonuses = getStatBonuses();
+  for (let stat in statBonusElements) {
+    let bonus = bonuses[stat] || 0;
+    if (bonus > 0) {
+      statBonusElements[stat].html(` (+${bonus})`);
+    } else {
+      statBonusElements[stat].html("");
+    }
+  }
 }
