@@ -15,7 +15,7 @@ let hpPlus, hpMinus, mpPlus, mpMinus, staminaPlus, staminaMinus, atbPlus, atbMin
 let resetButton;
 let staminaAtbLink = false, staminaAtbLinkButton;
 let cnv;
-let modalDiv = null; // For talents modals
+let modalDiv = null; // For talents and traits modals
 
 // Global container variables (set in setup)
 let resourceUIContainer;
@@ -29,6 +29,7 @@ let statLabelElements = {};
 let attributeCheckboxes = {};
 let statLinkMapping = {};
 let attributeLinkMapping = {};
+
 // For talents
 let talents = []; // Array to store talent objects
 
@@ -136,22 +137,102 @@ let maxTraits = 3;
 
 // Default traits with positive and negative effects
 const defaultTraits = [
-  { name: "Grafted Weapon", category: "Combat", description: "(+) Cannot be unwillingly disarmed.\n(-) Disadvantage on Agility checks." },
-  { name: "EX-SOLDIER", category: "Combat", description: "(+) Advantage on Athletics checks.\n(-) Disadvantage on Ingenuity checks." },
-  { name: "Ancient Echoes", category: "Magical", description: "(+) You can sense the presence of raw Materia and Lifestream energy within 60 feet, even through barriers (you do not sense refined Materia equipped to others).\n(-) Disadvantage on Awareness checks." },
-  { name: "Imposing Posture", category: "Utility", description: "(+) Advantage on all hostile Influence checks.\n(-) Disadvantage on all friendly Influence checks." },
-  { name: "Cybernetic Enhancements", category: "Utility", description: "(+) Start each battle with +25 ATB.\n(-) Start each battle with -25 Movement." },
-  { name: "Fractured Mind", category: "Utility", description: "(+) Advantage on Awareness checks.\n(-) Disadvantage on Willpower checks." },
-  { name: "Silver Tongue", category: "Utility", description: "(+) Advantage on Influence checks.\n(-) Disadvantage on Athletics checks." },
-  { name: "Wandering Spirit", category: "Physical", description: "(+) Advantage on Endurance checks.\n(-) Resting requires double the time for full benefits." },
-  { name: "Jenova’s Taint", category: "Combat", description: "(+) Once per turn, you can reroll an attack roll.\n(-) When using the reroll, make a Willpower check (DC 10); if failed, waste stamina without attacking." },
-  { name: "Glowing Eyes", category: "Physical", description: "(+) Your vision is enhanced beyond normal limits. You can see clearly in dim light and ignore visual obscurities such as smoke or fog.\n(-) Disadvantage on Stealth checks in darkness or shadowed areas." },
-  { name: "Reactive Reflexes", category: "Combat", description: "(+) Advantage on Dodge Rolls.\n(-) After Dodging, disadvantage on your next Attack (physical or magical)." },
-  { name: "Weakened Flesh", category: "Magical", description: "(+) +10 Maximum MP.\n(-) -10 Maximum HP." }
+  { name: "Grafted Weapon", category: "Combat", positive: "Cannot be unwillingly disarmed.", negative: "Disadvantage on Agility checks." },
+  { name: "EX-SOLDIER", category: "Combat", positive: "Advantage on Athletics checks.", negative: "Disadvantage on Ingenuity checks." },
+  { name: "Ancient Echoes", category: "Magical", positive: "You can sense the presence of raw Materia and Lifestream energy within 60 feet, even through barriers (you do not sense refined Materia equipped to others).", negative: "Disadvantage on Awareness checks." },
+  { name: "Imposing Posture", category: "Utility", positive: "Advantage on all hostile Influence checks.", negative: "Disadvantage on all friendly Influence checks." },
+  { name: "Cybernetic Enhancements", category: "Utility", positive: "Start each battle with +25 ATB.", negative: "Start each battle with -25 Movement." },
+  { name: "Fractured Mind", category: "Utility", positive: "Advantage on Awareness checks.", negative: "Disadvantage on Willpower checks." },
+  { name: "Silver Tongue", category: "Utility", positive: "Advantage on Influence checks.", negative: "Disadvantage on Athletics checks." },
+  { name: "Wandering Spirit", category: "Physical", positive: "Advantage on Endurance checks.", negative: "Resting requires double the time for full benefits." },
+  { name: "Jenova’s Taint", category: "Combat", positive: "Once per turn, you can reroll an attack roll.", negative: "When using the reroll, make a Willpower check (DC 10); if failed, waste stamina without attacking." },
+  { name: "Glowing Eyes", category: "Physical", positive: "Your vision is enhanced beyond normal limits. You can see clearly in dim light and ignore visual obscurities such as smoke or fog.", negative: "Disadvantage on Stealth checks in darkness or shadowed areas." },
+  { name: "Reactive Reflexes", category: "Combat", positive: "Advantage on Dodge Rolls.", negative: "After Dodging, disadvantage on your next Attack (physical or magical)." },
+  { name: "Weakened Flesh", category: "Magical", positive: "+10 Maximum MP.", negative: "-10 Maximum HP." }
 ];
 
 // Working copy of traits
 let existingTraits = [...defaultTraits];
+
+// Show a confirmation or error modal
+function showConfirmationModal(message, onConfirm, isError = false) {
+  if (modalDiv) modalDiv.remove();
+  modalDiv = createDiv();
+  modalDiv.style("position", "absolute");
+  modalDiv.style("top", "50%");
+  modalDiv.style("left", "50%");
+  modalDiv.style("transform", "translate(-50%, -50%)");
+  modalDiv.style("background", "#fff");
+  modalDiv.style("padding", "20px");
+  modalDiv.style("border", "2px solid #000");
+  modalDiv.style("z-index", "1000");
+  modalDiv.style("width", "300px");
+
+  createElement("p", message).parent(modalDiv);
+
+  if (isError) {
+    let closeBtn = createButton("Close");
+    closeBtn.parent(modalDiv);
+    closeBtn.style("margin", "5px");
+    closeBtn.mousePressed(() => modalDiv.remove());
+  } else {
+    let confirmBtn = createButton("Confirm");
+    confirmBtn.parent(modalDiv);
+    confirmBtn.style("margin", "5px");
+    confirmBtn.mousePressed(() => {
+      onConfirm();
+      modalDiv.remove();
+    });
+    let cancelBtn = createButton("Cancel");
+    cancelBtn.parent(modalDiv);
+    cancelBtn.style("margin", "5px");
+    cancelBtn.mousePressed(() => modalDiv.remove());
+  }
+}
+
+// Show talent description
+function showTalentDescription(title, description) {
+  if (modalDiv) modalDiv.remove();
+  modalDiv = createDiv();
+  modalDiv.style("position", "absolute");
+  modalDiv.style("top", "50%");
+  modalDiv.style("left", "50%");
+  modalDiv.style("transform", "translate(-50%, -50%)");
+  modalDiv.style("background", "#fff");
+  modalDiv.style("padding", "20px");
+  modalDiv.style("border", "2px solid #000");
+  modalDiv.style("z-index", "1000");
+  modalDiv.style("max-width", "400px");
+  modalDiv.style("word-wrap", "break-word");
+
+  createElement("h3", title).parent(modalDiv);
+  createP(description).parent(modalDiv);
+  let closeBtn = createButton("Close");
+  closeBtn.parent(modalDiv);
+  closeBtn.style("margin-top", "10px");
+  closeBtn.mousePressed(() => modalDiv.remove());
+}
+
+// Show trait description
+function showTraitDescription(name, positive, negative) {
+  if (modalDiv) modalDiv.remove();
+  modalDiv = createDiv();
+  modalDiv.style("position", "absolute");
+  modalDiv.style("top", "50%");
+  modalDiv.style("left", "50%");
+  modalDiv.style("transform", "translate(-50%, -50%)");
+  modalDiv.style("background", "#fff");
+  modalDiv.style("padding", "20px");
+  modalDiv.style("border", "2px solid #000");
+  modalDiv.style("z-index", "1000");
+  modalDiv.style("width", "300px");
+
+  createElement("h3", name).parent(modalDiv);
+  createP(`(+) ${positive}<br>(-) ${negative}`).parent(modalDiv);
+  let closeBtn = createButton("Close").parent(modalDiv);
+  closeBtn.style("margin", "5px");
+  closeBtn.mousePressed(() => modalDiv.remove());
+}
 
 function setup() {
   let resourceBarsContainer = select("#resource-bars");
@@ -176,7 +257,7 @@ function setup() {
   createResourceUI();
   createStatsUI();
   createTalentsUI();
-  createTraitsUI(); // Added Traits initialization
+  createTraitsUI();
 
   const tablinks = document.querySelectorAll('.tablink');
   const tabcontents = document.querySelectorAll('.tabcontent');
@@ -194,15 +275,7 @@ function windowResized() {
   let resourceBarsContainer = select("#resource-bars");
   let containerWidth = resourceBarsContainer.elt.clientWidth;
   let canvasWidth = min(containerWidth, 600);
-  resizeCanvas(canvasWidth, 150); // Match canvasHeight from setup()
-}
-function windowResized() {
-  let contentDiv = select(".content");
-  let contentWidth = contentDiv.elt.offsetWidth - 20;
-  let contentHeight = contentDiv.elt.offsetHeight - 20;
-  let canvasWidth = min(contentWidth, 600);
-  let canvasHeight = min(contentHeight, windowHeight * 0.3, canvasWidth * 0.75);
-  resizeCanvas(canvasWidth, canvasHeight);
+  resizeCanvas(canvasWidth, 150);
 }
 
 function draw() {
@@ -216,7 +289,7 @@ function displayBars() {
   let bar_width = width * 0.6;
   let bar_height = 20;
   let x = width * 0.1;
-  let y_hp = 25, y_mp = 55, y_stamina = 85, y_atb = 115; // Original positions
+  let y_hp = 25, y_mp = 55, y_stamina = 85, y_atb = 115;
   
   // HP Bar
   stroke(0);
@@ -327,7 +400,7 @@ function createResourceUI() {
   let staminaRow = createDiv();
   staminaRow.parent(rUI);
   staminaRow.class("resource-row");
-  let staminaLabel = createSpan("Stamina:");
+  let staminaLabel = createSpan("STMN:");
   staminaLabel.parent(staminaRow);
   maxStaminaInput = createInput(max_stamina.toString(), "number");
   maxStaminaInput.parent(staminaRow);
@@ -424,17 +497,6 @@ function toggleStaminaAtbLink() {
   staminaAtbLink = !staminaAtbLink;
   staminaAtbLinkButton.html(staminaAtbLink ? "Link: ON" : "Link: OFF");
   staminaAtbLinkButton.style("background-color", staminaAtbLink ? "green" : "red");
-}
-
-function toggleStaminaAtbLink() {
-  staminaAtbLink = !staminaAtbLink;
-  if (staminaAtbLink) {
-    staminaAtbLinkButton.html("Link: ON");
-    staminaAtbLinkButton.style("background-color", "green");
-  } else {
-    staminaAtbLinkButton.html("Link: OFF");
-    staminaAtbLinkButton.style("background-color", "red");
-  }
 }
 
 function createStatsUI() {
@@ -546,6 +608,7 @@ function createAdditionalAttributesUI() {
   
   updateSkillDropdowns();
 }
+
 function updateSkillDropdowns() {
   const allStats = ["STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"];
   let assignedStats = Object.values(attributeLinkMapping);
@@ -637,14 +700,14 @@ function createTalentsUI() {
   let removeButton = createButton("Remove Existing Talent");
   removeButton.parent(talentsContainerDiv);
   removeButton.style("margin", "5px");
-  removeButton.mousePressed(showRemoveExistingTalentModal); // Restored button
+  removeButton.mousePressed(showRemoveExistingTalentModal);
 
   let defaultButton = createButton("Default Talent List");
   defaultButton.parent(talentsContainerDiv);
   defaultButton.style("margin", "5px");
   defaultButton.mousePressed(() => showConfirmationModal("Reset to default talent list?", resetToDefaultTalents));
 
-  // Talent table setup (unchanged)
+  // Talent table setup
   let talentsTable = createElement("table");
   talentsTable.parent(talentsContainerDiv);
   talentsTable.id("talentsTable");
@@ -663,36 +726,6 @@ function createTalentsUI() {
   });
 
   updateTalentsTable();
-}
-
-function showConfirmationModal(message, onConfirm) {
-  if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv();
-  modalDiv.style("position", "absolute");
-  modalDiv.style("top", "50%");
-  modalDiv.style("left", "50%");
-  modalDiv.style("transform", "translate(-50%, -50%)");
-  modalDiv.style("background", "#fff");
-  modalDiv.style("padding", "20px");
-  modalDiv.style("border", "2px solid #000");
-  modalDiv.style("z-index", "1000");
-  modalDiv.style("width", "300px");
-  
-  createElement("p", message).parent(modalDiv);
-  
-  let confirmBtn = createButton("Confirm");
-  confirmBtn.parent(modalDiv);
-  confirmBtn.style("margin", "5px");
-  confirmBtn.mousePressed(() => {
-    onConfirm();
-    modalDiv.remove();
-    modalDiv = null;
-  });
-  
-  let cancelBtn = createButton("Cancel");
-  cancelBtn.parent(modalDiv);
-  cancelBtn.style("margin", "5px");
-  cancelBtn.mousePressed(() => { modalDiv.remove(); modalDiv = null; });
 }
 
 function manageLevelDependencies(levelCheckboxes, levelDescriptions, lvl) {
@@ -795,13 +828,11 @@ function showAddCustomTalentModal() {
     let category = categorySelect.value();
     if (!name || !category) return;
 
-    // Determine the highest checked level
     let maxLevel = "I";
     if (levelCheckboxes["III"].checked()) maxLevel = "III";
     else if (levelCheckboxes["II"].checked()) maxLevel = "II";
-    else if (!levelCheckboxes["I"].checked()) return; // Must have at least Level I
+    else if (!levelCheckboxes["I"].checked()) return;
 
-    // Enforce sequential levels and require descriptions
     let newTalents = [];
     let levels = ["I", "II", "III"].slice(0, ["I", "II", "III"].indexOf(maxLevel) + 1);
     for (let lvl of levels) {
@@ -822,7 +853,7 @@ function showAddCustomTalentModal() {
     }
 
     if (newTalents.length > 0) {
-      talents.push(newTalents.find(t => t.level === "I")); // Start at Level I
+      talents.push(newTalents.find(t => t.level === "I"));
       updateTalentsTable();
       modalDiv.remove();
       modalDiv = null;
@@ -847,29 +878,29 @@ function showAddExistingTalentModal() {
   modalDiv.style("border", "2px solid #000");
   modalDiv.style("z-index", "1000");
   modalDiv.style("width", "300px");
-  
+
   createElement("h3", "Add Existing Talent").parent(modalDiv);
-  
+
   let talentLabel = createSpan("Select Talent:");
   talentLabel.parent(modalDiv);
   let talentSelect = createSelect();
   talentSelect.parent(modalDiv);
   let uniqueNames = [...new Set(existingTalents.map(t => t.name))];
   uniqueNames.forEach(name => {
-    if (!talents.some(t => t.name === name)) { // Only show talents not already added
+    if (!talents.some(t => t.name === name)) {
       talentSelect.option(name);
     }
   });
   talentSelect.style("width", "100%");
   talentSelect.style("margin-bottom", "10px");
-  
+
   let saveBtn = createButton("Add");
   saveBtn.parent(modalDiv);
   saveBtn.style("margin", "5px");
   saveBtn.mousePressed(() => {
     let selectedName = talentSelect.value();
-    if (!selectedName) return; // No options available or none selected
-    
+    if (!selectedName) return;
+
     let talentLevels = existingTalents.filter(t => t.name === selectedName);
     let baseTalent = talentLevels.find(t => t.level === "I") || talentLevels[0];
     if (baseTalent) {
@@ -879,7 +910,7 @@ function showAddExistingTalentModal() {
       modalDiv = null;
     }
   });
-  
+
   let cancelBtn = createButton("Cancel");
   cancelBtn.parent(modalDiv);
   cancelBtn.style("margin", "5px");
@@ -942,7 +973,7 @@ function showEditExistingTalentModal() {
   function updateModalFields() {
     let selectedName = talentSelect.value();
     let talentLevels = existingTalents.filter(t => t.name === selectedName);
-    let maxLevel = talentLevels[0]?.maxLevel || "III"; // Original maxLevel for reference
+    let maxLevel = talentLevels[0]?.maxLevel || "III";
     nameInput.value(selectedName);
     categorySelect.value(talentLevels[0]?.category || "Physical Combat");
 
@@ -953,7 +984,6 @@ function showEditExistingTalentModal() {
     levelCheckboxes = {};
     levelDescriptions = {};
 
-    // Always show I, II, III regardless of original maxLevel
     let availableLevels = ["I", "II", "III"];
     availableLevels.forEach(lvl => {
       let chkDiv = createDiv();
@@ -993,19 +1023,16 @@ function showEditExistingTalentModal() {
 
     let oldName = talentSelect.value();
 
-    // Remove old talent entries
     for (let i = existingTalents.length - 1; i >= 0; i--) {
       if (existingTalents[i].name === oldName) {
         existingTalents.splice(i, 1);
       }
     }
 
-    // Determine the highest checked level
     let maxLevel = "I";
     if (levelCheckboxes["III"].checked()) maxLevel = "III";
     else if (levelCheckboxes["II"].checked()) maxLevel = "II";
 
-    // Add new talent entries up to maxLevel
     let newTalents = [];
     let levels = ["I", "II", "III"].slice(0, ["I", "II", "III"].indexOf(maxLevel) + 1);
     for (let lvl of levels) {
@@ -1025,7 +1052,6 @@ function showEditExistingTalentModal() {
       newTalents.push(talentData);
     }
 
-    // Update talents array
     talents = talents.map(t => {
       if (t.name === oldName) {
         let newTalent = newTalents.find(nt => nt.level === t.level) || 
@@ -1045,6 +1071,7 @@ function showEditExistingTalentModal() {
   cancelBtn.style("margin", "5px");
   cancelBtn.mousePressed(() => { modalDiv.remove(); modalDiv = null; });
 }
+
 function showRemoveExistingTalentModal() {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv();
@@ -1057,9 +1084,9 @@ function showRemoveExistingTalentModal() {
   modalDiv.style("border", "2px solid #000");
   modalDiv.style("z-index", "1000");
   modalDiv.style("width", "300px");
-  
+
   createElement("h3", "Remove Existing Talent").parent(modalDiv);
-  
+
   let talentLabel = createSpan("Select Talent to Remove:");
   talentLabel.parent(modalDiv);
   let talentSelect = createSelect();
@@ -1068,7 +1095,7 @@ function showRemoveExistingTalentModal() {
   uniqueNames.forEach(name => talentSelect.option(name));
   talentSelect.style("width", "100%");
   talentSelect.style("margin-bottom", "10px");
-  
+
   let removeBtn = createButton("Remove");
   removeBtn.parent(modalDiv);
   removeBtn.style("margin", "5px");
@@ -1088,7 +1115,7 @@ function showRemoveExistingTalentModal() {
     modalDiv.remove();
     modalDiv = null;
   });
-  
+
   let cancelBtn = createButton("Cancel");
   cancelBtn.parent(modalDiv);
   cancelBtn.style("margin", "5px");
@@ -1097,7 +1124,7 @@ function showRemoveExistingTalentModal() {
 
 function resetToDefaultTalents() {
   existingTalents = [...defaultTalents];
-  talents = []; // Reset selected talents
+  talents = [];
   updateTalentsTable();
 }
 
@@ -1124,7 +1151,6 @@ function updateTalentsTable() {
     let row = createElement("tr");
     row.parent(talentsTable);
 
-    // Arrows for reordering
     let arrowCell = createElement("td");
     arrowCell.parent(row);
     arrowCell.style("border", "1px solid #ccc");
@@ -1137,7 +1163,6 @@ function updateTalentsTable() {
     downArrow.parent(arrowCell);
     downArrow.mousePressed(() => moveTalentDown(index));
 
-    // Name (clickable for description)
     let nameCell = createElement("td", talent.name);
     nameCell.parent(row);
     nameCell.style("border", "1px solid #ccc");
@@ -1145,10 +1170,9 @@ function updateTalentsTable() {
     nameCell.style("cursor", "pointer");
     nameCell.mousePressed(() => {
       let talentData = existingTalents.find(t => t.name === talent.name && t.level === talent.level);
-      showStatDescription(talent.name + " (Level " + talent.level + ")", talentData?.description || "No description available.");
+      showTalentDescription(talent.name + " (Level " + talent.level + ")", talentData?.description || "No description available.");
     });
 
-    // Level (dropdown)
     let levelCell = createElement("td");
     levelCell.parent(row);
     levelCell.style("border", "1px solid #ccc");
@@ -1156,7 +1180,7 @@ function updateTalentsTable() {
     let levelSelect = createSelect();
     levelSelect.parent(levelCell);
     let talentLevels = existingTalents.filter(t => t.name === talent.name);
-    let availableLevels = talentLevels.map(t => t.level); // Show only existing levels
+    let availableLevels = talentLevels.map(t => t.level);
     availableLevels.forEach(lvl => levelSelect.option(lvl));
     levelSelect.value(talent.level);
     levelSelect.changed(() => {
@@ -1168,13 +1192,11 @@ function updateTalentsTable() {
       }
     });
 
-    // Category
     let categoryCell = createElement("td", talent.category);
     categoryCell.parent(row);
     categoryCell.style("border", "1px solid #ccc");
     categoryCell.style("padding", "5px");
 
-    // Actions (with Remove button)
     let actionCell = createElement("td");
     actionCell.parent(row);
     actionCell.style("border", "1px solid #ccc");
@@ -1190,91 +1212,12 @@ function updateTalentsTable() {
     });
   });
 }
-function showStatDescription(title, description) {
-  if (descriptionModal) descriptionModal.remove();
-  descriptionModal = createDiv();
-  descriptionModal.style("position", "absolute");
-  descriptionModal.style("top", "50%");
-  descriptionModal.style("left", "50%");
-  descriptionModal.style("transform", "translate(-50%, -50%)");
-  descriptionModal.style("background", "#fff");
-  descriptionModal.style("padding", "20px");
-  descriptionModal.style("border", "2px solid #000");
-  descriptionModal.style("z-index", "1000");
-  descriptionModal.style("max-width", "400px");
-  descriptionModal.style("word-wrap", "break-word");
 
-  createElement("h3", title).parent(descriptionModal);
-  createP(description).parent(descriptionModal);
-  let closeBtn = createButton("Close");
-  closeBtn.parent(descriptionModal);
-  closeBtn.style("margin-top", "10px");
-  closeBtn.mousePressed(() => {
-    descriptionModal.remove();
-    descriptionModal = null;
-  });
-}
-
-function updateResourcesBasedOnStats() {
-  max_hp = 25 + stat_vit * 5;
-  current_hp = min(current_hp, max_hp);
-  max_mp = 10 + stat_wil * 5;
-  current_mp = min(current_mp, max_mp);
-}
-
-function tryLinking() {
-  let selectedStat = null;
-  let selectedAttribute = null;
-  
-  for (let stat in statCheckboxes) {
-    if (statCheckboxes[stat].checked()) {
-      if (selectedStat) {
-        statCheckboxes[stat].checked(false);
-        continue;
-      }
-      selectedStat = stat;
-    }
-  }
-  
-  for (let attr in attributeCheckboxes) {
-    if (attributeCheckboxes[attr].checked()) {
-      if (selectedAttribute) {
-        attributeCheckboxes[attr].checked(false);
-        continue;
-      }
-      selectedAttribute = attr;
-    }
-  }
-  
-  if (selectedStat && selectedAttribute) {
-    statLinkMapping[selectedStat] = selectedAttribute;
-    attributeLinkMapping[selectedAttribute] = selectedStat;
-    statLabelElements[selectedStat].style("color", additionalAttributes.find(a => a.name === selectedAttribute).color);
-  } else {
-    if (selectedStat && statLinkMapping[selectedStat]) {
-      let oldAttr = statLinkMapping[selectedStat];
-      delete statLinkMapping[selectedStat];
-      delete attributeLinkMapping[oldAttr];
-      statLabelElements[selectedStat].style("color", "black");
-      attributeCheckboxes[oldAttr].checked(false);
-    }
-    if (selectedAttribute && attributeLinkMapping[selectedAttribute]) {
-      let oldStat = attributeLinkMapping[selectedAttribute];
-      delete attributeLinkMapping[selectedAttribute];
-      delete statLinkMapping[oldStat];
-      statLabelElements[oldStat].style("color", "black");
-      statCheckboxes[oldStat].checked(false);
-    }
-  }
-}
 function createTraitsUI() {
   let traitsContainerDiv = select("#traits");
   traitsContainerDiv.html("");
 
-  // Header
   createElement("h2", "Traits").parent(traitsContainerDiv);
-
-  // Description
   let traitsDesc = createP("Traits provide static positive and negative effects. A player can have a maximum of 3 traits by default. Adjust the max traits below if needed.");
   traitsDesc.parent(traitsContainerDiv);
   traitsDesc.style("font-size", "12px");
@@ -1282,51 +1225,54 @@ function createTraitsUI() {
   traitsDesc.style("margin-top", "5px");
   traitsDesc.style("margin-bottom", "10px");
 
-  // Max Traits Input
-  let maxTraitsDiv = createDiv();
-  maxTraitsDiv.parent(traitsContainerDiv);
+  // Max Traits input first
+  let maxTraitsDiv = createDiv().parent(traitsContainerDiv);
   maxTraitsDiv.class("resource-row");
-
-  let maxTraitsLabel = createSpan("Max Traits: ");
-  maxTraitsLabel.parent(maxTraitsDiv);
-
-  let maxTraitsInput = createInput(maxTraits.toString(), "number");
-  maxTraitsInput.parent(maxTraitsDiv);
+  let maxTraitsLabel = createSpan("Max Traits: ").parent(maxTraitsDiv);
+  let maxTraitsInput = createInput(maxTraits.toString(), "number").parent(maxTraitsDiv);
   maxTraitsInput.class("resource-input");
   maxTraitsInput.style("width", "50px");
   maxTraitsInput.changed(() => {
     let newMax = parseInt(maxTraitsInput.value());
     if (newMax < traits.length) {
-      showConfirmationModal(`You currently have ${traits.length} traits. Reduce to ${newMax} by removing excess traits first.`, () => {});
+      showConfirmationModal(`You currently have ${traits.length} traits. Reduce to ${newMax} by removing excess traits first.`, () => {}, true);
     } else {
       maxTraits = newMax;
     }
   });
 
-  // Buttons
-  let customButton = createButton("Add Custom Trait");
-  customButton.parent(traitsContainerDiv);
+  // Other buttons in desired order
+  let customButton = createButton("Add Custom Trait").parent(traitsContainerDiv);
   customButton.style("margin", "5px");
   customButton.mousePressed(showAddCustomTraitModal);
 
-  let existingButton = createButton("Add Existing Trait");
-  existingButton.parent(traitsContainerDiv);
+  let existingButton = createButton("Add Existing Trait").parent(traitsContainerDiv);
   existingButton.style("margin", "5px");
   existingButton.mousePressed(showAddExistingTraitModal);
 
-  // Traits Table
-  let traitsTable = createElement("table");
-  traitsTable.parent(traitsContainerDiv);
+  let editButton = createButton("Edit Existing Trait").parent(traitsContainerDiv);
+  editButton.style("margin", "5px");
+  editButton.mousePressed(showEditExistingTraitModal);
+
+  // Place Remove Existing Trait button here
+  let removeButton = createButton("Remove Existing Trait").parent(traitsContainerDiv);
+  removeButton.style("margin", "5px");
+  removeButton.mousePressed(showRemoveExistingTraitModal);
+
+  let defaultButton = createButton("Default Trait List").parent(traitsContainerDiv);
+  defaultButton.style("margin", "5px");
+  defaultButton.mousePressed(() => showConfirmationModal("Reset to default trait list?", resetToDefaultTraits));
+
+  // Traits table setup remains unchanged
+  let traitsTable = createElement("table").parent(traitsContainerDiv);
   traitsTable.id("traitsTable");
   traitsTable.style("width", "100%");
   traitsTable.style("border-collapse", "collapse");
   traitsTable.style("margin-top", "10px");
 
-  let headerRow = createElement("tr");
-  headerRow.parent(traitsTable);
+  let headerRow = createElement("tr").parent(traitsTable);
   ["Name", "Category", "Actions"].forEach(header => {
-    let th = createElement("th", header);
-    th.parent(headerRow);
+    let th = createElement("th", header).parent(headerRow);
     th.style("border", "1px solid #ccc");
     th.style("padding", "5px");
     th.style("background", "#f2f2f2");
@@ -1336,7 +1282,7 @@ function createTraitsUI() {
 }
 function showAddCustomTraitModal() {
   if (traits.length >= maxTraits) {
-    showConfirmationModal(`You have reached the maximum number of traits (${maxTraits}). Remove a trait to add a new one.`, () => {});
+    showConfirmationModal(`You have reached the maximum number of traits (${maxTraits}). Remove a trait to add a new one.`, () => {}, true);
     return;
   }
   if (modalDiv) modalDiv.remove();
@@ -1366,26 +1312,35 @@ function showAddCustomTraitModal() {
   categorySelect.style("width", "100%");
   categorySelect.style("margin-bottom", "10px");
 
-  let descInput = createElement("textarea").parent(modalDiv);
-  descInput.attribute("placeholder", "(+) Positive effect\n(-) Negative effect");
-  descInput.style("width", "100%");
-  descInput.style("height", "100px");
-  descInput.style("margin-bottom", "10px");
+  let positiveLabel = createSpan("Positive Effect:").parent(modalDiv);
+  positiveLabel.style("display", "block");
+  let positiveInput = createElement("textarea").parent(modalDiv);
+  positiveInput.style("width", "100%");
+  positiveInput.style("height", "60px");
+  positiveInput.style("margin-bottom", "10px");
+
+  let negativeLabel = createSpan("Negative Effect:").parent(modalDiv);
+  negativeLabel.style("display", "block");
+  let negativeInput = createElement("textarea").parent(modalDiv);
+  negativeInput.style("width", "100%");
+  negativeInput.style("height", "60px");
+  negativeInput.style("margin-bottom", "10px");
 
   let saveBtn = createButton("Save").parent(modalDiv);
   saveBtn.style("margin", "5px");
   saveBtn.mousePressed(() => {
     let name = nameInput.value();
     let category = categorySelect.value();
-    let description = descInput.value();
-    if (!name || !category || !description) return;
+    let positive = positiveInput.value();
+    let negative = negativeInput.value();
+    if (!name || !category || !positive || !negative) return;
 
     if (traits.some(t => t.name === name)) {
       alert("This trait is already added!");
       return;
     }
 
-    let newTrait = { name, category, description };
+    let newTrait = { name, category, positive, negative };
     existingTraits.push(newTrait);
     traits.push(newTrait);
     updateTraitsTable();
@@ -1399,7 +1354,7 @@ function showAddCustomTraitModal() {
 
 function showAddExistingTraitModal() {
   if (traits.length >= maxTraits) {
-    showConfirmationModal(`You have reached the maximum number of traits (${maxTraits}). Remove a trait to add a new one.`, () => {});
+    showConfirmationModal(`You have reached the maximum number of traits (${maxTraits}). Remove a trait to add a new one.`, () => {}, true);
     return;
   }
   if (modalDiv) modalDiv.remove();
@@ -1443,6 +1398,104 @@ function showAddExistingTraitModal() {
   cancelBtn.mousePressed(() => modalDiv.remove());
 }
 
+function showEditExistingTraitModal() {
+  if (modalDiv) modalDiv.remove();
+  modalDiv = createDiv();
+  modalDiv.style("position", "absolute");
+  modalDiv.style("top", "50%");
+  modalDiv.style("left", "50%");
+  modalDiv.style("transform", "translate(-50%, -50%)");
+  modalDiv.style("background", "#fff");
+  modalDiv.style("padding", "20px");
+  modalDiv.style("border", "2px solid #000");
+  modalDiv.style("z-index", "1000");
+  modalDiv.style("width", "300px");
+
+  createElement("h3", "Edit Existing Trait").parent(modalDiv);
+
+  let traitLabel = createSpan("Select Trait to Edit:").parent(modalDiv);
+  let traitSelect = createSelect().parent(modalDiv);
+  let uniqueNames = [...new Set(existingTraits.map(t => t.name))];
+  uniqueNames.forEach(name => traitSelect.option(name));
+  traitSelect.style("width", "100%");
+  traitSelect.style("margin-bottom", "10px");
+
+  let nameLabel = createSpan("Trait Name:").parent(modalDiv);
+  let nameInput = createInput("").parent(modalDiv);
+  nameInput.style("width", "100%");
+  nameInput.style("margin-bottom", "10px");
+
+  let categoryLabel = createSpan("Category:").parent(modalDiv);
+  let categorySelect = createSelect().parent(modalDiv);
+  categorySelect.option("Physical");
+  categorySelect.option("Combat");
+  categorySelect.option("Magical");
+  categorySelect.option("Utility");
+  categorySelect.style("width", "100%");
+  categorySelect.style("margin-bottom", "10px");
+
+  let positiveLabel = createSpan("Positive Effect:").parent(modalDiv);
+  positiveLabel.style("display", "block");
+  let positiveInput = createElement("textarea").parent(modalDiv);
+  positiveInput.style("width", "100%");
+  positiveInput.style("height", "60px");
+  positiveInput.style("margin-bottom", "10px");
+
+  let negativeLabel = createSpan("Negative Effect:").parent(modalDiv);
+  negativeLabel.style("display", "block");
+  let negativeInput = createElement("textarea").parent(modalDiv);
+  negativeInput.style("width", "100%");
+  negativeInput.style("height", "60px");
+  negativeInput.style("margin-bottom", "10px");
+
+  function updateModalFields() {
+    let selectedName = traitSelect.value();
+    let selectedTrait = existingTraits.find(t => t.name === selectedName);
+    if (selectedTrait) {
+      nameInput.value(selectedTrait.name);
+      categorySelect.value(selectedTrait.category);
+      positiveInput.value(selectedTrait.positive);
+      negativeInput.value(selectedTrait.negative);
+    }
+  }
+
+  traitSelect.changed(updateModalFields);
+  updateModalFields();
+
+  let saveBtn = createButton("Save").parent(modalDiv);
+  saveBtn.style("margin", "5px");
+  saveBtn.mousePressed(() => {
+    let oldName = traitSelect.value();
+    let newName = nameInput.value();
+    let category = categorySelect.value();
+    let positive = positiveInput.value();
+    let negative = negativeInput.value();
+    if (!newName || !category || !positive || !negative) return;
+
+    let traitIndex = existingTraits.findIndex(t => t.name === oldName);
+    if (traitIndex !== -1) {
+      existingTraits[traitIndex] = { name: newName, category, positive, negative };
+    }
+
+    let selectedTraitIndex = traits.findIndex(t => t.name === oldName);
+    if (selectedTraitIndex !== -1) {
+      traits[selectedTraitIndex] = { ...existingTraits[traitIndex] };
+    }
+
+    updateTraitsTable();
+    modalDiv.remove();
+  });
+
+  let cancelBtn = createButton("Cancel").parent(modalDiv);
+  cancelBtn.style("margin", "5px");
+  cancelBtn.mousePressed(() => modalDiv.remove());
+}
+
+function resetToDefaultTraits() {
+  existingTraits = [...defaultTraits];
+  traits = [];
+  updateTraitsTable();
+}
 function showRemoveExistingTraitModal() {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv();
@@ -1458,39 +1511,34 @@ function showRemoveExistingTraitModal() {
 
   createElement("h3", "Remove Existing Trait").parent(modalDiv);
 
-  let traitLabel = createSpan("Select Trait to Remove:");
-  traitLabel.parent(modalDiv);
-  let traitSelect = createSelect();
-  traitSelect.parent(modalDiv);
+  let traitLabel = createSpan("Select Trait to Remove:").parent(modalDiv);
+  let traitSelect = createSelect().parent(modalDiv);
   let uniqueNames = [...new Set(existingTraits.map(t => t.name))];
   uniqueNames.forEach(name => traitSelect.option(name));
   traitSelect.style("width", "100%");
   traitSelect.style("margin-bottom", "10px");
 
-  let removeBtn = createButton("Remove");
-  removeBtn.parent(modalDiv);
+  let removeBtn = createButton("Remove").parent(modalDiv);
   removeBtn.style("margin", "5px");
   removeBtn.mousePressed(() => {
     let selectedName = traitSelect.value();
-    for (let i = existingTraits.length - 1; i >= 0; i--) {
-      if (existingTraits[i].name === selectedName) {
-        existingTraits.splice(i, 1);
-      }
-    }
-    for (let i = traits.length - 1; i >= 0; i--) {
-      if (traits[i].name === selectedName) {
-        traits.splice(i, 1);
-      }
-    }
-    updateTraitsTable();
-    modalDiv.remove();
-    modalDiv = null;
+    showConfirmationModal(`Remove ${selectedName}?`, () => {
+      existingTraits = existingTraits.filter(t => t.name !== selectedName);
+      traits = traits.filter(t => t.name !== selectedName);
+      updateTraitsTable();
+      setTimeout(() => { // Delay removal
+        if (modalDiv) modalDiv.remove();
+        modalDiv = null;
+      }, 0); // 0ms delay ensures it runs in the next event cycle
+    });
   });
 
-  let cancelBtn = createButton("Cancel");
-  cancelBtn.parent(modalDiv);
+  let cancelBtn = createButton("Cancel").parent(modalDiv);
   cancelBtn.style("margin", "5px");
-  cancelBtn.mousePressed(() => { modalDiv.remove(); modalDiv = null; });
+  cancelBtn.mousePressed(() => { 
+    modalDiv.remove(); 
+    modalDiv = null; 
+  });
 }
 function updateTraitsTable() {
   let traitsTable = select("#traitsTable");
@@ -1504,7 +1552,7 @@ function updateTraitsTable() {
     nameCell.style("border", "1px solid #ccc");
     nameCell.style("padding", "5px");
     nameCell.style("cursor", "pointer");
-    nameCell.mousePressed(() => showStatDescription(trait.name, trait.description));
+    nameCell.mousePressed(() => showTraitDescription(trait.name, trait.positive, trait.negative));
 
     let categoryCell = createElement("td", trait.category).parent(row);
     categoryCell.style("border", "1px solid #ccc");
@@ -1522,45 +1570,4 @@ function updateTraitsTable() {
       });
     });
   });
-}
-
-// Supporting function to show trait description
-function showStatDescription(name, description) {
-  if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv();
-  modalDiv.style("position", "absolute");
-  modalDiv.style("top", "50%");
-  modalDiv.style("left", "50%");
-  modalDiv.style("transform", "translate(-50%, -50%)");
-  modalDiv.style("background", "#fff");
-  modalDiv.style("padding", "20px");
-  modalDiv.style("border", "2px solid #000");
-  modalDiv.style("z-index", "1000");
-  modalDiv.style("width", "300px");
-
-  createElement("h3", name).parent(modalDiv);
-  createP(description.split("\n").join("<br>")).parent(modalDiv);
-  let closeBtn = createButton("Close").parent(modalDiv);
-  closeBtn.style("margin", "5px");
-  closeBtn.mousePressed(() => modalDiv.remove());
-}
-
-function moveTraitUp(index) {
-  if (index > 0) {
-    [traits[index - 1], traits[index]] = [traits[index], traits[index - 1]];
-    updateTraitsTable();
-  }
-}
-
-function moveTraitDown(index) {
-  if (index < traits.length - 1) {
-    [traits[index], traits[index + 1]] = [traits[index + 1], traits[index]];
-    updateTraitsTable();
-  }
-}
-
-function resetToDefaultTraits() {
-  existingTraits = [...defaultTraits];
-  traits = [];
-  updateTraitsTable();
 }
