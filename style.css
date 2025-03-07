@@ -1,221 +1,151 @@
-/* Global styles */
+/* Reset default margins and padding */
 body {
+  font-family: Arial, sans-serif;
   margin: 0;
-  font-family: sans-serif;
-  overflow-x: visible;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
+/* Header styling */
 header {
   display: flex;
   justify-content: space-between;
-  padding: 10px;
-  background: #f2f2f2;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
-header input {
-  font-size: 1em;
-  flex: 1;
-  margin-right: 10px;
+header div {
+  display: flex;
+  gap: 10px;
 }
 
+header input[type="text"] {
+  padding: 5px;
+  font-size: 16px;
+}
+
+header button {
+  padding: 5px 10px;
+  font-size: 16px;
+}
+
+/* Container for tabs and content */
 .container {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  height: calc(100vh - 50px);
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
-@media screen and (min-width: 601px) {
-  .tabs {
-    display: flex;
-    flex-direction: column;
-    background: #ddd;
-    padding: 10px;
-    overflow-x: visible;
-    white-space: normal;
-  }
-  .tabs button {
-    display: block;
-    width: 100%;
-    margin-bottom: 5px;
-    padding: 10px;
-    border: none;
-    background: #ccc;
-    cursor: pointer;
-  }
-  .tabs button.active {
-    background: #bbb;
-    font-weight: bold;
-  }
+/* Tabs styling */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  overflow-x: auto;
+  border: 1px solid #ccc;
+  background-color: #f1f1f1;
 }
 
-@media screen and (max-width: 600px) {
-  .container {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 50px);
-  }
-  .tabs {
-    order: 2;
-    display: flex;
-    justify-content: flex-start;
-    background: #ddd;
-    padding: 5px 0;
-    overflow-x: auto;
-    white-space: nowrap;
-    -webkit-overflow-scrolling: touch;
-    max-height: 50px;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-  }
-  .content {
-    order: 1;
-    flex: 1;
-    height: auto;
-    margin-bottom: 60px; /* space for fixed tabs */
-  }
+.tablink {
+  background-color: inherit;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.3s;
+  white-space: nowrap;
 }
 
+.tablink:hover {
+  background-color: #ddd;
+}
+
+.tablink.active {
+  background-color: #ccc;
+}
+
+/* Content styling */
 .content {
-  padding: 10px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  height: calc(100% - 20px);
-  box-sizing: border-box;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .tabcontent {
   display: none;
-  height: 100%;
-  position: relative; /* Added for positioning children */
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-top: none;
 }
 
 .tabcontent.active {
   display: block;
 }
 
-#p5-container {
-  position: relative;
+/* Resource section specific styling */
+#resource-bars,
+#resource-controls {
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
 }
 
-#resources {
-  position: relative;
-}
-
-#stats {
-  position: relative;
-}
-
-#talents {
-  position: relative;
-}
-
-#resourceUIContainer {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 220px;
-  background: rgba(255,255,255,0.95);
-  padding: 5px;
-  border: 1px solid #ccc;
-  cursor: move;
-  box-sizing: border-box;
-  touch-action: none;
-}
-
-#resourceUIContainer.dragging {
-  background: rgba(200, 200, 200, 0.95);
+#resource-bars canvas {
+  display: block;
+  margin: 0 auto;
 }
 
 .resource-row {
   display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 5px;
   align-items: center;
-  margin-bottom: 2px;
-}
-
-.resource-label {
-  font-weight: bold;
-  font-size: 14px;
-  margin-right: 5px;
 }
 
 .resource-input {
-  width: 40px;
+  flex: 0 0 60px; /* Fixed width, no stretching */
+  width: 60px; /* Explicit width for consistency */
+  padding: 3px;
   font-size: 14px;
-  margin-right: 5px;
 }
 
 .resource-button {
+  flex: 0 0 auto;
+  min-width: 60px;
+  padding: 3px 5px;
   font-size: 14px;
+}
+
+.resource-button.small-button {
+  min-width: 25px;
   padding: 2px 4px;
-  margin-right: 5px;
-}
-
-#skillsContainer {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 180px;
-  background: rgba(255,255,255,0.95);
-  padding: 3px;
-  border: 1px solid #ccc;
-  cursor: move;
-  box-sizing: border-box;
-  touch-action: none;
-}
-
-#skillsContainer.dragging {
-  background: rgba(200, 200, 200, 0.95);
-}
-
-#talentsTable {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-}
-
-#talentsTable th,
-#talentsTable td {
-  border: 1px solid #ccc;
-  padding: 5px;
-}
-
-#talentsTable th {
-  background: #f2f2f2;
-}
-
-#talentsTable td:last-child {
-  text-align: center;
-}
-
-#talentsTable button {
   font-size: 12px;
-  padding: 2px 5px;
-  cursor: pointer;
-  margin: 0 2px;
 }
 
-@media screen and (max-width: 600px) {
-  #resourceUIContainer,
-  #skillsContainer {
-    top: 5px;
-    right: 5px;
-    width: 160px;
-    padding: 3px;
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .tabs {
+    justify-content: flex-start;
+  }
+
+  .resource-input {
+    flex: 0 0 50px; /* Slightly smaller on mobile */
+    width: 50px;
     font-size: 12px;
   }
-  
-  #talentsTable {
+
+  .resource-button {
+    min-width: 50px;
     font-size: 12px;
   }
-  
-  #talentsTable button {
+
+  .resource-button.small-button {
+    min-width: 20px;
     font-size: 10px;
-    padding: 1px 3px;
   }
 }
