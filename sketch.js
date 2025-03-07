@@ -129,22 +129,25 @@ const defaultTalents = [
 // Working copy of talents
 let existingTalents = [...defaultTalents];
 
-// For traits
-let traits = []; // Array to store selected traits
+// Array to store selected traits
+let traits = [];
+// Default maximum number of traits
+let maxTraits = 3;
 
-// Default traits (sample list based on FF7 TTRPG flavor)
+// Default traits with positive and negative effects
 const defaultTraits = [
-  { name: "Mako Infusion", level: "I", category: "Physical", description: "Gain +2 HP per turn.", maxLevel: "III" },
-  { name: "Mako Infusion", level: "II", category: "Physical", description: "Gain +4 HP per turn.", maxLevel: "III" },
-  { name: "Mako Infusion", level: "III", category: "Physical", description: "Gain +6 HP per turn.", maxLevel: "III" },
-  { name: "SOLDIER Training", level: "I", category: "Combat", description: "Increase melee damage by +1.", maxLevel: "II" },
-  { name: "SOLDIER Training", level: "II", category: "Combat", description: "Increase melee damage by +2.", maxLevel: "II" },
-  { name: "Shinra Tech Savvy", level: "I", category: "Utility", description: "Gain Advantage on tech-related Ingenuity rolls.", maxLevel: "I" },
-  { name: "Materia Affinity", level: "I", category: "Magical", description: "Reduce MP cost of spells by 2.", maxLevel: "III" },
-  { name: "Materia Affinity", level: "II", category: "Magical", description: "Reduce MP cost of spells by 4.", maxLevel: "III" },
-  { name: "Materia Affinity", level: "III", category: "Magical", description: "Reduce MP cost of spells by 6.", maxLevel: "III" },
-  { name: "Cetra Heritage", level: "I", category: "Spiritual", description: "Gain +1 to SPR rolls.", maxLevel: "II" },
-  { name: "Cetra Heritage", level: "II", category: "Spiritual", description: "Gain +2 to SPR rolls.", maxLevel: "II" }
+  { name: "Grafted Weapon", category: "Combat", description: "(+) Cannot be unwillingly disarmed.\n(-) Disadvantage on Agility checks." },
+  { name: "EX-SOLDIER", category: "Combat", description: "(+) Advantage on Athletics checks.\n(-) Disadvantage on Ingenuity checks." },
+  { name: "Ancient Echoes", category: "Magical", description: "(+) You can sense the presence of raw Materia and Lifestream energy within 60 feet, even through barriers (you do not sense refined Materia equipped to others).\n(-) Disadvantage on Awareness checks." },
+  { name: "Imposing Posture", category: "Utility", description: "(+) Advantage on all hostile Influence checks.\n(-) Disadvantage on all friendly Influence checks." },
+  { name: "Cybernetic Enhancements", category: "Utility", description: "(+) Start each battle with +25 ATB.\n(-) Start each battle with -25 Movement." },
+  { name: "Fractured Mind", category: "Utility", description: "(+) Advantage on Awareness checks.\n(-) Disadvantage on Willpower checks." },
+  { name: "Silver Tongue", category: "Utility", description: "(+) Advantage on Influence checks.\n(-) Disadvantage on Athletics checks." },
+  { name: "Wandering Spirit", category: "Physical", description: "(+) Advantage on Endurance checks.\n(-) Resting requires double the time for full benefits." },
+  { name: "Jenova’s Taint", category: "Combat", description: "(+) Once per turn, you can reroll an attack roll.\n(-) When using the reroll, make a Willpower check (DC 10); if failed, waste stamina without attacking." },
+  { name: "Glowing Eyes", category: "Physical", description: "(+) Your vision is enhanced beyond normal limits. You can see clearly in dim light and ignore visual obscurities such as smoke or fog.\n(-) Disadvantage on Stealth checks in darkness or shadowed areas." },
+  { name: "Reactive Reflexes", category: "Combat", description: "(+) Advantage on Dodge Rolls.\n(-) After Dodging, disadvantage on your next Attack (physical or magical)." },
+  { name: "Weakened Flesh", category: "Magical", description: "(+) +10 Maximum MP.\n(-) -10 Maximum HP." }
 ];
 
 // Working copy of traits
@@ -939,7 +942,7 @@ function showEditExistingTalentModal() {
   function updateModalFields() {
     let selectedName = talentSelect.value();
     let talentLevels = existingTalents.filter(t => t.name === selectedName);
-    let maxLevel = talentLevels[0]?.maxLevel || "III";
+    let maxLevel = talentLevels[0]?.maxLevel || "III"; // Original maxLevel for reference
     nameInput.value(selectedName);
     categorySelect.value(talentLevels[0]?.category || "Physical Combat");
 
@@ -950,10 +953,8 @@ function showEditExistingTalentModal() {
     levelCheckboxes = {};
     levelDescriptions = {};
 
-    let availableLevels = ["I"];
-    if (maxLevel === "II" || maxLevel === "III") availableLevels.push("II");
-    if (maxLevel === "III") availableLevels.push("III");
-
+    // Always show I, II, III regardless of original maxLevel
+    let availableLevels = ["I", "II", "III"];
     availableLevels.forEach(lvl => {
       let chkDiv = createDiv();
       chkDiv.parent(levelsDiv);
@@ -991,12 +992,6 @@ function showEditExistingTalentModal() {
     if (!name || !category || !levelCheckboxes["I"].checked()) return;
 
     let oldName = talentSelect.value();
-    let originalMaxLevel = existingTalents.find(t => t.name === oldName)?.maxLevel || "III";
-
-    // Determine the highest checked level
-    let maxLevel = "I";
-    if (levelCheckboxes["III"].checked()) maxLevel = "III";
-    else if (levelCheckboxes["II"].checked()) maxLevel = "II";
 
     // Remove old talent entries
     for (let i = existingTalents.length - 1; i >= 0; i--) {
@@ -1004,6 +999,11 @@ function showEditExistingTalentModal() {
         existingTalents.splice(i, 1);
       }
     }
+
+    // Determine the highest checked level
+    let maxLevel = "I";
+    if (levelCheckboxes["III"].checked()) maxLevel = "III";
+    else if (levelCheckboxes["II"].checked()) maxLevel = "II";
 
     // Add new talent entries up to maxLevel
     let newTalents = [];
@@ -1025,8 +1025,8 @@ function showEditExistingTalentModal() {
       newTalents.push(talentData);
     }
 
-    // Update traits array
-    traits = traits.map(t => {
+    // Update talents array
+    talents = talents.map(t => {
       if (t.name === oldName) {
         let newTalent = newTalents.find(nt => nt.level === t.level) || 
                         newTalents.find(nt => nt.level === "I");
@@ -1045,7 +1045,6 @@ function showEditExistingTalentModal() {
   cancelBtn.style("margin", "5px");
   cancelBtn.mousePressed(() => { modalDiv.remove(); modalDiv = null; });
 }
-
 function showRemoveExistingTalentModal() {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv();
@@ -1272,16 +1271,39 @@ function createTraitsUI() {
   let traitsContainerDiv = select("#traits");
   traitsContainerDiv.html("");
 
+  // Header
   createElement("h2", "Traits").parent(traitsContainerDiv);
 
-  let traitsDesc = createP("Use buttons to add, edit, or remove traits. Click a trait's name to view its details. Use arrows to reorder.");
+  // Description
+  let traitsDesc = createP("Traits provide static positive and negative effects. A player can have a maximum of 3 traits by default. Adjust the max traits below if needed.");
   traitsDesc.parent(traitsContainerDiv);
   traitsDesc.style("font-size", "12px");
   traitsDesc.style("color", "#666");
   traitsDesc.style("margin-top", "5px");
   traitsDesc.style("margin-bottom", "10px");
 
-  // Add buttons
+  // Max Traits Input
+  let maxTraitsDiv = createDiv();
+  maxTraitsDiv.parent(traitsContainerDiv);
+  maxTraitsDiv.class("resource-row");
+
+  let maxTraitsLabel = createSpan("Max Traits: ");
+  maxTraitsLabel.parent(maxTraitsDiv);
+
+  let maxTraitsInput = createInput(maxTraits.toString(), "number");
+  maxTraitsInput.parent(maxTraitsDiv);
+  maxTraitsInput.class("resource-input");
+  maxTraitsInput.style("width", "50px");
+  maxTraitsInput.changed(() => {
+    let newMax = parseInt(maxTraitsInput.value());
+    if (newMax < traits.length) {
+      showConfirmationModal(`You currently have ${traits.length} traits. Reduce to ${newMax} by removing excess traits first.`, () => {});
+    } else {
+      maxTraits = newMax;
+    }
+  });
+
+  // Buttons
   let customButton = createButton("Add Custom Trait");
   customButton.parent(traitsContainerDiv);
   customButton.style("margin", "5px");
@@ -1292,22 +1314,7 @@ function createTraitsUI() {
   existingButton.style("margin", "5px");
   existingButton.mousePressed(showAddExistingTraitModal);
 
-  let editExistingButton = createButton("Edit Existing Trait");
-  editExistingButton.parent(traitsContainerDiv);
-  editExistingButton.style("margin", "5px");
-  editExistingButton.mousePressed(showEditExistingTraitModal);
-
-  let removeButton = createButton("Remove Existing Trait");
-  removeButton.parent(traitsContainerDiv);
-  removeButton.style("margin", "5px");
-  removeButton.mousePressed(showRemoveExistingTraitModal);
-
-  let defaultButton = createButton("Default Trait List");
-  defaultButton.parent(traitsContainerDiv);
-  defaultButton.style("margin", "5px");
-  defaultButton.mousePressed(() => showConfirmationModal("Reset to default trait list?", resetToDefaultTraits));
-
-  // Traits table setup
+  // Traits Table
   let traitsTable = createElement("table");
   traitsTable.parent(traitsContainerDiv);
   traitsTable.id("traitsTable");
@@ -1317,7 +1324,7 @@ function createTraitsUI() {
 
   let headerRow = createElement("tr");
   headerRow.parent(traitsTable);
-  ["", "Name", "Level", "Category", "Actions"].forEach(header => {
+  ["Name", "Category", "Actions"].forEach(header => {
     let th = createElement("th", header);
     th.parent(headerRow);
     th.style("border", "1px solid #ccc");
@@ -1328,6 +1335,10 @@ function createTraitsUI() {
   updateTraitsTable();
 }
 function showAddCustomTraitModal() {
+  if (traits.length >= maxTraits) {
+    showConfirmationModal(`You have reached the maximum number of traits (${maxTraits}). Remove a trait to add a new one.`, () => {});
+    return;
+  }
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv();
   modalDiv.style("position", "absolute");
@@ -1342,103 +1353,55 @@ function showAddCustomTraitModal() {
 
   createElement("h3", "Add Custom Trait").parent(modalDiv);
 
-  let nameLabel = createSpan("Trait Name:");
-  nameLabel.parent(modalDiv);
-  let nameInput = createInput("");
-  nameInput.parent(modalDiv);
+  let nameInput = createInput("").parent(modalDiv);
+  nameInput.attribute("placeholder", "Trait Name");
   nameInput.style("width", "100%");
   nameInput.style("margin-bottom", "10px");
 
-  let levelLabel = createSpan("Levels (select highest desired):");
-  levelLabel.parent(modalDiv);
-
-  let levelsDiv = createDiv();
-  levelsDiv.parent(modalDiv);
-  levelsDiv.style("margin-bottom", "10px");
-
-  let levelCheckboxes = {};
-  let levelDescriptions = {};
-  ["I", "II", "III"].forEach(lvl => {
-    let chkDiv = createDiv();
-    chkDiv.parent(levelsDiv);
-    let chk = createCheckbox(`Level ${lvl}`, false);
-    chk.parent(chkDiv);
-    levelCheckboxes[lvl] = chk;
-
-    let descDiv = createDiv();
-    descDiv.parent(levelsDiv);
-    descDiv.style("display", "none");
-    let descLabel = createSpan(`Description ${lvl}:`);
-    descLabel.parent(descDiv);
-    let descInput = createElement("textarea");
-    descInput.parent(descDiv);
-    descInput.style("width", "100%");
-    descInput.style("height", "60px");
-    descInput.style("margin-bottom", "5px");
-    levelDescriptions[lvl] = { div: descDiv, input: descInput };
-
-    chk.changed(() => manageLevelDependencies(levelCheckboxes, levelDescriptions, lvl));
-  });
-
-  let categoryLabel = createSpan("Category:");
-  categoryLabel.parent(modalDiv);
-  let categorySelect = createSelect();
-  categorySelect.parent(modalDiv);
+  let categorySelect = createSelect().parent(modalDiv);
   categorySelect.option("Physical");
   categorySelect.option("Combat");
   categorySelect.option("Magical");
-  categorySelect.option("Spiritual");
   categorySelect.option("Utility");
   categorySelect.style("width", "100%");
   categorySelect.style("margin-bottom", "10px");
 
-  let saveBtn = createButton("Save");
-  saveBtn.parent(modalDiv);
+  let descInput = createElement("textarea").parent(modalDiv);
+  descInput.attribute("placeholder", "(+) Positive effect\n(-) Negative effect");
+  descInput.style("width", "100%");
+  descInput.style("height", "100px");
+  descInput.style("margin-bottom", "10px");
+
+  let saveBtn = createButton("Save").parent(modalDiv);
   saveBtn.style("margin", "5px");
   saveBtn.mousePressed(() => {
     let name = nameInput.value();
     let category = categorySelect.value();
-    if (!name || !category) return;
+    let description = descInput.value();
+    if (!name || !category || !description) return;
 
-    let maxLevel = "I";
-    if (levelCheckboxes["III"].checked()) maxLevel = "III";
-    else if (levelCheckboxes["II"].checked()) maxLevel = "II";
-    else if (!levelCheckboxes["I"].checked()) return;
-
-    let newTraits = [];
-    let levels = ["I", "II", "III"].slice(0, ["I", "II", "III"].indexOf(maxLevel) + 1);
-    for (let lvl of levels) {
-      let desc = levelDescriptions[lvl].input.value();
-      if (!desc) {
-        alert(`Please provide a description for Level ${lvl}.`);
-        return;
-      }
-      let trait = {
-        name: name,
-        level: lvl,
-        category: category,
-        description: desc,
-        maxLevel: maxLevel
-      };
-      existingTraits.push(trait);
-      newTraits.push(trait);
+    if (traits.some(t => t.name === name)) {
+      alert("This trait is already added!");
+      return;
     }
 
-    if (newTraits.length > 0) {
-      traits.push(newTraits.find(t => t.level === "I"));
-      updateTraitsTable();
-      modalDiv.remove();
-      modalDiv = null;
-    }
+    let newTrait = { name, category, description };
+    existingTraits.push(newTrait);
+    traits.push(newTrait);
+    updateTraitsTable();
+    modalDiv.remove();
   });
 
-  let cancelBtn = createButton("Cancel");
-  cancelBtn.parent(modalDiv);
+  let cancelBtn = createButton("Cancel").parent(modalDiv);
   cancelBtn.style("margin", "5px");
-  cancelBtn.mousePressed(() => { modalDiv.remove(); modalDiv = null; });
+  cancelBtn.mousePressed(() => modalDiv.remove());
 }
 
 function showAddExistingTraitModal() {
+  if (traits.length >= maxTraits) {
+    showConfirmationModal(`You have reached the maximum number of traits (${maxTraits}). Remove a trait to add a new one.`, () => {});
+    return;
+  }
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv();
   modalDiv.style("position", "absolute");
@@ -1453,188 +1416,31 @@ function showAddExistingTraitModal() {
 
   createElement("h3", "Add Existing Trait").parent(modalDiv);
 
-  let traitLabel = createSpan("Select Trait:");
-  traitLabel.parent(modalDiv);
-  let traitSelect = createSelect();
-  traitSelect.parent(modalDiv);
+  let traitSelect = createSelect().parent(modalDiv);
   let uniqueNames = [...new Set(existingTraits.map(t => t.name))];
   uniqueNames.forEach(name => {
-    if (!traits.some(t => t.name === name)) {
-      traitSelect.option(name);
-    }
+    if (!traits.some(t => t.name === name)) traitSelect.option(name);
   });
   traitSelect.style("width", "100%");
   traitSelect.style("margin-bottom", "10px");
 
-  let saveBtn = createButton("Add");
-  saveBtn.parent(modalDiv);
-  saveBtn.style("margin", "5px");
-  saveBtn.mousePressed(() => {
+  let addBtn = createButton("Add").parent(modalDiv);
+  addBtn.style("margin", "5px");
+  addBtn.mousePressed(() => {
     let selectedName = traitSelect.value();
     if (!selectedName) return;
 
-    let traitLevels = existingTraits.filter(t => t.name === selectedName);
-    let baseTrait = traitLevels.find(t => t.level === "I") || traitLevels[0];
-    if (baseTrait) {
-      traits.push({ ...baseTrait });
+    let selectedTrait = existingTraits.find(t => t.name === selectedName);
+    if (selectedTrait) {
+      traits.push({ ...selectedTrait });
       updateTraitsTable();
       modalDiv.remove();
-      modalDiv = null;
     }
   });
 
-  let cancelBtn = createButton("Cancel");
-  cancelBtn.parent(modalDiv);
+  let cancelBtn = createButton("Cancel").parent(modalDiv);
   cancelBtn.style("margin", "5px");
-  cancelBtn.mousePressed(() => { modalDiv.remove(); modalDiv = null; });
-}
-
-function showEditExistingTraitModal() {
-  if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv();
-  modalDiv.style("position", "absolute");
-  modalDiv.style("top", "50%");
-  modalDiv.style("left", "50%");
-  modalDiv.style("transform", "translate(-50%, -50%)");
-  modalDiv.style("background", "#fff");
-  modalDiv.style("padding", "20px");
-  modalDiv.style("border", "2px solid #000");
-  modalDiv.style("z-index", "1000");
-  modalDiv.style("width", "300px");
-
-  createElement("h3", "Edit Existing Trait").parent(modalDiv);
-
-  let traitLabel = createSpan("Select Trait:");
-  traitLabel.parent(modalDiv);
-  let traitSelect = createSelect();
-  traitSelect.parent(modalDiv);
-  let uniqueNames = [...new Set(existingTraits.map(t => t.name))];
-  uniqueNames.forEach(name => traitSelect.option(name));
-  traitSelect.style("width", "100%");
-  traitSelect.style("margin-bottom", "10px");
-
-  let nameLabel = createSpan("Trait Name:");
-  nameLabel.parent(modalDiv);
-  let nameInput = createInput("");
-  nameInput.parent(modalDiv);
-  nameInput.style("width", "100%");
-  nameInput.style("margin-bottom", "10px");
-
-  let levelLabel = createSpan("Levels:");
-  levelLabel.parent(modalDiv);
-
-  let levelsDiv = createDiv();
-  levelsDiv.parent(modalDiv);
-  levelsDiv.style("margin-bottom", "10px");
-
-  let levelCheckboxes = {};
-  let levelDescriptions = {};
-
-  let categoryLabel = createSpan("Category:");
-  categoryLabel.parent(modalDiv);
-  let categorySelect = createSelect();
-  categorySelect.parent(modalDiv);
-  categorySelect.option("Physical");
-  categorySelect.option("Combat");
-  categorySelect.option("Magical");
-  categorySelect.option("Spiritual");
-  categorySelect.option("Utility");
-  categorySelect.style("width", "100%");
-  categorySelect.style("margin-bottom", "10px");
-
-  function updateModalFields() {
-    let selectedName = traitSelect.value();
-    let traitLevels = existingTraits.filter(t => t.name === selectedName);
-    let maxLevel = traitLevels[0]?.maxLevel || "III";
-    nameInput.value(selectedName);
-    categorySelect.value(traitLevels[0]?.category || "Physical");
-
-    for (let lvl in levelCheckboxes) {
-      levelCheckboxes[lvl].parent().remove();
-      levelDescriptions[lvl].div.remove();
-    }
-    levelCheckboxes = {};
-    levelDescriptions = {};
-
-    let availableLevels = ["I"];
-    if (maxLevel === "II" || maxLevel === "III") availableLevels.push("II");
-    if (maxLevel === "III") availableLevels.push("III");
-
-    availableLevels.forEach(lvl => {
-      let chkDiv = createDiv();
-      chkDiv.parent(levelsDiv);
-      let chk = createCheckbox(`Level ${lvl}`, traitLevels.some(t => t.level === lvl));
-      chk.parent(chkDiv);
-      levelCheckboxes[lvl] = chk;
-
-      let descDiv = createDiv();
-      descDiv.parent(levelsDiv);
-      descDiv.style("display", chk.checked() ? "block" : "none");
-      let descLabel = createSpan(`Description ${lvl}:`);
-      descLabel.parent(descDiv);
-      let descInput = createElement("textarea");
-      descInput.parent(descDiv);
-      descInput.style("width", "100%");
-      descInput.style("height", "60px");
-      descInput.style("margin-bottom", "5px");
-      let existingDesc = traitLevels.find(t => t.level === lvl)?.description || "";
-      descInput.value(existingDesc);
-      levelDescriptions[lvl] = { div: descDiv, input: descInput };
-
-      chk.changed(() => manageLevelDependencies(levelCheckboxes, levelDescriptions, lvl));
-    });
-  }
-
-  traitSelect.changed(updateModalFields);
-  updateModalFields();
-
-  let saveBtn = createButton("Save");
-  saveBtn.parent(modalDiv);
-  saveBtn.style("margin", "5px");
-  saveBtn.mousePressed(() => {
-    let name = nameInput.value();
-    let category = categorySelect.value();
-    if (!name || !category || !levelCheckboxes["I"].checked()) return;
-
-    let oldName = traitSelect.value();
-    let maxLevel = existingTraits.find(t => t.name === oldName)?.maxLevel || "III";
-    for (let i = existingTraits.length - 1; i >= 0; i--) {
-      if (existingTraits[i].name === oldName) {
-        existingTraits.splice(i, 1);
-      }
-    }
-
-    ["I", "II", "III"].forEach(lvl => {
-      if (levelCheckboxes[lvl] && levelCheckboxes[lvl].checked() && levelDescriptions[lvl].input.value()) {
-        let traitData = {
-          name: name,
-          level: lvl,
-          category: category,
-          description: levelDescriptions[lvl].input.value(),
-          maxLevel: maxLevel
-        };
-        existingTraits.push(traitData);
-      }
-    });
-
-    traits = traits.map(t => {
-      if (t.name === oldName) {
-        let newTrait = existingTraits.find(nt => nt.name === name && nt.level === t.level) || 
-                       existingTraits.find(nt => nt.name === name && nt.level === "I");
-        return newTrait ? { ...newTrait } : t;
-      }
-      return t;
-    });
-
-    updateTraitsTable();
-    modalDiv.remove();
-    modalDiv = null;
-  });
-
-  let cancelBtn = createButton("Cancel");
-  cancelBtn.parent(modalDiv);
-  cancelBtn.style("margin", "5px");
-  cancelBtn.mousePressed(() => { modalDiv.remove(); modalDiv = null; });
+  cancelBtn.mousePressed(() => modalDiv.remove());
 }
 
 function showRemoveExistingTraitModal() {
@@ -1692,69 +1498,51 @@ function updateTraitsTable() {
   while (rows.length > 1) rows[1].remove();
 
   traits.forEach((trait, index) => {
-    let row = createElement("tr");
-    row.parent(traitsTable);
+    let row = createElement("tr").parent(traitsTable);
 
-    let arrowCell = createElement("td");
-    arrowCell.parent(row);
-    arrowCell.style("border", "1px solid #ccc");
-    arrowCell.style("padding", "5px");
-    let upArrow = createButton("↑");
-    upArrow.parent(arrowCell);
-    upArrow.style("margin-right", "5px");
-    upArrow.mousePressed(() => moveTraitUp(index));
-    let downArrow = createButton("↓");
-    downArrow.parent(arrowCell);
-    downArrow.mousePressed(() => moveTraitDown(index));
-
-    let nameCell = createElement("td", trait.name);
-    nameCell.parent(row);
+    let nameCell = createElement("td", trait.name).parent(row);
     nameCell.style("border", "1px solid #ccc");
     nameCell.style("padding", "5px");
     nameCell.style("cursor", "pointer");
-    nameCell.mousePressed(() => {
-      let traitData = existingTraits.find(t => t.name === trait.name && t.level === trait.level);
-      showStatDescription(trait.name + " (Level " + trait.level + ")", traitData?.description || "No description available.");
-    });
+    nameCell.mousePressed(() => showStatDescription(trait.name, trait.description));
 
-    let levelCell = createElement("td");
-    levelCell.parent(row);
-    levelCell.style("border", "1px solid #ccc");
-    levelCell.style("padding", "5px");
-    let levelSelect = createSelect();
-    levelSelect.parent(levelCell);
-    let traitLevels = existingTraits.filter(t => t.name === trait.name);
-    let availableLevels = traitLevels.map(t => t.level);
-    availableLevels.forEach(lvl => levelSelect.option(lvl));
-    levelSelect.value(trait.level);
-    levelSelect.changed(() => {
-      let newLevel = levelSelect.value();
-      let newTraitData = existingTraits.find(t => t.name === trait.name && t.level === newLevel);
-      if (newTraitData) {
-        traits[index] = { ...newTraitData };
-        updateTraitsTable();
-      }
-    });
-
-    let categoryCell = createElement("td", trait.category);
-    categoryCell.parent(row);
+    let categoryCell = createElement("td", trait.category).parent(row);
     categoryCell.style("border", "1px solid #ccc");
     categoryCell.style("padding", "5px");
 
-    let actionCell = createElement("td");
-    actionCell.parent(row);
+    let actionCell = createElement("td").parent(row);
     actionCell.style("border", "1px solid #ccc");
     actionCell.style("padding", "5px");
-    let removeBtn = createButton("Remove");
-    removeBtn.parent(actionCell);
+    let removeBtn = createButton("Remove").parent(actionCell);
     removeBtn.style("margin", "5px");
     removeBtn.mousePressed(() => {
-      showConfirmationModal(`Remove ${trait.name} (Level ${trait.level})?`, () => {
+      showConfirmationModal(`Remove ${trait.name}?`, () => {
         traits.splice(index, 1);
         updateTraitsTable();
       });
     });
   });
+}
+
+// Supporting function to show trait description
+function showStatDescription(name, description) {
+  if (modalDiv) modalDiv.remove();
+  modalDiv = createDiv();
+  modalDiv.style("position", "absolute");
+  modalDiv.style("top", "50%");
+  modalDiv.style("left", "50%");
+  modalDiv.style("transform", "translate(-50%, -50%)");
+  modalDiv.style("background", "#fff");
+  modalDiv.style("padding", "20px");
+  modalDiv.style("border", "2px solid #000");
+  modalDiv.style("z-index", "1000");
+  modalDiv.style("width", "300px");
+
+  createElement("h3", name).parent(modalDiv);
+  createP(description.split("\n").join("<br>")).parent(modalDiv);
+  let closeBtn = createButton("Close").parent(modalDiv);
+  closeBtn.style("margin", "5px");
+  closeBtn.mousePressed(() => modalDiv.remove());
 }
 
 function moveTraitUp(index) {
