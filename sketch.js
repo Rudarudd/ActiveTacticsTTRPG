@@ -21,6 +21,23 @@ let modalDiv = null; // For talents and traits modals
 let resourceUIContainer;
 let skillsContainer;
 
+// Global variable for equipped armor
+let equippedArmor = null; // Starts as unarmored
+
+// Armor types with movement speeds
+const armorTypes = {
+  "Unarmored": { def: 0, slots: 0, movement: 65 },
+  "Leather Vest": { def: 2, slots: 2, movement: 45 },
+  "Rogue’s Cloak": { def: 3, slots: 1, movement: 45, bonuses: { dex: 1 } },
+  "Chainmail": { def: 4, slots: 1, movement: 35 },
+  "Scale Armor": { def: 5, slots: 0, movement: 35, bonuses: { str: 1 } },
+  "Plate Mail": { def: 6, slots: 0, movement: 25 },
+  "Knight’s Armor": { def: 7, slots: 0, movement: 25, penalties: { movement: -1 } }
+};
+
+// Initial movement setup
+movement = armorTypes["Unarmored"].movement; // Default to 65 ft
+
 // For description modals
 let descriptionModal = null;
 
@@ -288,6 +305,8 @@ function setup() {
   createStatsUI();
   createTalentsUI();
   createTraitsUI();
+  createEquipmentUI();
+  
 
   const tablinks = document.querySelectorAll('.tablink');
   const tabcontents = document.querySelectorAll('.tabcontent');
@@ -1582,4 +1601,98 @@ function updateTraitsTable() {
       });
     });
   });
+}
+function createStatsUI() {
+  let statsContainer = select("#stats");
+  statsContainer.html("");
+  
+  createElement("h2", "Stats").parent(statsContainer);
+  
+  let statsDesc = createP("Stats determine your character’s core abilities. Click a stat name for details.");
+  statsDesc.parent(statsContainer);
+  statsDesc.style("font-size", "12px");
+  statsDesc.style("color", "#666");
+  statsDesc.style("margin-top", "5px");
+  statsDesc.style("margin-bottom", "10px");
+  
+  createStatInput("Level", "Level", level, statsContainer, (val) => { level = val; }, false);
+  createStatInput("EXP", "EXP", exp, statsContainer, (val) => { exp = val; }, false);
+  
+  // Movement stat - read-only, updated by armor
+  let movementDiv = createDiv().parent(statsContainer);
+  movementDiv.style("margin", "5px");
+  let movementLabel = createSpan("Movement: ").parent(movementDiv);
+  movementLabel.style("cursor", "pointer");
+  movementLabel.mouseClicked(() => {
+    if (!descriptionModal) 
+      showStatDescription("Movement", statDescriptions["Movement"] || "No description available.");
+  });
+  statLabelElements["Movement"] = movementLabel;
+  let movementInput = createInput(movement.toString(), "number").parent(movementDiv);
+  movementInput.style("width", "50px");
+  movementInput.attribute("readonly", "true"); // Read-only
+  movementInput.style("background-color", "#e0e0e0"); // Indicate it's not editable
+  
+  createStatInput("STR", "Strength", stat_str, statsContainer, (val) => { stat_str = val; }, true);
+  createStatInput("VIT", "Vitality", stat_vit, statsContainer, (val) => { stat_vit = val; updateResourcesBasedOnStats(); }, true);
+  createStatInput("DEX", "Dexterity", stat_dex, statsContainer, (val) => { stat_dex = val; }, true);
+  createStatInput("MAG", "Magic", stat_mag, statsContainer, (val) => { stat_mag = val; }, true);
+  createStatInput("WIL", "Willpower", stat_wil, statsContainer, (val) => { stat_wil = val; updateResourcesBasedOnStats(); }, true);
+  createStatInput("SPR", "Spirit", stat_spr, statsContainer, (val) => { stat_spr = val; }, true);
+  createStatInput("LCK", "Luck", stat_lck, statsContainer, (val) => { stat_lck = val; }, true, true);
+  
+  createAdditionalAttributesUI();
+}
+function createEquipmentUI() {
+  let equipmentContainerDiv = select("#equipment");
+  equipmentContainerDiv.html("");
+
+  createElement("h2", "Equipment").parent(equipmentContainerDiv);
+
+  let equipmentDesc = createP("Equip armor and weapons here. Movement speed adjusts based on armor type.").parent(equipmentContainerDiv);
+  equipmentDesc.style("font-size", "12px");
+  equipmentDesc.style("color", "#666");
+  equipmentDesc.style("margin-top", "5px");
+  equipmentDesc.style("margin-bottom", "10px");
+
+  // Armor Selection
+  let armorLabel = createSpan("Armor: ").parent(equipmentContainerDiv);
+  let armorSelect = createSelect().parent(equipmentContainerDiv);
+  Object.keys(armorTypes).forEach(armor => armorSelect.option(armor));
+  armorSelect.style("width", "200px");
+  armorSelect.style("margin-bottom", "10px");
+  armorSelect.value(equippedArmor ? equippedArmor : "Unarmored");
+  armorSelect.changed(() => {
+    let selectedArmor = armorSelect.value();
+    equippedArmor = selectedArmor;
+    updateEquipmentStats(selectedArmor);
+  });
+
+  // Placeholder for weapons (to be expanded later)
+  let weaponLabel = createSpan("Weapon: ").parent(equipmentContainerDiv);
+  let weaponSelect = createSelect().parent(equipmentContainerDiv);
+  weaponSelect.option("None"); // Placeholder until weapons are added
+  weaponSelect.style("width", "200px");
+  weaponSelect.style("margin-bottom", "10px");
+
+  // Initial update
+  updateEquipmentStats(equippedArmor || "Unarmored");
+}
+
+function updateEquipmentStats(armorName) {
+  let armorData = armorTypes[armorName];
+  movement = armorData.movement + (armorData.penalties?.movement || 0); // Apply base movement + any penalties
+  let movementInput = select("#stats").elt.querySelector('input[value="' + movement + '"]');
+  if (!movementInput) {
+    // If input isn’t found by value (due to initial setup), find by label proximity
+    let inputs = select("#stats").elt.getElementsByTagName("input");
+    for (let input of inputs) {
+      if (input.previousSibling.textContent.includes("Movement")) {
+        input.value = movement;
+        break;
+      }
+    }
+  } else {
+    movementInput.value = movement;
+  }
 }
