@@ -1,40 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>FF7 TTRPG Character Sheet</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
-    <script src="sketch.js"></script>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
     <header>
-        <input type="text" placeholder="Character Name">
-        <button>Save</button>
-        <button>Load</button>
+      <div>
+        <input type="text" placeholder="Enter Character Name" id="characterName" />
+      </div>
+      <div>
+        <button id="saveBtn">Save</button>
+        <button id="loadBtn">Load</button>
+      </div>
     </header>
     <div class="container">
-        <div class="tabs">
-            <button class="tablink active" data-tab="resources">Resources</button>
-            <button class="tablink" data-tab="talents">Talents</button>
-            <button class="tablink" data-tab="traits">Traits</button>
-            <button class="tablink" data-tab="stats">Stats</button>
-            <button class="tablink" data-tab="abilities">Abilities</button>
-            <button class="tablink" data-tab="equipment">Equipment</button>
-            <button class="tablink" data-tab="inventory">Inventory</button>
+      <div class="tabs">
+        <button class="tablink active" data-tab="resources">Resources</button>
+        <button class="tablink" data-tab="talents">Talents</button>
+        <button class="tablink" data-tab="traits">Traits</button>
+        <button class="tablink" data-tab="stats">Stats</button>
+        <button class="tablink" data-tab="abilities">Abilities</button>
+        <button class="tablink" data-tab="equipment">Equipment</button>
+        <button class="tablink" data-tab="inventory">Inventory</button>
+      </div>
+      <div class="content">
+        <!-- Each tabcontent is hidden unless active -->
+        <div id="resources" class="tabcontent active">
+          <h2>Resource Manager</h2>
+          <div id="p5-container"></div>
         </div>
-        <div class="content">
-            <div id="resources" class="tabcontent active">
-                <div id="p5-container"></div>
-            </div>
-            <div id="talents" class="tabcontent"></div>
-            <div id="traits" class="tabcontent"></div>
-            <div id="stats" class="tabcontent"></div>
-            <div id="abilities" class="tabcontent"></div>
-            <div id="equipment" class="tabcontent"></div>
-            <div id="inventory" class="tabcontent"></div>
+        <div id="talents" class="tabcontent">
+          <h2>Talents</h2>
+          <p>Talents content here.</p>
         </div>
+        <div id="traits" class="tabcontent">
+          <h2>Traits</h2>
+          <p>Traits content here.</p>
+        </div>
+        <div id="stats" class="tabcontent">
+          <!-- Stats UI injected by sketch.js -->
+        </div>
+        <div id="abilities" class="tabcontent">
+          <h2>Abilities</h2>
+          <p>Abilities content here.</p>
+        </div>
+        <div id="equipment" class="tabcontent">
+          <h2>Equipment</h2>
+          <p>Equipment content here.</p>
+        </div>
+        <div id="inventory" class="tabcontent">
+          <h2>Inventory</h2>
+          <p>Inventory content here.</p>
+        </div>
+      </div>
     </div>
-</body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
+    <script src="sketch.js"></script>
+  </body>
 </html>
