@@ -234,6 +234,35 @@ function showTraitDescription(name, positive, negative) {
   closeBtn.mousePressed(() => modalDiv.remove());
 }
 
+function showStatDescription(title, description) {
+  // Remove any existing modal to avoid overlap
+  let modalDiv;
+  if (modalDiv) modalDiv.remove();
+
+  // Create a new div for the modal
+  modalDiv = createDiv();
+  modalDiv.style("position", "absolute");
+  modalDiv.style("top", "50%");
+  modalDiv.style("left", "50%");
+  modalDiv.style("transform", "translate(-50%, -50%)");
+  modalDiv.style("background", "#fff");
+  modalDiv.style("padding", "20px");
+  modalDiv.style("border", "2px solid #000");
+  modalDiv.style("z-index", "1000");
+  modalDiv.style("max-width", "400px");
+  modalDiv.style("word-wrap", "break-word");
+
+  // Add title and description
+  createElement("h3", title).parent(modalDiv);
+  createP(description).parent(modalDiv);
+
+  // Add a close button
+  let closeBtn = createButton("Close");
+  closeBtn.parent(modalDiv);
+  closeBtn.style("margin-top", "10px");
+  closeBtn.mousePressed(() => modalDiv.remove());
+}
+
 function setup() {
   let resourceBarsContainer = select("#resource-bars");
   let resourceControlsContainer = select("#resource-controls");
