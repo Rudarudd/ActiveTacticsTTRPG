@@ -71,14 +71,13 @@ header button {
 }
 
 .tabcontent {
-  display: none;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-top: none;
+  visibility: hidden;
+  height: 0;
+  overflow: hidden;
 }
-
 .tabcontent.active {
-  display: block;
+  visibility: visible;
+  height: auto;
 }
 
 /* Resource section specific styling */
