@@ -1214,7 +1214,26 @@ function toggleStaminaAtbLink() {
     staminaAtbLink ? "green" : "red"
   );
 }
+// Function to switch tabs
+function openTab(tabName) {
+  // Hide all tab contents
+  document.querySelectorAll('.tabcontent').forEach(tab => {
+    tab.style.display = 'none';
+  });
+  // Show the selected tab
+  document.getElementById(tabName).style.display = 'block';
+  
+  // If switching to the Resource tab, redraw the bars
+  if (tabName === 'resources') {
+    redrawResourceBars();
+  }
+}
 
+// Function to redraw the resource bars
+function redrawResourceBars() {
+  // Replace this with your actual code to draw the bars
+  displayBars(); // Assuming this is your function to render the bars
+}
 // ### Stats UI ###
 
 function createStatsUI() {
