@@ -101,6 +101,7 @@ header button {
   margin-bottom: 5px;
   align-items: center;
 }
+
 #stamina-rules {
   margin-top: 20px;
   padding: 10px;
@@ -114,7 +115,8 @@ header button {
   margin-bottom: 20px;
 }
 
-.rules-table th, .rules-table td {
+.rules-table th,
+.rules-table td {
   border: 1px solid #ccc;
   padding: 8px;
   text-align: left;
@@ -130,7 +132,8 @@ header button {
   font-size: 1.2em;
 }
 
-#stamina-rules p, #stamina-rules ul {
+#stamina-rules p,
+#stamina-rules ul {
   margin: 10px 0;
 }
 
@@ -138,6 +141,7 @@ header button {
   list-style-type: disc;
   margin-left: 20px;
 }
+
 .resource-input {
   flex: 0 0 60px; /* Fixed width, no stretching */
   width: 60px; /* Explicit width for consistency */
