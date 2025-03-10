@@ -71,13 +71,11 @@ header button {
 }
 
 .tabcontent {
-  visibility: hidden;
-  height: 0;
-  overflow: hidden;
+  display: none; /* Fix: Hide inactive tabs */
 }
+
 .tabcontent.active {
-  visibility: visible;
-  height: auto;
+  display: block; /* Fix: Show active tab */
 }
 
 /* Resource section specific styling */
@@ -142,8 +140,8 @@ header button {
 }
 
 .resource-input {
-  flex: 0 0 60px; /* Fixed width, no stretching */
-  width: 60px; /* Explicit width for consistency */
+  flex: 0 0 60px;
+  width: 60px;
   padding: 3px;
   font-size: 14px;
 }
@@ -161,6 +159,18 @@ header button {
   font-size: 12px;
 }
 
+/* Modal styling (added for inventory modals) */
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border: 2px solid #000;
+  z-index: 1000;
+}
+
 /* Responsive adjustments */
 @media (max-width: 600px) {
   header {
@@ -173,7 +183,7 @@ header button {
   }
 
   .resource-input {
-    flex: 0 0 50px; /* Slightly smaller on mobile */
+    flex: 0 0 50px;
     width: 50px;
     font-size: 12px;
   }
