@@ -1327,6 +1327,33 @@ function showTraitDescription(name, positive, negative) {
     .style("margin", "5px")
     .mousePressed(() => modalDiv.remove());
 }
+function showTalentDescription(title, description) {
+  // Remove any existing modal to avoid overlap
+  if (modalDiv) modalDiv.remove();
+
+  // Create a new div for the modal
+  modalDiv = createDiv()
+    .style("position", "absolute")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("max-width", "400px")
+    .style("word-wrap", "break-word");
+
+  // Add title and description
+  createElement("h3", title).parent(modalDiv);
+  createP(description).parent(modalDiv);
+
+  // Add a close button
+  let closeBtn = createButton("Close")
+    .parent(modalDiv)
+    .style("margin-top", "10px")
+    .mousePressed(() => modalDiv.remove());
+}
 function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv()
