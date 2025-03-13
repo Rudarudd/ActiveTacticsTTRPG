@@ -71,15 +71,21 @@ header button {
 }
 
 .tabcontent {
-  display: none; /* Fix: Hide inactive tabs */
+  display: none; /* Hide inactive tabs */
 }
 
 .tabcontent.active {
-  display: block; /* Fix: Show active tab */
+  display: block; /* Show active tab */
 }
 
 /* Resource section specific styling */
-#resource-bars,
+#resource-bars {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  position: relative; /* Establish positioning context */
+}
+
 #resource-controls {
   width: 100%;
   max-width: 600px;
@@ -89,6 +95,8 @@ header button {
 #resource-bars canvas {
   display: block;
   margin: 0 auto;
+  position: relative; /* Ensure canvas has a position */
+  z-index: 1; /* Ensure canvas is above other elements but below modals */
 }
 
 .resource-row {
@@ -110,6 +118,8 @@ header button {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
+  table-layout: auto; /* Ensure columns adjust to content */
+  overflow-x: auto; /* Allow horizontal scrolling if needed */
 }
 
 .rules-table th,
@@ -159,7 +169,29 @@ header button {
   font-size: 12px;
 }
 
-/* Modal styling (added for inventory modals) */
+/* Style for category headers in Inventory UI */
+h3 {
+  cursor: pointer;
+  padding: 5px;
+  background-color: #f2f2f2;
+  margin: 0;
+  position: relative; /* For adding a collapse indicator */
+}
+
+/* Add a collapse/expand indicator (optional) */
+h3::before {
+  content: "▶"; /* Right arrow when collapsed */
+  display: inline-block;
+  margin-right: 5px;
+  transition: transform 0.3s;
+}
+
+/* Rotate arrow when expanded */
+h3.expanded::before {
+  content: "▼"; /* Down arrow when expanded */
+}
+
+/* Modal styling */
 .modal {
   position: fixed;
   top: 50%;
@@ -168,7 +200,7 @@ header button {
   background: white;
   padding: 20px;
   border: 2px solid #000;
-  z-index: 1000;
+  z-index: 1000; /* Modal remains above canvas */
 }
 
 /* Responsive adjustments */
@@ -196,5 +228,12 @@ header button {
   .resource-button.small-button {
     min-width: 20px;
     font-size: 10px;
+  }
+
+  /* Ensure canvas visibility on mobile */
+  #resource-bars canvas {
+    width: 100% !important; /* Override any inline width set by p5.js */
+    max-width: 100%; /* Prevent overflow */
+    display: block !important; /* Force visibility */
   }
 }
