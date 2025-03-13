@@ -5,8 +5,8 @@ let max_mp = 10,
   current_mp = 10;
 let max_stamina = 100,
   current_stamina = 100;
-let max_atb = 100,
-  current_atb = 0;
+let max_ATG = 100,
+  current_ATG = 0;
 
 // Global stat variables – all start at 1
 let stat_str = 1,
@@ -19,13 +19,13 @@ let stat_str = 1,
 let level = 1,
   exp = 1,
   movement = 65; // Base movement starts at 65 ft
-let statBonusElements = {};
+let stATGonusElements = {};
 
 // Player's starting inventory (populated initially)
 let inventory = [];
 
 // Add this near the top of your script with other constants
-let inventoryCategories = ["Equipment", "Consumables", "Materials", "Crystals", "Miscellaneous"];
+let inventoryCategories = ["Equipment", "Consumables", "Crystalls", "Crystals", "Miscellaneous"];
 
 let categoryStates = {
 };
@@ -40,13 +40,13 @@ let availableItems = {
     { name: "Healing Potion", description: "Restores 20 HP.", category: "Consumables", quantity: 1, quality: "Common" }
   ],
    
-  "Materials": [
-    { name: "Rope", description: "100ft of rope.", category: "Materials", quantity: 1, quality: "Uncommon" },
+  "Crystalls": [
+    { name: "Rope", description: "100ft of rope.", category: "Crystalls", quantity: 1, quality: "Uncommon" },
   ],
   "Crystals": [
-    { name: "Green Materia", description: "Casts Cure.", category: "Crystals", quantity: 1, quality: "Uncommon" },
-    { name: "Fire Crystal", description: "Grants the ability to cast Fire.", category: "Crystals", statBonuses: { MAG: 2 }, abilities: ["Fire"], statRequirements: { MAG: 5 }, quantity: 1, quality: "Rare" },
-    { name: "Heal Crystal", description: "Grants the ability to cast Cure.", category: "Crystals", statBonuses: { WIL: 1 }, abilities: ["Cure"], statRequirements: { WIL: 3 }, quantity: 1, quality: "Rare" }
+    { name: "Green Crystal", description: "Casts Cure.", category: "Crystals", quantity: 1, quality: "Uncommon" },
+    { name: "Fire Crystal", description: "Grants the ability to cast Fire.", category: "Crystals", stATGonuses: { MAG: 2 }, abilities: ["Fire"], statRequirements: { MAG: 5 }, quantity: 1, quality: "Rare" },
+    { name: "Heal Crystal", description: "Grants the ability to cast Cure.", category: "Crystals", stATGonuses: { WIL: 1 }, abilities: ["Cure"], statRequirements: { WIL: 3 }, quantity: 1, quality: "Rare" }
   ],
   "Miscellaneous": [
     { name: "Old Key", description: "Rusty but functional.", category: "Miscellaneous", quantity: 1, quality: "Poor" }
@@ -59,11 +59,40 @@ function initializeInventory() {
   const savedInventory = localStorage.getItem('inventory');
   if (savedInventory) {
     inventory = JSON.parse(savedInventory);
+    // One-time migration: Reclassify Accessory 1 and Accessory 2 to Accessory
+    let reclassified = false;
+    inventory.forEach(item => {
+      if (item.type === "Accessory 1" || item.type === "Accessory 2") {
+        item.type = "Accessory";
+        reclassified = true;
+      }
+    });
+    if (reclassified) {
+      localStorage.setItem('inventory', JSON.stringify(inventory));
+      console.log("Reclassified Accessory types in inventory:", inventory);
+    }
   } else {
     inventory = [];
     Object.values(availableItems).forEach(category => {
       category.forEach(item => inventory.push({ ...item }));
     });
+  }
+
+  // Reclassify equipped items
+  const savedEquipped = localStorage.getItem('equippedItems');
+  if (savedEquipped) {
+    equippedItems = JSON.parse(savedEquipped);
+    let reclassifiedEquipped = false;
+    for (let slot in equippedItems) {
+      if (equippedItems[slot] && (equippedItems[slot].type === "Accessory 1" || equippedItems[slot].type === "Accessory 2")) {
+        equippedItems[slot].type = "Accessory";
+        reclassifiedEquipped = true;
+      }
+    }
+    if (reclassifiedEquipped) {
+      localStorage.setItem('equippedItems', JSON.stringify(equippedItems));
+      console.log("Reclassified Accessory types in equippedItems:", equippedItems);
+    }
   }
 }
 
@@ -93,6 +122,53 @@ let availableEquipment = {
 let slotSelects = {};
 
 let characterAbilities = [];
+let abilityPoints = 1; // Starting with 1 point at Level 1
+let learnedAbilities = {}; // Object to track learned abilities by category, e.g., { "Melee - Heavy": ["Cleave"] }
+
+// Define available abilities with placeholders
+let availableAbilities = {
+  "Melee - Heavy": [
+    { name: "Cleave", ATGCost: 50, statReq: { STR: 10 }, pointCost: 1, effect: "Hits all enemies for 1.5x damage" },
+    { name: "Smash", ATGCost: 75, statReq: { STR: 15 }, pointCost: 2, effect: "Single target, 2x damage" }
+  ],
+  "Melee - Balanced": [
+    { name: "Balanced Strike", ATGCost: 40, statReq: { STR: 8, DEX: 8 }, pointCost: 1, effect: "Balanced attack with 1d8 damage" }
+  ],
+  "Melee - Light": [
+    { name: "Quick Slash", ATGCost: 30, statReq: { DEX: 10 }, pointCost: 1, effect: "Fast attack, 1d6+DEX damage" }
+  ],
+  "Ranged - Short": [
+    { name: "Rapid Shot", ATGCost: 35, statReq: { DEX: 10 }, pointCost: 1, effect: "Quick ranged attack, 20-30 ft" }
+  ],
+  "Ranged - Long": [
+    { name: "Sniper Shot", ATGCost: 60, statReq: { DEX: 12 }, pointCost: 2, effect: "Long-range precision shot, 60-100 ft" }
+  ],
+  "Magical - Offensive": [
+    { name: "Fireball", ATGCost: 80, statReq: { MAG: 10 }, pointCost: 2, effect: "Elemental damage, 3d6 fire" }
+  ],
+  "Magical - Support": [
+    { name: "Healing Aura", ATGCost: 70, statReq: { SPR: 10 }, pointCost: 2, effect: "Heals allies for 2d8 HP" }
+  ],
+  "Shields": [
+    { name: "Shield Bash", ATGCost: 40, statReq: { STR: 8 }, pointCost: 1, effect: "Stuns enemy for 1 turn" }
+  ],
+  "Hybrid": [
+    { name: "Gunblade Slash", ATGCost: 50, statReq: { STR: 8, DEX: 8 }, pointCost: 1, effect: "Melee attack in Melee mode" },
+    { name: "Gunblade Shot", ATGCost: 50, statReq: { DEX: 10 }, pointCost: 1, effect: "Ranged attack in Ranged mode" }
+  ]
+};
+
+const weaponCategories = [
+  "Melee - Heavy",
+  "Melee - Balanced",
+  "Melee - Light",
+  "Ranged - Short",
+  "Ranged - Long",
+  "Magical - Offensive",
+  "Magical - Support",
+  "Shields",
+  "Hybrid"
+];
 
 // Add currentTab to track the active tab
 let currentTab = 'resources'; // Default tab
@@ -141,48 +217,39 @@ function draw() {
 }
 
 function switchTab(tabName) {
-  console.log(`Switching to tab: ${tabName}`); // Debug
-  // Hide all tab content
+  console.log(`Switching to tab: ${tabName}`);
   document.querySelectorAll('.tabcontent').forEach(tab => {
     tab.style.display = 'none';
     tab.classList.remove('active');
   });
-
-  // Show the selected tab
   let selectedTab = document.getElementById(tabName);
   selectedTab.style.display = 'block';
   selectedTab.classList.add('active');
-
-  // Update active tablink style
   document.querySelectorAll('.tablink').forEach(btn => {
     btn.classList.remove('active');
-    if (btn.getAttribute('data-tab') === tabName) {
-      btn.classList.add('active');
-    }
+    if (btn.getAttribute('data-tab') === tabName) btn.classList.add('active');
   });
-
-  // Update currentTab
   currentTab = tabName;
 
-  // Render the tab content without resetting inventory
+  // Render the tab content
   if (tabName === 'inventory') {
-    console.log("Before render, inventory:", JSON.stringify(inventory, null, 2)); // Debug before render
+    console.log("Before render, inventory:", JSON.stringify(inventory, null, 2));
     createInventoryUI();
   } else if (tabName === 'equipment') {
     createEquipmentUI();
   } else if (tabName === 'stats') {
-    // Add stats UI function if defined
+    // Add createStatsUI() when defined
   } else if (tabName === 'traits') {
     createTraitsUI();
   } else if (tabName === 'talents') {
-    // Add talents UI function if defined
+    // Add createTalentsUI() when defined
   } else if (tabName === 'abilities') {
-    // Add abilities UI function if defined
+    console.log("Rendering Abilities tab");
+    createAbilitiesUI(); // Ensure immediate render
   } else if (tabName === 'resources') {
-    // Add resources UI function if defined
+    // Add createResourceUI() when defined
   }
 }
-
 // Ensure availableEquipment is updated based on inventory
 function updateAvailableEquipment() {
   for (let slot in availableEquipment) {
@@ -210,24 +277,24 @@ function updateAbilities() {
       });
     }
   }
-  console.log("Current Abilities:", characterAbilities); // For now, log to console
-  // Later, update Abilities page UI here
+  console.log("Current Abilities:", characterAbilities);
+  createAbilitiesUI(); // Called here!
 }
 
 // UI elements for resource tracker (created in createResourceUI)
 let maxHpInput, setMaxHpButton, maxMpInput, setMaxMpButton;
-let maxStaminaInput, setMaxStaminaButton, maxAtbInput, setMaxAtbButton;
+let maxStaminaInput, setMaxStaminaButton, maxATGInput, setMaxATGButton;
 let hpPlus,
   hpMinus,
   mpPlus,
   mpMinus,
   staminaPlus,
   staminaMinus,
-  atbPlus,
-  atbMinus;
+  ATGPlus,
+  ATGMinus;
 let resetButton;
-let staminaAtbLink = false,
-  staminaAtbLinkButton;
+let staminaATGLink = false,
+  staminaATGLinkButton;
 let cnv;
 let modalDiv = null; // For modals
 
@@ -395,21 +462,21 @@ const defaultTalents = [
     name: "Battlefield Awareness - Level I",
     level: "I",
     category: "Physical Combat",
-    description: "When an enemy misses you, gain 5 ATB.",
+    description: "When an enemy misses you, gain 5 ATG.",
     maxLevel: "III",
   },
   {
     name: "Battlefield Awareness - Level II",
     level: "II",
     category: "Physical Combat",
-    description: "When an enemy misses you, gain 10 ATB.",
+    description: "When an enemy misses you, gain 10 ATG.",
     maxLevel: "III",
   },
   {
     name: "Battlefield Awareness - Level III",
     level: "III",
     category: "Physical Combat",
-    description: "When an enemy misses you, gain 15 ATB.",
+    description: "When an enemy misses you, gain 15 ATG.",
     maxLevel: "III",
   },
   {
@@ -454,21 +521,21 @@ const defaultTalents = [
     name: "Efficient Spellcasting - Level I",
     level: "I",
     category: "Magical",
-    description: "Materia spells cost -5 MP (minimum 1MP cost per spell).",
+    description: "Crystal spells cost -5 MP (minimum 1MP cost per spell).",
     maxLevel: "III",
   },
   {
     name: "Efficient Spellcasting - Level II",
     level: "II",
     category: "Magical",
-    description: "Materia spells cost -10 MP (minimum 1MP cost per spell).",
+    description: "Crystal spells cost -10 MP (minimum 1MP cost per spell).",
     maxLevel: "III",
   },
   {
     name: "Efficient Spellcasting - Level III",
     level: "III",
     category: "Magical",
-    description: "Materia spells cost -15 MP (minimum 1MP cost per spell).",
+    description: "Crystal spells cost -15 MP (minimum 1MP cost per spell).",
     maxLevel: "III",
   },
   {
@@ -526,7 +593,7 @@ const defaultTalents = [
     level: "I",
     category: "Magical",
     description:
-      "If you cast a spell, you may spend 25 ATB to cast a second spell as a bonus effect (must be a different spell).",
+      "If you cast a spell, you may spend 25 ATG to cast a second spell as a bonus effect (must be a different spell).",
     maxLevel: "II",
   },
   {
@@ -534,7 +601,7 @@ const defaultTalents = [
     level: "II",
     category: "Magical",
     description:
-      "If you cast a spell, you may spend 50 ATB to cast a second spell as a bonus effect (must be a different spell).",
+      "If you cast a spell, you may spend 50 ATG to cast a second spell as a bonus effect (must be a different spell).",
     maxLevel: "II",
   },
   {
@@ -572,7 +639,7 @@ const defaultTalents = [
     level: "I",
     category: "Ranged Combat",
     description:
-      "If an ally within 30 ft is attacked, you may spend 25 ATB to make a reaction shot at the attacker.",
+      "If an ally within 30 ft is attacked, you may spend 25 ATG to make a reaction shot at the attacker.",
     maxLevel: "I",
   },
   {
@@ -587,7 +654,7 @@ const defaultTalents = [
     level: "I",
     category: "Ranged Combat",
     description:
-      "When making a ranged attack, you may spend 10 ATB to increase your crit range by 1.",
+      "When making a ranged attack, you may spend 10 ATG to increase your crit range by 1.",
     maxLevel: "III",
   },
   {
@@ -595,7 +662,7 @@ const defaultTalents = [
     level: "II",
     category: "Ranged Combat",
     description:
-      "When making a ranged attack, you may spend 20 ATB to increase your crit range by 2.",
+      "When making a ranged attack, you may spend 20 ATG to increase your crit range by 2.",
     maxLevel: "III",
   },
   {
@@ -603,7 +670,7 @@ const defaultTalents = [
     level: "III",
     category: "Ranged Combat",
     description:
-      "When making a ranged attack, you may spend 30 ATB to increase your crit range by 3.",
+      "When making a ranged attack, you may spend 30 ATG to increase your crit range by 3.",
     maxLevel: "III",
   },
 
@@ -663,7 +730,7 @@ const defaultTalents = [
     level: "I",
     category: "Defensive",
     description:
-      "If an enemy attacks you in melee, you may spend 25 ATB to counterattack.",
+      "If an enemy attacks you in melee, you may spend 25 ATG to counterattack.",
     maxLevel: "I",
   },
   {
@@ -745,28 +812,28 @@ const defaultTalents = [
     name: "Rushdown - Level I",
     level: "I",
     category: "Utility & Tactical",
-    description: "Gain +5 ATB if you move at least 20 ft before attacking.",
+    description: "Gain +5 ATG if you move at least 20 ft before attacking.",
     maxLevel: "II",
   },
   {
     name: "Rushdown - Level II",
     level: "II",
     category: "Utility & Tactical",
-    description: "Gain +10 ATB if you move at least 20 ft before attacking.",
+    description: "Gain +10 ATG if you move at least 20 ft before attacking.",
     maxLevel: "II",
   },
   {
     name: "Support Specialist - Level I",
     level: "I",
     category: "Utility & Tactical",
-    description: "When assisting an ally, they gain +5 ATB.",
+    description: "When assisting an ally, they gain +5 ATG.",
     maxLevel: "II",
   },
   {
     name: "Support Specialist - Level II",
     level: "II",
     category: "Utility & Tactical",
-    description: "When assisting an ally, they gain +10 ATB.",
+    description: "When assisting an ally, they gain +10 ATG.",
     maxLevel: "II",
   },
   {
@@ -791,7 +858,7 @@ const defaultTraits = [
     negative: "Disadvantage on Agility checks.",
   },
   {
-    name: "EX-SOLDIER",
+    name: "Veteran Soldier",
     category: "Combat",
     positive: "Advantage on Athletics checks.",
     negative: "Disadvantage on Ingenuity checks.",
@@ -800,7 +867,7 @@ const defaultTraits = [
     name: "Ancient Echoes",
     category: "Magical",
     positive:
-      "You can sense the presence of raw Materia and Lifestream energy within 60 feet, even through barriers (you do not sense refined Materia equipped to others).",
+      "You can sense the presence of raw Crytal energy within 60 feet, even through barriers (you do not sense refined Crystal equipped to others).",
     negative: "Disadvantage on Awareness checks.",
   },
   {
@@ -812,7 +879,7 @@ const defaultTraits = [
   {
     name: "Cybernetic Enhancements",
     category: "Utility",
-    positive: "Start each battle with +25 ATB.",
+    positive: "Start each battle with +25 ATG.",
     negative: "Start each battle with -25 Movement.",
   },
   {
@@ -834,7 +901,7 @@ const defaultTraits = [
     negative: "Resting requires double the time for full benefits.",
   },
   {
-    name: "Jenova’s Taint",
+    name: "Corrupted Blood",
     category: "Combat",
     positive: "Once per turn, you can reroll an attack roll.",
     negative:
@@ -954,7 +1021,7 @@ function showEditInventoryModal() {
   let categorySelect = createSelect()
     .parent(categoryDiv)
     .style("width", "100%");
-  ["Consumables", "Materials", "Miscellaneous"].forEach((cat) =>
+  ["Consumables", "Crystalls", "Miscellaneous"].forEach((cat) =>
     categorySelect.option(cat)
   );
   createSpan("The type of item (for Equipment, use the Equipment tab).")
@@ -1195,7 +1262,7 @@ function showAddItemModal() {
     .style("font-size", "12px")
     .style("color", "#666")
     .style("display", "block");
-  ["Consumables", "Materials", "Miscellaneous"].forEach((cat) => {
+  ["Consumables", "Crystalls", "Miscellaneous"].forEach((cat) => {
     if (availableItems[cat].length > 0) categorySelect.option(cat);
   });
 
@@ -1421,8 +1488,8 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
           if (crystal) {
             let desc = `Slot ${idx + 1}: ${crystal.name}<br>`;
             desc += `${crystal.description || "No description provided."}<br>`;
-            if (crystal.statBonuses && Object.keys(crystal.statBonuses).length > 0) {
-              let bonuses = Object.entries(crystal.statBonuses)
+            if (crystal.stATGonuses && Object.keys(crystal.stATGonuses).length > 0) {
+              let bonuses = Object.entries(crystal.stATGonuses)
                 .map(([stat, value]) => `${value > 0 ? "+" : ""}${value} ${stat}`)
                 .join(", ");
               desc += `Bonuses: ${bonuses}<br>`;
@@ -1551,7 +1618,7 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
 
           // Clear error message on successful change
           errorMessage.style("display", "none");
-          updateStatBonusesDisplay();
+          updateStATGonusesDisplay();
           updateResourcesBasedOnStats();
           updateAbilities();
           createEquipmentUI();
@@ -1596,11 +1663,32 @@ function showAddEditEquipmentModal() {
   let typeSelect = createSelect()
     .parent(typeDiv)
     .style("width", "100%");
+  // Updated to use "Accessory" instead of "Accessory 1" and "Accessory 2"
   [
-    "On-Hand", "Off-Hand", "Chest", "Helm", "Gloves", "Greaves", "Accessory 1", "Accessory 2"
+    "On-Hand", "Off-Hand", "Chest", "Helm", "Gloves", "Greaves", "Accessory"
   ].forEach(type => typeSelect.option(type));
   createSpan("The slot where the equipment is equipped.")
     .parent(typeDiv)
+    .style("font-size", "12px")
+    .style("color", "#666")
+    .style("display", "block");
+
+  // Add Weapon Category dropdown (visible for On-Hand and Off-Hand)
+  let weaponCategoryDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px").style("display", "none");
+  let weaponCategoryLabel = createSpan("Weapon Category:")
+    .parent(weaponCategoryDiv)
+    .style("display", "block");
+  let weaponCategorySelect = createSelect()
+    .parent(weaponCategoryDiv)
+    .style("width", "100%");
+  [
+    "Melee - Heavy", "Melee - Balanced", "Melee - Light",
+    "Ranged - Short", "Ranged - Long",
+    "Magical - Offensive", "Magical - Support",
+    "Shields", "Hybrid"
+  ].forEach(category => weaponCategorySelect.option(category));
+  createSpan("The category determining available abilities.")
+    .parent(weaponCategoryDiv)
     .style("font-size", "12px")
     .style("color", "#666")
     .style("display", "block");
@@ -1698,21 +1786,21 @@ function showAddEditEquipmentModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  let statBonusDiv = createDiv().parent(modalDiv);
-  let statBonusLabel = createSpan("Stat Bonus:")
-    .parent(statBonusDiv)
+  let stATGonusDiv = createDiv().parent(modalDiv);
+  let stATGonusLabel = createSpan("Stat Bonus:")
+    .parent(stATGonusDiv)
     .style("display", "block");
-  let statBonusAmountInput = createInput("0", "number")
-    .parent(statBonusDiv)
+  let stATGonusAmountInput = createInput("0", "number")
+    .parent(stATGonusDiv)
     .style("width", "50px")
     .style("margin-right", "5px");
-  let statBonusStatSelect = createSelect()
-    .parent(statBonusDiv)
+  let stATGonusStatSelect = createSelect()
+    .parent(stATGonusDiv)
     .style("width", "100px")
     .style("margin-bottom", "10px");
-  ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statBonusStatSelect.option(stat));
+  ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => stATGonusStatSelect.option(stat));
   createSpan("Stat to boost and amount.")
-    .parent(statBonusDiv)
+    .parent(stATGonusDiv)
     .style("font-size", "12px")
     .style("color", "#666")
     .style("display", "block");
@@ -1791,77 +1879,81 @@ function showAddEditEquipmentModal() {
       linkedStatDiv.style("display", "none");
       damageDiceDiv.style("display", "none");
       defenseDiv.style("display", "block");
+      weaponCategoryDiv.style("display", "none");
     } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
       penaltyDiv.style("display", "none");
       linkedStatDiv.style("display", "block");
       damageDiceDiv.style("display", "block");
       defenseDiv.style("display", "none");
-    } else {
+      weaponCategoryDiv.style("display", "block");
+    } else if (selectedType === "Accessory") {
       penaltyDiv.style("display", "none");
       linkedStatDiv.style("display", "none");
       damageDiceDiv.style("display", "none");
       defenseDiv.style("display", "none");
+      weaponCategoryDiv.style("display", "none");
     }
   }
 
   function updateEquipmentOptions() {
-    if (updating) return; // Prevent recursion
     let selectedType = typeSelect.value();
-    let allEquipment = inventory.filter(item => item.category === "Equipment" && item.type === selectedType);
-    updating = true; // Set flag
+    // For Accessories, filter by type "Accessory" instead of "Accessory 1" or "Accessory 2"
+    let allEquipment = inventory.filter(item => 
+      item.category === "Equipment" && 
+      (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType)
+    );
     equipmentSelect.html("");
     equipmentSelect.option("None", -1);
-    allEquipment.forEach((equipment, idx) => equipmentSelect.option(`${equipment.name} (${equipment.type})`, idx));
-    updating = false; // Reset flag
+    allEquipment.forEach((item, idx) => equipmentSelect.option(item.name, idx));
     loadEquipmentData();
   }
 
   function loadEquipmentData() {
-    if (updating) return; // Prevent recursion
     let idx = parseInt(equipmentSelect.value());
     let selectedType = typeSelect.value();
-    let allEquipment = inventory.filter(item => item.category === "Equipment" && item.type === selectedType);
+    let allEquipment = inventory.filter(item => 
+      item.category === "Equipment" && 
+      (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType)
+    );
     if (idx === -1) {
-      updating = true; // Set flag
       nameInput.value("");
       qualitySelect.value("Common");
       descriptionInput.value("");
       penaltySelect.value("0");
       slotsSelect.value("0");
       linkedStatSelect.value("STR");
-      statBonusStatSelect.value("None");
-      statBonusAmountInput.value("0");
+      stATGonusStatSelect.value("None");
+      stATGonusAmountInput.value("0");
       statReq1Select.value("None");
       statReq1Input.value("");
       statReq2Select.value("None");
       statReq2Input.value("");
       damageDiceInput.value("");
-      defenseInput.value("0");
       weaponModifierInput.value("0");
+      defenseInput.value("0");
       armorModifierInput.value("0");
-      updating = false; // Reset flag
-      updateTypeVisibility();
+      weaponCategorySelect.value("Melee - Heavy");
     } else if (idx >= 0 && idx < allEquipment.length) {
-      let equipment = allEquipment[idx];
-      updating = true; // Set flag
-      nameInput.value(equipment.name || "");
-      qualitySelect.value(equipment.quality || "Common");
-      descriptionInput.value(equipment.description || "");
-      penaltySelect.value(equipment.movementPenalty !== undefined ? String(equipment.movementPenalty) : "0");
-      slotsSelect.value(equipment.crystalSlots !== undefined ? String(equipment.crystalSlots) : "0");
-      linkedStatSelect.value(equipment.linkedStat || "STR");
-      statBonusStatSelect.value(equipment.statBonus && equipment.statBonus.stat ? equipment.statBonus.stat : "None");
-      statBonusAmountInput.value(equipment.statBonus && equipment.statBonus.amount ? equipment.statBonus.amount : "0");
-      statReq1Select.value(equipment.statRequirements && Object.keys(equipment.statRequirements)[0] ? Object.keys(equipment.statRequirements)[0] : "None");
-      statReq1Input.value(equipment.statRequirements && Object.values(equipment.statRequirements)[0] ? Object.values(equipment.statRequirements)[0] : "");
-      statReq2Select.value(equipment.statRequirements && Object.keys(equipment.statRequirements)[1] ? Object.keys(equipment.statRequirements)[1] : "None");
-      statReq2Input.value(equipment.statRequirements && Object.values(equipment.statRequirements)[1] ? Object.values(equipment.statRequirements)[1] : "");
-      damageDiceInput.value(equipment.damageDice || "");
-      defenseInput.value(equipment.defense !== undefined ? equipment.defense : "0");
-      weaponModifierInput.value(equipment.modifier !== undefined ? equipment.modifier : "0");
-      armorModifierInput.value(equipment.modifier !== undefined ? equipment.modifier : "0");
-      updating = false; // Reset flag
-      updateTypeVisibility();
+      let item = allEquipment[idx];
+      nameInput.value(item.name || "");
+      qualitySelect.value(item.quality || "Common");
+      descriptionInput.value(item.description || "");
+      penaltySelect.value(item.movementPenalty || "0");
+      slotsSelect.value(item.crystalSlots || 0);
+      linkedStatSelect.value(item.linkedStat || "STR");
+      stATGonusStatSelect.value(item.stATGonus ? item.stATGonus.stat : "None");
+      stATGonusAmountInput.value(item.stATGonus ? item.stATGonus.amount : 0);
+      let statReqs = item.statRequirements || {};
+      let stats = Object.keys(statReqs);
+      statReq1Select.value(stats[0] || "None");
+      statReq1Input.value(stats[0] ? statReqs[stats[0]] : "");
+      statReq2Select.value(stats[1] || "None");
+      statReq2Input.value(stats[1] ? statReqs[stats[1]] : "");
+      damageDiceInput.value(item.damageDice || "");
+      weaponModifierInput.value(item.modifier || 0);
+      defenseInput.value(item.defense || 0);
+      armorModifierInput.value(item.modifier || 0);
+      weaponCategorySelect.value(item.weaponCategory || "Melee - Heavy");
     }
   }
 
@@ -1869,13 +1961,7 @@ function showAddEditEquipmentModal() {
     updateTypeVisibility();
     updateEquipmentOptions();
   });
-
   equipmentSelect.changed(loadEquipmentData);
-
-  // Initial setup: set type and load equipment options
-  updating = true;
-  typeSelect.value("On-Hand"); // Default type
-  updating = false;
   updateTypeVisibility();
   updateEquipmentOptions();
 
@@ -1890,53 +1976,64 @@ function showAddEditEquipmentModal() {
         return;
       }
 
-      let type = typeSelect.value();
-      let newName = nameInput.value().trim();
+      let selectedType = typeSelect.value();
+      let name = nameInput.value().trim();
 
-      if (!newName) {
+      if (!name) {
         errorMessage.html("Please provide a name for the equipment.");
         errorMessage.style("display", "block");
         return;
       }
 
-      if (inventory.some(item => item.name === newName && item.category === "Equipment")) {
-        errorMessage.html(`An item with the name "${newName}" already exists. Please choose a different name.`);
+      if (inventory.some(item => item.name === name && item.category === "Equipment")) {
+        errorMessage.html(`An equipment with the name "${name}" already exists. Please choose a different name.`);
         errorMessage.style("display", "block");
         return;
       }
 
+      let stATGonusStat = stATGonusStatSelect.value();
+      let stATGonusAmount = parseInt(stATGonusAmountInput.value()) || 0;
+      let stATGonus = stATGonusStat !== "None" && stATGonusAmount !== 0 ? { stat: stATGonusStat, amount: stATGonusAmount } : null;
+
+      let statReq1 = statReq1Select.value();
+      let statReq1Value = parseInt(statReq1Input.value());
+      let statReq2 = statReq2Select.value();
+      let statReq2Value = parseInt(statReq2Input.value());
+      let statRequirements = {};
+      if (statReq1 !== "None" && statReq1Value) statRequirements[statReq1] = statReq1Value;
+      if (statReq2 !== "None" && statReq2Value) statRequirements[statReq2] = statReq2Value;
+
       let newEquipment = {
-        name: newName,
-        type: type,
+        name,
         description: descriptionInput.value(),
+        type: selectedType,
         category: "Equipment",
-        crystalSlots: parseInt(slotsSelect.value()),
         quality: qualitySelect.value(),
-        statBonus: statBonusStatSelect.value() !== "None" ? { stat: statBonusStatSelect.value(), amount: parseInt(statBonusAmountInput.value()) || 0 } : null,
-        statRequirements: {},
-        movementPenalty: ["Chest", "Helm", "Gloves", "Greaves"].includes(type) ? parseInt(penaltySelect.value()) : undefined,
-        linkedStat: ["On-Hand", "Off-Hand"].includes(type) ? linkedStatSelect.value() : undefined,
-        damageDice: ["On-Hand", "Off-Hand"].includes(type) ? damageDiceInput.value() || undefined : undefined,
-        defense: ["Chest", "Helm", "Gloves", "Greaves"].includes(type) ? parseInt(defenseInput.value()) || 0 : undefined,
-        modifier: ["On-Hand", "Off-Hand"].includes(type) ? parseInt(weaponModifierInput.value()) || 0 :
-                  ["Chest", "Helm", "Gloves", "Greaves"].includes(type) ? parseInt(armorModifierInput.value()) || 0 : undefined,
+        crystalSlots: parseInt(slotsSelect.value()) || 0,
         quantity: 1
       };
 
-      if (statReq1Select.value() !== "None" && statReq1Input.value()) {
-        newEquipment.statRequirements[statReq1Select.value()] = parseInt(statReq1Input.value());
+      if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
+        newEquipment.movementPenalty = parseInt(penaltySelect.value()) || 0;
+        newEquipment.defense = parseInt(defenseInput.value()) || 0;
+        newEquipment.modifier = parseInt(armorModifierInput.value()) || 0;
+      } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
+        newEquipment.linkedStat = linkedStatSelect.value();
+        newEquipment.damageDice = damageDiceInput.value().trim();
+        newEquipment.modifier = parseInt(weaponModifierInput.value()) || 0;
+        newEquipment.weaponCategory = weaponCategorySelect.value();
       }
-      if (statReq2Select.value() !== "None" && statReq2Input.value()) {
-        newEquipment.statRequirements[statReq2Select.value()] = parseInt(statReq2Input.value());
-      }
+
+      if (stATGonus) newEquipment.stATGonus = stATGonus;
+      if (Object.keys(statRequirements).length > 0) newEquipment.statRequirements = statRequirements;
 
       console.log("Adding new equipment:", newEquipment);
       inventory.push(newEquipment);
       localStorage.setItem('inventory', JSON.stringify(inventory));
       console.log("Updated inventory:", inventory);
       updateAvailableEquipment();
+      createInventoryUI();
       createEquipmentUI();
-      if (typeof createInventoryUI === "function") createInventoryUI();
       modalDiv.remove();
       errorMessage.style("display", "none");
     });
@@ -1951,17 +2048,20 @@ function showAddEditEquipmentModal() {
         errorMessage.style("display", "block");
         return;
       }
+
       let selectedType = typeSelect.value();
-      let allEquipment = inventory.filter(item => item.category === "Equipment" && item.type === selectedType);
+      let allEquipment = inventory.filter(item => 
+        item.category === "Equipment" && 
+        (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType)
+      );
       if (idx < 0 || idx >= allEquipment.length) {
         errorMessage.html("Invalid item selected.");
         errorMessage.style("display", "block");
         return;
       }
 
-      let equipment = allEquipment[idx];
+      let item = allEquipment[idx];
       let newName = nameInput.value().trim();
-      let type = typeSelect.value();
 
       if (!newName) {
         errorMessage.html("Please provide a name for the equipment.");
@@ -1969,64 +2069,84 @@ function showAddEditEquipmentModal() {
         return;
       }
 
-      if (newName !== equipment.name && inventory.some(item => item.name === newName && item.category === "Equipment")) {
-        errorMessage.html(`An item with the name "${newName}" already exists. Please choose a different name.`);
+      if (newName !== item.name && inventory.some(i => i.name === newName && i.category === "Equipment")) {
+        errorMessage.html(`An equipment with the name "${newName}" already exists. Please choose a different name.`);
         errorMessage.style("display", "block");
         return;
       }
 
+      let stATGonusStat = stATGonusStatSelect.value();
+      let stATGonusAmount = parseInt(stATGonusAmountInput.value()) || 0;
+      let stATGonus = stATGonusStat !== "None" && stATGonusAmount !== 0 ? { stat: stATGonusStat, amount: stATGonusAmount } : null;
+
+      let statReq1 = statReq1Select.value();
+      let statReq1Value = parseInt(statReq1Input.value());
+      let statReq2 = statReq2Select.value();
+      let statReq2Value = parseInt(statReq2Input.value());
+      let statRequirements = {};
+      if (statReq1 !== "None" && statReq1Value) statRequirements[statReq1] = statReq1Value;
+      if (statReq2 !== "None" && statReq2Value) statRequirements[statReq2] = statReq2Value;
+
       let updatedEquipment = {
         name: newName,
-        type: type,
         description: descriptionInput.value(),
+        type: selectedType,
         category: "Equipment",
-        crystalSlots: parseInt(slotsSelect.value()),
         quality: qualitySelect.value(),
-        statBonus: statBonusStatSelect.value() !== "None" ? { stat: statBonusStatSelect.value(), amount: parseInt(statBonusAmountInput.value()) || 0 } : null,
-        statRequirements: {},
-        movementPenalty: ["Chest", "Helm", "Gloves", "Greaves"].includes(type) ? parseInt(penaltySelect.value()) : undefined,
-        linkedStat: ["On-Hand", "Off-Hand"].includes(type) ? linkedStatSelect.value() : undefined,
-        damageDice: ["On-Hand", "Off-Hand"].includes(type) ? damageDiceInput.value() || undefined : undefined,
-        defense: ["Chest", "Helm", "Gloves", "Greaves"].includes(type) ? parseInt(defenseInput.value()) || 0 : undefined,
-        modifier: ["On-Hand", "Off-Hand"].includes(type) ? parseInt(weaponModifierInput.value()) || 0 :
-                  ["Chest", "Helm", "Gloves", "Greaves"].includes(type) ? parseInt(armorModifierInput.value()) || 0 : undefined,
-        quantity: equipment.quantity || 1
+        crystalSlots: parseInt(slotsSelect.value()) || 0,
+        quantity: item.quantity || 1
       };
 
-      if (statReq1Select.value() !== "None" && statReq1Input.value()) {
-        updatedEquipment.statRequirements[statReq1Select.value()] = parseInt(statReq1Input.value());
-      }
-      if (statReq2Select.value() !== "None" && statReq2Input.value()) {
-        updatedEquipment.statRequirements[statReq2Select.value()] = parseInt(statReq2Input.value());
+      if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
+        updatedEquipment.movementPenalty = parseInt(penaltySelect.value()) || 0;
+        updatedEquipment.defense = parseInt(defenseInput.value()) || 0;
+        updatedEquipment.modifier = parseInt(armorModifierInput.value()) || 0;
+        delete updatedEquipment.linkedStat;
+        delete updatedEquipment.damageDice;
+        delete updatedEquipment.weaponCategory;
+      } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
+        updatedEquipment.linkedStat = linkedStatSelect.value();
+        updatedEquipment.damageDice = damageDiceInput.value().trim();
+        updatedEquipment.modifier = parseInt(weaponModifierInput.value()) || 0;
+        updatedEquipment.weaponCategory = weaponCategorySelect.value();
+        delete updatedEquipment.movementPenalty;
+        delete updatedEquipment.defense;
+      } else if (selectedType === "Accessory") {
+        delete updatedEquipment.movementPenalty;
+        delete updatedEquipment.linkedStat;
+        delete updatedEquipment.damageDice;
+        delete updatedEquipment.defense;
+        delete updatedEquipment.modifier;
+        delete updatedEquipment.weaponCategory;
       }
 
-      if (equippedItems[type] && equippedItems[type].name === equipment.name) {
-        if (canWieldItem(updatedEquipment)) {
-          equippedItems[type] = { ...updatedEquipment, equippedCrystals: equippedItems[type].equippedCrystals };
-        } else {
-          let totalStats = {
-            STR: getTotalStat("STR"), VIT: getTotalStat("VIT"), DEX: getTotalStat("DEX"),
-            MAG: getTotalStat("MAG"), WIL: getTotalStat("WIL"), SPR: getTotalStat("SPR"),
-            LCK: getTotalStat("LCK")
-          };
-          let missingStats = [];
-          for (let [stat, requiredValue] of Object.entries(updatedEquipment.statRequirements || {})) {
-            if (totalStats[stat] < requiredValue) {
-              missingStats.push(`${stat}: ${totalStats[stat]}/${requiredValue}`);
-            }
+      if (stATGonus) updatedEquipment.stATGonus = stATGonus;
+      else delete updatedEquipment.stATGonus;
+      if (Object.keys(statRequirements).length > 0) updatedEquipment.statRequirements = statRequirements;
+      else delete updatedEquipment.statRequirements;
+
+      let inventoryIdx = inventory.indexOf(item);
+      inventory[inventoryIdx] = updatedEquipment;
+
+      // Sync equipped items
+      for (let slot in equippedItems) {
+        if (equippedItems[slot] && equippedItems[slot].name === item.name) {
+          equippedItems[slot] = { ...updatedEquipment };
+          if (equippedItems[slot].crystalSlots !== item.crystalSlots) {
+            equippedItems[slot].equippedCrystals = Array(equippedItems[slot].crystalSlots).fill(null);
+          } else {
+            equippedItems[slot].equippedCrystals = item.equippedCrystals || Array(equippedItems[slot].crystalSlots).fill(null);
           }
-          errorMessage.html(`Cannot edit ${equipment.name} as equipped item. New requirements not met: ${missingStats.join(", ")}.`);
-          errorMessage.style("display", "block");
-          return;
         }
       }
 
-      let inventoryIdx = inventory.indexOf(equipment);
-      inventory[inventoryIdx] = updatedEquipment;
       localStorage.setItem('inventory', JSON.stringify(inventory));
+      updateStATGonusesDisplay();
+      updateResourcesBasedOnStats();
       updateAvailableEquipment();
+      updateAbilities();
+      createInventoryUI();
       createEquipmentUI();
-      if (typeof createInventoryUI === "function") createInventoryUI();
       modalDiv.remove();
       errorMessage.style("display", "none");
     });
@@ -2041,30 +2161,37 @@ function showAddEditEquipmentModal() {
         errorMessage.style("display", "block");
         return;
       }
+
       let selectedType = typeSelect.value();
-      let allEquipment = inventory.filter(item => item.category === "Equipment" && item.type === selectedType);
+      let allEquipment = inventory.filter(item => 
+        item.category === "Equipment" && 
+        (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType)
+      );
       if (idx < 0 || idx >= allEquipment.length) {
         errorMessage.html("Invalid item selected.");
         errorMessage.style("display", "block");
         return;
       }
 
-      let equipment = allEquipment[idx];
+      let item = allEquipment[idx];
       showConfirmationModal(
-        `Are you sure you want to remove "${equipment.name}"?`,
+        `Are you sure you want to remove "${item.name}"?`,
         () => {
-          let type = equipment.type;
-          if (equippedItems[type] && equippedItems[type].name === equipment.name) {
-            equippedItems[type] = null;
-            calculateMovement();
-            updateResourcesBasedOnStats();
-            updateStatBonusesDisplay();
+          // Update for Accessory slots: remove from both Accessory 1 and Accessory 2 if equipped
+          if (equippedItems["Accessory 1"] && equippedItems["Accessory 1"].name === item.name) {
+            equippedItems["Accessory 1"] = null;
           }
-          inventory.splice(inventory.indexOf(equipment), 1);
+          if (equippedItems["Accessory 2"] && equippedItems["Accessory 2"].name === item.name) {
+            equippedItems["Accessory 2"] = null;
+          }
+          inventory.splice(inventory.indexOf(item), 1);
           localStorage.setItem('inventory', JSON.stringify(inventory));
+          updateStATGonusesDisplay();
+          updateResourcesBasedOnStats();
           updateAvailableEquipment();
+          updateAbilities();
+          createInventoryUI();
           createEquipmentUI();
-          if (typeof createInventoryUI === "function") createInventoryUI();
           modalDiv.remove();
           errorMessage.style("display", "none");
         }
@@ -2135,14 +2262,25 @@ createResourceUI();
       activeTab.style.display = "block";
 
       // Refresh UI based on tab
-      if (tabId === "inventory") {
-        console.log("Switching to Inventory tab");
-        createInventoryUI(); // Refresh inventory UI
-      } else if (tabId === "resources") {
-        redrawResourceBars(); // Redraw resource bars if needed
-      }
-    });
+// Refresh UI based on tab
+console.log(`Switching to tab: ${tabId}`);
+    if (tabId === "inventory") {
+      createInventoryUI();
+    } else if (tabId === "equipment") {
+      createEquipmentUI();
+    } else if (tabId === "abilities") {
+      createAbilitiesUI();
+    } else if (tabId === "traits") {
+      createTraitsUI();
+    } else if (tabId === "resources") {
+      createResourceUI();
+    } else if (tabId === "stats") {
+      createStatsUI();
+    } else if (tabId === "talents") {
+      createTalentsUI();
+    }
   });
+});
 
   // Simulate click on the default active tab (Resources)
   document.querySelector(".tablink.active").click();
@@ -2167,7 +2305,7 @@ function displayBars() {
   let y_hp = 25,
     y_mp = 55,
     y_stamina = 85,
-    y_atb = 115;
+    y_ATG = 115;
 
   stroke(0);
   fill(128);
@@ -2208,16 +2346,16 @@ function displayBars() {
 
   stroke(0);
   fill(128);
-  rect(x, y_atb, bar_width, bar_height);
+  rect(x, y_ATG, bar_width, bar_height);
   noStroke();
   fill(0, 0, 255);
-  let atb_width = (current_atb / max_atb) * bar_width;
-  rect(x, y_atb, atb_width, bar_height);
+  let ATG_width = (current_ATG / max_ATG) * bar_width;
+  rect(x, y_ATG, ATG_width, bar_height);
   fill(255);
   text(
-    `ATB: ${current_atb}/${max_atb}`,
+    `ATG: ${current_ATG}/${max_ATG}`,
     x + bar_width / 2,
-    y_atb + bar_height / 2
+    y_ATG + bar_height / 2
   );
 }
 
@@ -2291,31 +2429,31 @@ function createResourceUI() {
     .class("resource-button small-button")
     .mousePressed(() => {
       current_stamina = max(current_stamina - 25, 0);
-      if (staminaAtbLink) {
-        current_atb = min(current_atb + 25, max_atb);
+      if (staminaATGLink) {
+        current_ATG = min(current_ATG + 25, max_ATG);
       }
     });
 
-  let atbRow = createDiv().parent(rUI).class("resource-row");
-  createSpan("ATB:").parent(atbRow);
-  maxAtbInput = createInput(max_atb.toString(), "number")
-    .parent(atbRow)
+  let ATGRow = createDiv().parent(rUI).class("resource-row");
+  createSpan("ATG:").parent(ATGRow);
+  maxATGInput = createInput(max_ATG.toString(), "number")
+    .parent(ATGRow)
     .class("resource-input");
-  setMaxAtbButton = createButton("Set Max")
-    .parent(atbRow)
+  setMaxATGButton = createButton("Set Max")
+    .parent(ATGRow)
     .class("resource-button")
-    .mousePressed(setMaxAtb);
-  atbPlus = createButton("+25")
-    .parent(atbRow)
+    .mousePressed(setMaxATG);
+  ATGPlus = createButton("+25")
+    .parent(ATGRow)
     .class("resource-button small-button")
     .mousePressed(() => {
-      current_atb = min(current_atb + 25, max_atb);
+      current_ATG = min(current_ATG + 25, max_ATG);
     });
-  atbMinus = createButton("-50")
-    .parent(atbRow)
+  ATGMinus = createButton("-50")
+    .parent(ATGRow)
     .class("resource-button small-button")
     .mousePressed(() => {
-      current_atb = max(current_atb - 50, 0);
+      current_ATG = max(current_ATG - 50, 0);
     });
 
   let adjustmentRow = createDiv().parent(rUI).class("resource-row");
@@ -2330,7 +2468,7 @@ function createResourceUI() {
   resourceSelect.option("HP");
   resourceSelect.option("MP");
   resourceSelect.option("STMN");
-  resourceSelect.option("ATB");
+  resourceSelect.option("ATG");
   createButton("+")
     .parent(adjustmentRow)
     .class("resource-button small-button")
@@ -2355,12 +2493,12 @@ function createResourceUI() {
     );
 
   let linkRow = createDiv().parent(rUI).class("resource-row");
-  staminaAtbLinkButton = createButton(staminaAtbLink ? "Link: ON" : "Link: OFF")
+  staminaATGLinkButton = createButton(staminaATGLink ? "Link: ON" : "Link: OFF")
     .parent(linkRow)
     .class("resource-button")
-    .mousePressed(toggleStaminaAtbLink)
-    .style("background-color", staminaAtbLink ? "green" : "red");
-  createSpan("When ON, using STMN adds to ATB").parent(linkRow);
+    .mousePressed(toggleStaminaATGLink)
+    .style("background-color", staminaATGLink ? "green" : "red");
+  createSpan("When ON, using STMN adds to ATG").parent(linkRow);
 
   let resetRow = createDiv().parent(rUI).class("resource-row");
   resetButton = createButton("Reset All")
@@ -2384,12 +2522,12 @@ function adjustResource(resource, value, isAddition) {
       break;
     case "STMN":
       current_stamina = constrain(current_stamina + adjustment, 0, max_stamina);
-      if (!isAddition && staminaAtbLink) {
-        current_atb = min(current_atb + value, max_atb);
+      if (!isAddition && staminaATGLink) {
+        current_ATG = min(current_ATG + value, max_ATG);
       }
       break;
-    case "ATB":
-      current_atb = constrain(current_atb + adjustment, 0, max_atb);
+    case "ATG":
+      current_ATG = constrain(current_ATG + adjustment, 0, max_ATG);
       break;
   }
 }
@@ -2418,11 +2556,11 @@ function setMaxStamina() {
   }
 }
 
-function setMaxAtb() {
-  let value = parseInt(maxAtbInput.value());
+function setMaxATG() {
+  let value = parseInt(maxATGInput.value());
   if (!isNaN(value) && value > 0) {
-    max_atb = value;
-    current_atb = min(current_atb, value);
+    max_ATG = value;
+    current_ATG = min(current_ATG, value);
   }
 }
 
@@ -2430,15 +2568,15 @@ function resetResources() {
   current_hp = max_hp;
   current_mp = max_mp;
   current_stamina = max_stamina;
-  current_atb = 0;
+  current_ATG = 0;
 }
 
-function toggleStaminaAtbLink() {
-  staminaAtbLink = !staminaAtbLink;
-  staminaAtbLinkButton.html(staminaAtbLink ? "Link: ON" : "Link: OFF");
-  staminaAtbLinkButton.style(
+function toggleStaminaATGLink() {
+  staminaATGLink = !staminaATGLink;
+  staminaATGLinkButton.html(staminaATGLink ? "Link: ON" : "Link: OFF");
+  staminaATGLinkButton.style(
     "background-color",
-    staminaAtbLink ? "green" : "red"
+    staminaATGLink ? "green" : "red"
   );
 }
 
@@ -2514,7 +2652,7 @@ function createStatInput(abbrev, name, initialValue, container, statName, linkab
   });
 
   let bonusSpan = createSpan().parent(div).style("color", "green").style("margin-left", "5px");
-  statBonusElements[abbrev] = bonusSpan;
+  stATGonusElements[abbrev] = bonusSpan;
 }
 function tryChangeStat(statName, newValue) {
   // Convert and constrain the new value
@@ -2528,7 +2666,7 @@ function tryChangeStat(statName, newValue) {
   }
 
   // Calculate the new total stat value (base + bonuses)
-  let bonuses = getStatBonuses();
+  let bonuses = getStATGonuses();
   let newTotal = newValueInt + (bonuses[statName] || 0);
 
   // Check all equipped items for stat requirements
@@ -2680,7 +2818,6 @@ function createEquipmentUI() {
     .style("margin-top", "5px")
     .style("margin-bottom", "10px");
 
-
   let equipmentTable = createElement("table")
     .parent(equipmentContainerDiv)
     .id("equipmentTable")
@@ -2688,7 +2825,7 @@ function createEquipmentUI() {
     .style("border-collapse", "collapse")
     .style("margin-top", "10px");
   let headerRow = createElement("tr").parent(equipmentTable);
-  ["Slot", "Name", "Requirements", "Damage/Defense", "Mov. Penalty", "Crystal Slots", "Stat Bonus", "Linked Stat"].forEach((header) => {
+  ["Slot", "Name", "Requirements", "Damage/Defense", "Mov. Penalty", "Crystal Slots", "Stat Bonus", "Linked Stat", "Weapon Category"].forEach((header) => {
     createElement("th", header)
       .parent(headerRow)
       .style("border", "1px solid #ccc")
@@ -2717,8 +2854,20 @@ function createEquipmentUI() {
       .parent(nameCell)
       .style("width", "100%");
     itemSelect.option("None");
-    if (availableEquipment[slot]) {
-      availableEquipment[slot].forEach(item => itemSelect.option(item.name));
+    let availableItems = availableEquipment[slot];
+    if (availableItems) {
+      availableItems.forEach(item => {
+        // Prevent the same accessory from being equipped in both slots
+        let isAlreadyEquipped = false;
+        if (slot === "Accessory 1" && equippedItems["Accessory 2"] && equippedItems["Accessory 2"].name === item.name) {
+          isAlreadyEquipped = true;
+        } else if (slot === "Accessory 2" && equippedItems["Accessory 1"] && equippedItems["Accessory 1"].name === item.name) {
+          isAlreadyEquipped = true;
+        }
+        if (!isAlreadyEquipped) {
+          itemSelect.option(item.name);
+        }
+      });
     }
     itemSelect.value(equippedItems[slot] ? equippedItems[slot].name : "None");
     itemSelect.changed(() => {
@@ -2726,7 +2875,7 @@ function createEquipmentUI() {
       if (selectedName === "None") {
         equippedItems[slot] = null;
       } else {
-        let selectedItem = availableEquipment[slot].find(item => item.name === selectedName);
+        let selectedItem = availableItems.find(item => item.name === selectedName);
         if (selectedItem && canWieldItem(selectedItem)) {
           equippedItems[slot] = { ...selectedItem, equippedCrystals: equippedItems[slot]?.equippedCrystals || Array(selectedItem.crystalSlots || 0).fill(null) };
         } else {
@@ -2736,7 +2885,7 @@ function createEquipmentUI() {
         }
       }
       calculateMovement();
-      updateStatBonusesDisplay();
+      updateStATGonusesDisplay();
       updateResourcesBasedOnStats();
       updateAbilities();
       createEquipmentUI();
@@ -2774,13 +2923,20 @@ function createEquipmentUI() {
       crystalCell.mousePressed(() => showEquipmentDescription(slot, item, true));
     }
 
-    let bonusText = item && item.statBonus && item.statBonus.stat !== "None" ? `${item.statBonus.amount > 0 ? "+" : ""}${item.statBonus.amount} ${item.statBonus.stat}` : "-";
+    let bonusText = item && item.stATGonus && item.stATGonus.stat !== "None" ? `${item.stATGonus.amount > 0 ? "+" : ""}${item.stATGonus.amount} ${item.stATGonus.stat}` : "-";
     createElement("td", bonusText)
       .parent(row)
       .style("border", "1px solid #ccc")
       .style("padding", "5px");
 
     createElement("td", item && item.linkedStat ? item.linkedStat : "-")
+      .parent(row)
+      .style("border", "1px solid #ccc")
+      .style("padding", "5px");
+
+    // Add Weapon Category column
+    let weaponCategoryText = (item && (slot === "On-Hand" || slot === "Off-Hand")) ? (item.weaponCategory || "-") : "-";
+    createElement("td", weaponCategoryText)
       .parent(row)
       .style("border", "1px solid #ccc")
       .style("padding", "5px");
@@ -2830,12 +2986,12 @@ function showModifyCrystalsModal() {
   let descInput = createInput("").parent(descDiv).style("width", "180px");
   createSpan("What the crystal does or its lore.").parent(descDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  let statBonusDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Stat Bonus:").parent(statBonusDiv).style("display", "inline-block").style("width", "100px");
-  let statSelect = createSelect().parent(statBonusDiv).style("width", "80px").style("margin-right", "5px");
+  let stATGonusDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  createSpan("Stat Bonus:").parent(stATGonusDiv).style("display", "inline-block").style("width", "100px");
+  let statSelect = createSelect().parent(stATGonusDiv).style("width", "80px").style("margin-right", "5px");
   ["None", "STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statSelect.option(stat));
-  let amountInput = createInput("0", "number").parent(statBonusDiv).style("width", "50px");
-  createSpan("Stat to boost (e.g., MAG) and amount.").parent(statBonusDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
+  let amountInput = createInput("0", "number").parent(stATGonusDiv).style("width", "50px");
+  createSpan("Stat to boost (e.g., MAG) and amount.").parent(stATGonusDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
   let statReqDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
   createSpan("Stat Requirement:").parent(statReqDiv).style("display", "inline-block").style("width", "100px");
@@ -2863,10 +3019,10 @@ function showModifyCrystalsModal() {
       let crystal = crystals[idx];
       nameInput.value(crystal.name || "");
       descInput.value(crystal.description || "");
-      let statBonuses = crystal.statBonuses || {};
-      let stat = Object.keys(statBonuses).length > 0 ? Object.keys(statBonuses)[0] : "None";
+      let stATGonuses = crystal.stATGonuses || {};
+      let stat = Object.keys(stATGonuses).length > 0 ? Object.keys(stATGonuses)[0] : "None";
       statSelect.value(stat);
-      amountInput.value(stat !== "None" && statBonuses[stat] ? statBonuses[stat] : 0);
+      amountInput.value(stat !== "None" && stATGonuses[stat] ? stATGonuses[stat] : 0);
       let statReqs = crystal.statRequirements || {};
       let reqStat = Object.keys(statReqs).length > 0 ? Object.keys(statReqs)[0] : "None";
       statReqSelect.value(reqStat);
@@ -2913,7 +3069,7 @@ function showModifyCrystalsModal() {
         name,
         description: desc,
         category: "Crystals",
-        statBonuses: stat !== "None" ? { [stat]: amount } : {},
+        stATGonuses: stat !== "None" ? { [stat]: amount } : {},
         statRequirements: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
         abilities: abilities.length > 0 ? abilities : [],
         quantity: 1,
@@ -2973,7 +3129,7 @@ function showModifyCrystalsModal() {
         name: newName,
         description: newDesc,
         category: "Crystals",
-        statBonuses: stat !== "None" ? { [stat]: amount } : {},
+        stATGonuses: stat !== "None" ? { [stat]: amount } : {},
         statRequirements: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
         abilities: abilities.length > 0 ? abilities : [],
         quantity: crystal.quantity || 1,
@@ -2993,7 +3149,7 @@ function showModifyCrystalsModal() {
 
       localStorage.setItem('inventory', JSON.stringify(inventory));
       console.log("Updated inventory:", inventory);
-      updateStatBonusesDisplay();
+      updateStATGonusesDisplay();
       updateResourcesBasedOnStats();
       updateAbilities();
       createEquipmentUI();
@@ -3031,7 +3187,7 @@ function showModifyCrystalsModal() {
           inventory.splice(inventory.indexOf(crystal), 1);
           localStorage.setItem('inventory', JSON.stringify(inventory));
           console.log("Removed crystal:", crystal.name, "Updated inventory:", inventory);
-          updateStatBonusesDisplay();
+          updateStATGonusesDisplay();
           updateResourcesBasedOnStats();
           updateAbilities();
           createEquipmentUI();
@@ -3055,8 +3211,8 @@ function createEquipmentFromModal(
   penaltySelect,
   slotsSelect,
   linkedStatSelect,
-  statBonusAmountInput,
-  statBonusStatSelect,
+  stATGonusAmountInput,
+  stATGonusStatSelect,
   descriptionInput,
   statReq1Select,
   statReq1Input,
@@ -3086,9 +3242,9 @@ function createEquipmentFromModal(
   let linkedStat = ["On-Hand", "Off-Hand"].includes(type)
     ? linkedStatSelect.value()
     : null;
-  let statBonusAmount = parseInt(statBonusAmountInput.value()) || 0;
-  let statBonusStat =
-    statBonusStatSelect.value() === "None" ? null : statBonusStatSelect.value();
+  let stATGonusAmount = parseInt(stATGonusAmountInput.value()) || 0;
+  let stATGonusStat =
+    stATGonusStatSelect.value() === "None" ? null : stATGonusStatSelect.value();
   let description =
     descriptionInput.value().trim() || "No description provided.";
   // Stat Requirements
@@ -3118,9 +3274,9 @@ function createEquipmentFromModal(
     name: name,
     movementPenalty: movementPenalty,
     crystalSlots: crystalSlots,
-    statBonus:
-      statBonusAmount !== 0 && statBonusStat
-        ? { amount: statBonusAmount, stat: statBonusStat }
+    stATGonus:
+      stATGonusAmount !== 0 && stATGonusStat
+        ? { amount: stATGonusAmount, stat: stATGonusStat }
         : null,
     modifier: modifier !== 0 ? modifier : null,
     linkedStat: linkedStat,
@@ -3175,7 +3331,7 @@ function equipItem(slot, itemName) {
   calculateMovement();
   updateResourcesBasedOnStats();
   createEquipmentUI();
-  updateStatBonusesDisplay();
+  updateStATGonusesDisplay();
 }
 function showRemoveEditEquipmentModal() {
   if (modalDiv) modalDiv.remove();
@@ -3304,22 +3460,22 @@ function showRemoveEditEquipmentModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  let statBonusDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  let statBonusLabel = createSpan("Stat Bonus:")
-    .parent(statBonusDiv)
+  let stATGonusDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  let stATGonusLabel = createSpan("Stat Bonus:")
+    .parent(stATGonusDiv)
     .style("display", "block");
-  let statBonusAmountInput = createInput("0", "number")
-    .parent(statBonusDiv)
+  let stATGonusAmountInput = createInput("0", "number")
+    .parent(stATGonusDiv)
     .style("width", "50px")
     .style("margin-right", "5px");
-  let statBonusStatSelect = createSelect()
-    .parent(statBonusDiv)
+  let stATGonusStatSelect = createSelect()
+    .parent(stATGonusDiv)
     .style("width", "100px");
   ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach((stat) =>
-    statBonusStatSelect.option(stat)
+    stATGonusStatSelect.option(stat)
   );
   createSpan("Stat to boost and amount.")
-    .parent(statBonusDiv)
+    .parent(stATGonusDiv)
     .style("font-size", "12px")
     .style("color", "#666")
     .style("display", "block");
@@ -3402,8 +3558,8 @@ function showRemoveEditEquipmentModal() {
       penaltySelect.value(item.movementPenalty !== undefined ? String(item.movementPenalty) : "0");
       slotsSelect.value(item.crystalSlots !== undefined ? String(item.crystalSlots) : "0");
       linkedStatSelect.value(item.linkedStat || "STR");
-      statBonusStatSelect.value(item.statBonus && item.statBonus.stat ? item.statBonus.stat : "None");
-      statBonusAmountInput.value(item.statBonus && item.statBonus.amount ? item.statBonus.amount : "0");
+      stATGonusStatSelect.value(item.stATGonus && item.stATGonus.stat ? item.stATGonus.stat : "None");
+      stATGonusAmountInput.value(item.stATGonus && item.stATGonus.amount ? item.stATGonus.amount : "0");
       statReq1Select.value(item.statRequirements && Object.keys(item.statRequirements)[0] ? Object.keys(item.statRequirements)[0] : "None");
       statReq1Input.value(item.statRequirements && Object.values(item.statRequirements)[0] ? Object.values(item.statRequirements)[0] : "");
       statReq2Select.value(item.statRequirements && Object.keys(item.statRequirements)[1] ? Object.keys(item.statRequirements)[1] : "None");
@@ -3425,8 +3581,8 @@ function showRemoveEditEquipmentModal() {
       penaltySelect.value("0");
       slotsSelect.value("0");
       linkedStatSelect.value("STR");
-      statBonusStatSelect.value("None");
-      statBonusAmountInput.value("0");
+      stATGonusStatSelect.value("None");
+      stATGonusAmountInput.value("0");
       statReq1Select.value("None");
       statReq1Input.value("");
       statReq2Select.value("None");
@@ -3488,7 +3644,7 @@ function showRemoveEditEquipmentModal() {
           category: (selectedType === "On-Hand" || selectedType === "Off-Hand") ? "Weapons" :
                     (selectedType === "Accessory 1" || selectedType === "Accessory 2") ? "Accessories" : "Armor",
           crystalSlots: parseInt(slotsSelect.value()),
-          statBonus: statBonusStatSelect.value() !== "None" ? { stat: statBonusStatSelect.value(), amount: parseInt(statBonusAmountInput.value()) || 0 } : null,
+          stATGonus: stATGonusStatSelect.value() !== "None" ? { stat: stATGonusStatSelect.value(), amount: parseInt(stATGonusAmountInput.value()) || 0 } : null,
           statRequirements: {},
           movementPenalty: ["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType) ? parseInt(penaltySelect.value()) : undefined,
           linkedStat: ["On-Hand", "Off-Hand"].includes(selectedType) ? linkedStatSelect.value() : undefined,
@@ -3562,7 +3718,7 @@ function showRemoveEditEquipmentModal() {
               equippedItems[selectedType] = null;
               calculateMovement();
               updateResourcesBasedOnStats();
-              updateStatBonusesDisplay();
+              updateStATGonusesDisplay();
             }
             inventory.splice(index, 1);
             updateAvailableEquipment();
@@ -3640,10 +3796,12 @@ function createTalentsUI() {
 }
 function updateAvailableEquipment() {
   for (let slot in availableEquipment) {
-    availableEquipment[slot] = inventory.filter(
-      (item) => item.type === slot && item.category === "Equipment"
+    availableEquipment[slot] = inventory.filter(item => 
+      item.category === "Equipment" && 
+      (slot === "Accessory 1" || slot === "Accessory 2" ? item.type === "Accessory" : item.type === slot)
     );
   }
+  console.log("Updated availableEquipment:", availableEquipment);
 }
 function showAddCustomTalentModal() {
   if (modalDiv) modalDiv.remove();
@@ -4511,23 +4669,23 @@ function updateTraitsTable() {
 
 // ### Stat and Resource Management ###
 
-function getStatBonuses() {
+function getStATGonuses() {
   let bonuses = {};
   for (let slot in equippedItems) {
     let item = equippedItems[slot];
     if (item) {
       // Equipment bonuses
-      if (item.statBonus) {
-        let stat = item.statBonus.stat;
-        let amount = item.statBonus.amount;
+      if (item.stATGonus) {
+        let stat = item.stATGonus.stat;
+        let amount = item.stATGonus.amount;
         bonuses[stat] = (bonuses[stat] || 0) + amount;
       }
       // Crystal bonuses
       if (item.equippedCrystals) {
         item.equippedCrystals.forEach(crystal => {
-          if (crystal && crystal.statBonuses) {
-            for (let stat in crystal.statBonuses) {
-              bonuses[stat] = (bonuses[stat] || 0) + crystal.statBonuses[stat];
+          if (crystal && crystal.stATGonuses) {
+            for (let stat in crystal.stATGonuses) {
+              bonuses[stat] = (bonuses[stat] || 0) + crystal.stATGonuses[stat];
             }
           }
         });
@@ -4564,7 +4722,7 @@ function getTotalStat(statName) {
     default:
       return 0;
   }
-  let bonuses = getStatBonuses();
+  let bonuses = getStATGonuses();
   return baseStat + (bonuses[statName] || 0);
 }
 
@@ -4580,14 +4738,14 @@ function updateResourcesBasedOnStats() {
   maxMpInput.value(max_mp);
 }
 
-function updateStatBonusesDisplay() {
-  let bonuses = getStatBonuses();
-  for (let stat in statBonusElements) {
+function updateStATGonusesDisplay() {
+  let bonuses = getStATGonuses();
+  for (let stat in stATGonusElements) {
     let bonus = bonuses[stat] || 0;
     if (bonus > 0) {
-      statBonusElements[stat].html(` (+${bonus})`);
+      stATGonusElements[stat].html(` (+${bonus})`);
     } else {
-      statBonusElements[stat].html("");
+      stATGonusElements[stat].html("");
     }
   }
 }
@@ -4602,7 +4760,7 @@ function createInventoryUI() {
   inventoryContainer.html("");
 
   createElement("h2", "Inventory").parent(inventoryContainer);
-  createSpan("Use buttons to add, edit, or remove items. Click an item’s name to view details. Adjust Quantity directly. *Materials are for crafting raw materials.*")
+  createSpan("Use buttons to add, edit, or remove items. Click an item’s name to view details. Adjust Quantity directly. *Crystalls are for crafting raw Crystalls.*")
     .parent(inventoryContainer)
     .style("font-size", "12px")
     .style("color", "#666")
@@ -4646,7 +4804,7 @@ function createInventoryUI() {
     .mousePressed(() => {
       showConfirmationModal("Are you sure you want to add the default items list to your inventory?", () => {
         console.log("Adding default items list to inventory");
-        ["Consumables", "Materials", "Crystals", "Miscellaneous"].forEach(cat => {
+        ["Consumables", "Crystalls", "Crystals", "Miscellaneous"].forEach(cat => {
           let defaultItems = availableItems[cat] || [];
           defaultItems.forEach(item => {
             if (!inventory.some(i => i.name === item.name && i.category === cat)) {
@@ -4663,7 +4821,7 @@ function createInventoryUI() {
 
   let categoryContainer = createDiv().parent(inventoryContainer).style("margin-top", "10px");
 
-  let inventoryCategories = ["Equipment", "Crystals", "Consumables", "Materials", "Quest Items", "Miscellaneous"];
+  let inventoryCategories = ["Equipment", "Crystals", "Consumables", "Crystalls", "Quest Items", "Miscellaneous"];
   let itemsByCategory = {};
   inventoryCategories.forEach(cat => itemsByCategory[cat] = []);
   inventory.forEach(item => {
@@ -4885,7 +5043,7 @@ function showModifyItemsModal() {
   let categorySelect = createSelect()
     .parent(categoryDiv)
     .style("width", "100%");
-  ["Consumables", "Materials", "Quest Items", "Miscellaneous"].forEach(cat => categorySelect.option(cat));
+  ["Consumables", "Crystalls", "Quest Items", "Miscellaneous"].forEach(cat => categorySelect.option(cat));
   createSpan("Select the category of the item.")
     .parent(categoryDiv)
     .style("font-size", "12px")
@@ -5111,7 +5269,7 @@ function showAddCustomInventoryModal() {
   let categorySelect = createSelect()
     .parent(categoryDiv)
     .style("width", "100%");
-  ["Consumables", "Materials", "Miscellaneous"].forEach((cat) =>
+  ["Consumables", "Crystalls", "Miscellaneous"].forEach((cat) =>
     categorySelect.option(cat)
   );
   createSpan("The type of item (for Equipment, use the Equipment tab).")
@@ -5279,12 +5437,12 @@ function showCreateCustomCrystalModal() {
   let descInput = createInput("").parent(descDiv).style("width", "180px");
   createSpan("What the crystal does or its lore.").parent(descDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  let statBonusDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Stat Bonus:").parent(statBonusDiv).style("display", "inline-block").style("width", "100px");
-  let statSelect = createSelect().parent(statBonusDiv).style("width", "80px").style("margin-right", "5px");
+  let stATGonusDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  createSpan("Stat Bonus:").parent(stATGonusDiv).style("display", "inline-block").style("width", "100px");
+  let statSelect = createSelect().parent(stATGonusDiv).style("width", "80px").style("margin-right", "5px");
   ["None", "STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statSelect.option(stat));
-  let amountInput = createInput("0", "number").parent(statBonusDiv).style("width", "50px");
-  createSpan("Stat to boost (e.g., MAG) and amount.").parent(statBonusDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
+  let amountInput = createInput("0", "number").parent(stATGonusDiv).style("width", "50px");
+  createSpan("Stat to boost (e.g., MAG) and amount.").parent(stATGonusDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
   let statReqDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
   createSpan("Stat Requirement:").parent(statReqDiv).style("display", "inline-block").style("width", "100px");
@@ -5327,7 +5485,7 @@ function showCreateCustomCrystalModal() {
         name,
         description: desc,
         category: "Crystals",
-        statBonuses: stat !== "None" ? { [stat]: amount } : {},
+        stATGonuses: stat !== "None" ? { [stat]: amount } : {},
         statRequirements: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
         abilities: abilities.length > 0 ? abilities : [],
         quantity: 1,
@@ -5392,12 +5550,12 @@ function showRemoveEditCrystalsModal() {
   createSpan("Description: What the crystal does or its lore.").parent(modalDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
   let descInput = createInput("").parent(modalDiv).style("width", "100%").style("margin-bottom", "10px");
 
-  let statBonusDiv = createDiv().parent(modalDiv);
-  createSpan("Stat Bonus: Which stat to boost (e.g., MAG for magic power).").parent(statBonusDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
-  let statSelect = createSelect().parent(statBonusDiv);
+  let stATGonusDiv = createDiv().parent(modalDiv);
+  createSpan("Stat Bonus: Which stat to boost (e.g., MAG for magic power).").parent(stATGonusDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
+  let statSelect = createSelect().parent(stATGonusDiv);
   ["None", "STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statSelect.option(stat));
-  let amountInput = createInput("0", "number").parent(statBonusDiv).style("width", "50px").style("margin-bottom", "10px");
-  createSpan("Amount: How much to boost the stat (positive number).").parent(statBonusDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
+  let amountInput = createInput("0", "number").parent(stATGonusDiv).style("width", "50px").style("margin-bottom", "10px");
+  createSpan("Amount: How much to boost the stat (positive number).").parent(stATGonusDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
   let statReqDiv = createDiv().parent(modalDiv);
   createSpan("Stat Requirement: Minimum stat needed to equip (e.g., 5 MAG).").parent(statReqDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
@@ -5414,10 +5572,10 @@ function showRemoveEditCrystalsModal() {
       let crystal = crystals[idx];
       nameInput.value(crystal.name || "");
       descInput.value(crystal.description || "");
-      let statBonuses = crystal.statBonuses || {};
-      let stat = Object.keys(statBonuses).length > 0 ? Object.keys(statBonuses)[0] : "None";
+      let stATGonuses = crystal.stATGonuses || {};
+      let stat = Object.keys(stATGonuses).length > 0 ? Object.keys(stATGonuses)[0] : "None";
       statSelect.value(stat);
-      amountInput.value(stat !== "None" && statBonuses[stat] ? statBonuses[stat] : 0);
+      amountInput.value(stat !== "None" && stATGonuses[stat] ? stATGonuses[stat] : 0);
       let statReqs = crystal.statRequirements || {};
       let reqStat = Object.keys(statReqs).length > 0 ? Object.keys(statReqs)[0] : "None";
       statReqSelect.value(reqStat);
@@ -5467,7 +5625,7 @@ function showRemoveEditCrystalsModal() {
         name: newName,
         description: newDesc,
         category: "Crystals",
-        statBonuses: stat !== "None" ? { [stat]: amount } : {},
+        stATGonuses: stat !== "None" ? { [stat]: amount } : {},
         statRequirements: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
         abilities: abilities.length > 0 ? abilities : [],
         quantity: crystal.quantity || 1,
@@ -5487,7 +5645,7 @@ function showRemoveEditCrystalsModal() {
 
       localStorage.setItem('inventory', JSON.stringify(inventory)); // Persist to localStorage
       console.log("Updated inventory:", inventory); // Debug log
-      updateStatBonusesDisplay();
+      updateStATGonusesDisplay();
       updateResourcesBasedOnStats();
       updateAbilities();
       createEquipmentUI();
@@ -5520,7 +5678,7 @@ function showRemoveEditCrystalsModal() {
           inventory.splice(inventory.indexOf(crystal), 1);
           localStorage.setItem('inventory', JSON.stringify(inventory)); // Persist to localStorage
           console.log("Removed crystal:", crystal.name, "Updated inventory:", inventory); // Debug log
-          updateStatBonusesDisplay();
+          updateStATGonusesDisplay();
           updateResourcesBasedOnStats();
           updateAbilities();
           createEquipmentUI();
@@ -5537,4 +5695,177 @@ function showRemoveEditCrystalsModal() {
       modalDiv.remove();
       errorMessage.style("display", "none");
     });
+}
+function getEquippedWeaponCategory() {
+  let onHand = equippedItems["On-Hand"];
+  let offHand = equippedItems["Off-Hand"];
+  if (onHand && onHand.weaponCategory) {
+    return onHand.weaponCategory;
+  } else if (offHand && offHand.weaponCategory) {
+    return offHand.weaponCategory;
+  }
+  return null; // No weapon equipped
+}
+
+// Check if an ability is learned
+function isAbilityLearned(category, abilityName) {
+  return learnedAbilities[category] && learnedAbilities[category].includes(abilityName);
+}
+
+// Check if stat requirements are met
+function meetsStatRequirements(statReq) {
+  if (!statReq) return true;
+  for (let [stat, required] of Object.entries(statReq)) {
+    if (getTotalStat(stat) < required) return false; // Assumes getTotalStat exists
+  }
+  return true;
+}
+
+// Learn a weapon-specific ability
+function learnAbility(category, ability) {
+  if (abilityPoints >= ability.pointCost && meetsStatRequirements(ability.statReq)) {
+    if (!learnedAbilities[category]) learnedAbilities[category] = [];
+    if (!learnedAbilities[category].includes(ability.name)) {
+      learnedAbilities[category].push(ability.name);
+      abilityPoints -= ability.pointCost;
+      console.log(`Learned ${ability.name} for ${category}`);
+      createAbilitiesUI(); // Refresh UI
+    }
+  } else {
+    showConfirmationModal("Cannot learn ability: insufficient points or stats.", () => {}, true);
+  }
+}
+
+// Use a Crystal ability
+function useCrystalAbility(ability) {
+  console.log(`Used Crystal ability: ${ability}`);
+  // Add game logic here later
+}
+
+// Use a weapon-specific ability
+function useAbility(ability, category) {
+  let equippedCategory = getEquippedWeaponCategory();
+  if (equippedCategory !== category) {
+    showConfirmationModal("Cannot use this ability: Wrong weapon equipped.", () => {}, true);
+    return;
+  }
+  if (current_ATG >= ability.ATGCost) {
+    current_ATG -= ability.ATGCost;
+    console.log(`Used weapon ability: ${ability.name}. Effect: ${ability.effect}`);
+    // Add actual effect implementation here later
+  } else {
+    showConfirmationModal("Not enough ATG to use this ability.", () => {}, true);
+  }
+}
+function createAbilitiesUI() {
+  console.log("createAbilitiesUI called");
+  let abilitiesContainer = select("#abilities");
+  if (!abilitiesContainer) {
+    console.error("No #abilities div found in HTML!");
+    return;
+  }
+  abilitiesContainer.html(""); // Clear existing content
+
+  // Header
+  createElement("h2", "Abilities").parent(abilitiesContainer);
+  createSpan("View and manage your abilities from Crystal and equipped weapons.")
+    .parent(abilitiesContainer)
+    .style("font-size", "12px")
+    .style("color", "#666")
+    .style("display", "block")
+    .style("margin-bottom", "10px");
+
+  // Crystal Spells Section
+  createElement("h3", "Crystal Spells").parent(abilitiesContainer);
+  if (characterAbilities.length === 0) {
+    createP("No Crystal Spells equipped.").parent(abilitiesContainer);
+  } else {
+    let crystalTable = createElement("table").parent(abilitiesContainer).class("rules-table");
+    let header = createElement("tr").parent(crystalTable);
+    createElement("th", "Ability").parent(header).style("width", "30%");
+    createElement("th", "Effect").parent(header).style("width", "50%");
+    createElement("th", "Actions").parent(header).style("width", "20%");
+
+    characterAbilities.forEach(ability => {
+      let row = createElement("tr").parent(crystalTable);
+      createElement("td", ability).parent(row);
+      createElement("td", "Effect description here").parent(row); // Placeholder
+      let actionCell = createElement("td").parent(row);
+      createButton("Use")
+        .parent(actionCell)
+        .class("resource-button small-button")
+        .mousePressed(() => useCrystalAbility(ability));
+    });
+  }
+
+  // Weapon-Specific Abilities Header
+  createElement("h3", "Weapon-Specific Abilities").parent(abilitiesContainer);
+  createP("Note: 'Use' requires the correct weapon category equipped; 'Learn' is always available if stats and points suffice.")
+    .parent(abilitiesContainer)
+    .style("color", "red")
+    .style("margin-bottom", "10px");
+
+  // Display all weapon categories
+  weaponCategories.forEach(category => {
+    let categoryDiv = createDiv().parent(abilitiesContainer).style("margin-bottom", "20px");
+    createElement("h4", `${category}`).parent(categoryDiv);
+
+    let abilities = availableAbilities[category] || [];
+    if (abilities.length === 0) {
+      createP(`No abilities defined for ${category}. Edit 'availableAbilities' in the code to add some.`)
+        .parent(categoryDiv)
+        .style("color", "#666");
+    } else {
+      let table = createElement("table").parent(categoryDiv).class("rules-table");
+      let header = createElement("tr").parent(table);
+      createElement("th", "Name").parent(header).style("width", "20%");
+      createElement("th", "ATG Cost").parent(header).style("width", "10%");
+      createElement("th", "Stat Req").parent(header).style("width", "15%");
+      createElement("th", "Point Cost").parent(header).style("width", "10%");
+      createElement("th", "Effect").parent(header).style("width", "25%");
+      createElement("th", "Status").parent(header).style("width", "10%");
+      createElement("th", "Actions").parent(header).style("width", "10%");
+
+      abilities.forEach(ability => {
+        let row = createElement("tr").parent(table);
+        createElement("td", ability.name).parent(row);
+        createElement("td", String(ability.ATGCost)).parent(row); // Convert number to string
+        let statReqText = ability.statReq ? Object.entries(ability.statReq).map(([stat, val]) => `${val} ${stat}`).join(", ") : "-";
+        createElement("td", statReqText).parent(row);
+        createElement("td", String(ability.pointCost)).parent(row); // Convert number to string
+        createElement("td", ability.effect).parent(row);
+        let isLearned = isAbilityLearned(category, ability.name);
+        createElement("td", isLearned ? "Learned" : "Not Learned").parent(row);
+
+        let actionCell = createElement("td").parent(row);
+        if (isLearned) {
+          let equippedCategory = getEquippedWeaponCategory();
+          let canUse = equippedCategory === category;
+          createButton("Use")
+            .parent(actionCell)
+            .class("resource-button small-button")
+            .attribute("disabled", canUse ? null : "true")
+            .mousePressed(() => {
+              if (canUse) {
+                useAbility(ability, category);
+              } else {
+                showConfirmationModal("Cannot use this ability: Wrong weapon equipped.", () => {}, true);
+              }
+            });
+        } else {
+          let canLearn = meetsStatRequirements(ability.statReq) && abilityPoints >= ability.pointCost;
+          createButton("Learn")
+            .parent(actionCell)
+            .class("resource-button small-button")
+            .attribute("disabled", canLearn ? null : "true")
+            .mousePressed(() => learnAbility(category, ability));
+        }
+      });
+    }
+  });
+
+  // Available Ability Points
+  createP(`Available Ability Points: ${abilityPoints}`)
+    .parent(abilitiesContainer)
+    .style("margin-top", "10px");
 }
