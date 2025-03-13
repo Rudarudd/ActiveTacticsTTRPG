@@ -4,6 +4,7 @@ body {
   margin: 0;
   padding: 20px;
   box-sizing: border-box;
+  min-height: 100vh; /* Ensure body takes full viewport height */
 }
 
 /* Header styling */
@@ -34,6 +35,7 @@ header button {
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
+  min-height: calc(100vh - 60px); /* Adjust for header and padding */
 }
 
 /* Tabs styling */
@@ -84,6 +86,7 @@ header button {
   max-width: 600px;
   margin: 0 auto;
   position: relative; /* Establish positioning context */
+  min-height: 100px; /* Ensure a minimum height to prevent collapse */
 }
 
 #resource-controls {
@@ -97,8 +100,12 @@ header button {
   margin: 0 auto;
   position: relative; /* Ensure canvas has a position */
   z-index: 1; /* Ensure canvas is above other elements but below modals */
+  width: 100% !important; /* Force full width on mobile */
+  max-width: 600px; /* Cap width on larger screens */
+  height: auto; /* Maintain aspect ratio */
 }
 
+/* Resource row styling */
 .resource-row {
   display: flex;
   flex-wrap: wrap;
@@ -178,17 +185,18 @@ h3 {
   position: relative; /* For adding a collapse indicator */
 }
 
-/* Add a collapse/expand indicator (optional) */
+/* Add a collapse/expand indicator */
 h3::before {
   content: "▶"; /* Right arrow when collapsed */
   display: inline-block;
   margin-right: 5px;
-  transition: transform 0.3s;
+  transition: transform 0.3s ease; /* Smooth transition for future animations */
 }
 
-/* Rotate arrow when expanded */
+/* Rotate and change arrow when expanded */
 h3.expanded::before {
   content: "▼"; /* Down arrow when expanded */
+  transform: rotate(0deg); /* Ensure no rotation conflict */
 }
 
 /* Modal styling */
@@ -201,6 +209,8 @@ h3.expanded::before {
   padding: 20px;
   border: 2px solid #000;
   z-index: 1000; /* Modal remains above canvas */
+  max-height: 80vh; /* Prevent modal from covering the entire screen */
+  overflow-y: auto; /* Allow scrolling if content overflows */
 }
 
 /* Responsive adjustments */
@@ -235,5 +245,22 @@ h3.expanded::before {
     width: 100% !important; /* Override any inline width set by p5.js */
     max-width: 100%; /* Prevent overflow */
     display: block !important; /* Force visibility */
+    height: auto !important; /* Maintain aspect ratio on mobile */
+  }
+
+  /* Adjust container and content for mobile viewport */
+  .container {
+    padding: 10px; /* Reduce padding on mobile */
+    min-height: calc(100vh - 40px); /* Adjust for smaller screens */
+  }
+
+  .content {
+    padding: 0; /* Remove extra padding to maximize space */
+  }
+
+  /* Prevent modal from pushing content off-screen */
+  .modal {
+    width: 90vw; /* Use viewport width for mobile */
+    max-height: 70vh; /* Reduce max height on mobile */
   }
 }
