@@ -4827,6 +4827,19 @@ function createInventoryUI() {
     let contentDiv = createDiv().parent(categoryDiv);
     contentDiv.style("display", categoryStates[category] ? "block" : "none");
 
+    // Toggle visibility and class for arrow indicator
+    categoryHeader.mousePressed(() => {
+      const isVisible = contentDiv.style("display") === "block";
+      categoryStates[category] = !isVisible;
+      contentDiv.style("display", isVisible ? "none" : "block");
+      // Toggle expanded class using the DOM element
+      if (isVisible) {
+        categoryHeader.elt.classList.remove("expanded");
+      } else {
+        categoryHeader.elt.classList.add("expanded");
+      }
+    });
+
     if (category === "Equipment") {
       let equipmentByType = {};
       items.forEach(item => {
@@ -4992,12 +5005,6 @@ function createInventoryUI() {
         });
       }
     }
-
-    categoryHeader.mousePressed(() => {
-      const isVisible = contentDiv.style("display") === "block";
-      categoryStates[category] = !isVisible;
-      contentDiv.style("display", isVisible ? "none" : "block");
-    });
   });
 }
 function showModifyItemsModal() {
