@@ -2322,7 +2322,7 @@ function displayBars() {
   rect(x, y_stamina, stamina_width, bar_height);
   fill(255);
   text(
-    `STMN: ${current_stamina}/${max_stamina}`,
+    `STA: ${current_stamina}/${max_stamina}`,
     x + bar_width / 2,
     y_stamina + bar_height / 2
   );
@@ -2393,7 +2393,7 @@ function createResourceUI() {
     });
 
   let staminaRow = createDiv().parent(rUI).class("resource-row");
-  createSpan("STMN:").parent(staminaRow);
+  createSpan("STA:").parent(staminaRow);
   maxStaminaInput = createInput(max_stamina.toString(), "number")
     .parent(staminaRow)
     .class("resource-input");
@@ -2450,7 +2450,7 @@ function createResourceUI() {
     .style("margin-left", "5px");
   resourceSelect.option("HP");
   resourceSelect.option("MP");
-  resourceSelect.option("STMN");
+  resourceSelect.option("STA");
   resourceSelect.option("ATG");
   createButton("+")
     .parent(adjustmentRow)
@@ -2481,7 +2481,7 @@ function createResourceUI() {
     .class("resource-button")
     .mousePressed(toggleStaminaATGLink)
     .style("background-color", staminaATGLink ? "green" : "red");
-  createSpan("When ON, using STMN adds to ATG").parent(linkRow);
+  createSpan("When ON, using STA adds to ATG").parent(linkRow);
 
   let resetRow = createDiv().parent(rUI).class("resource-row");
   resetButton = createButton("Reset All")
@@ -2503,7 +2503,7 @@ function adjustResource(resource, value, isAddition) {
     case "MP":
       current_mp = constrain(current_mp + adjustment, 0, max_mp);
       break;
-    case "STMN":
+    case "STA":
       current_stamina = constrain(current_stamina + adjustment, 0, max_stamina);
       if (!isAddition && staminaATGLink) {
         current_ATG = min(current_ATG + value, max_ATG);
