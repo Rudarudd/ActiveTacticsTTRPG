@@ -5,6 +5,7 @@ body {
   padding: 20px;
   box-sizing: border-box;
   min-height: 100vh; /* Ensure body takes full viewport height */
+  overflow-x: hidden; /* Prevent horizontal scroll issues */
 }
 
 /* Header styling */
@@ -81,6 +82,11 @@ header button {
 }
 
 /* Resource section specific styling */
+#resources {
+  min-height: 200px; /* Ensure a minimum height to prevent collapse */
+  position: relative; /* Establish positioning context */
+}
+
 #resource-bars {
   width: 100%;
   max-width: 600px;
@@ -211,6 +217,7 @@ h3.expanded::before {
   z-index: 1000; /* Modal remains above canvas */
   max-height: 80vh; /* Prevent modal from covering the entire screen */
   overflow-y: auto; /* Allow scrolling if content overflows */
+  box-sizing: border-box; /* Ensure padding doesn’t increase size */
 }
 
 /* Responsive adjustments */
