@@ -33,7 +33,7 @@ let categoryStates = {
 // Master list of available items with quantity and quality
 let availableItems = {
   "Equipment": [
-    { name: "Buster Sword", description: "A massive sword.", category: "Equipment", type: "On-Hand", crystalSlots: 2, quantity: 1, quality: "Rare" },
+    { name: "Cleaver Sword", description: "A massive sword.", category: "Equipment", type: "On-Hand", crystalSlots: 2, quantity: 1, quality: "Rare" },
     { name: "Leather Armor", description: "Basic protection.", category: "Equipment", type: "Chest", quantity: 1, quality: "Common" }
   ],
   "Consumables": [
