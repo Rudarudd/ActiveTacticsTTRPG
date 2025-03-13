@@ -25,7 +25,7 @@ let stATGonusElements = {};
 let inventory = [];
 
 // Add this near the top of your script with other constants
-let inventoryCategories = ["Equipment", "Consumables", "Crystalls", "Crystals", "Miscellaneous"];
+let inventoryCategories = ["Equipment", "Consumables", "Materials", "Crystals", "Miscellaneous"];
 
 let categoryStates = {
 };
@@ -40,8 +40,8 @@ let availableItems = {
     { name: "Healing Potion", description: "Restores 20 HP.", category: "Consumables", quantity: 1, quality: "Common" }
   ],
    
-  "Crystalls": [
-    { name: "Rope", description: "100ft of rope.", category: "Crystalls", quantity: 1, quality: "Uncommon" },
+  "Materials": [
+    { name: "Rope", description: "100ft of rope.", category: "Materials", quantity: 1, quality: "Uncommon" },
   ],
   "Crystals": [
     { name: "Green Crystal", description: "Casts Cure.", category: "Crystals", quantity: 1, quality: "Uncommon" },
@@ -175,79 +175,65 @@ let currentTab = 'resources'; // Default tab
 
 // p5.js setup function
 function setup() {
-  // Create canvas (optional, adjust size as needed)
   let cnv = createCanvas(800, 600);
-  cnv.parent('resources'); // Attach to the Resources tab
+  cnv.parent('resources');
 
-  // Initial setup
   initializeInventory();
   updateAvailableEquipment();
 
-  // Set up tab switching
+  // Set up tab switching using switchTab function
   document.querySelectorAll('.tablink').forEach(button => {
     button.addEventListener('click', () => {
       switchTab(button.getAttribute('data-tab'));
     });
   });
 
-  // Initial call to show the default tab
-  switchTab('resources');
+  // Simulate click on the default active tab (Resources)
+  document.querySelector(".tablink.active").click();
 }
-
 // p5.js draw function
 function draw() {
-  // Optional: Add background or other continuous updates
-  background(255);
-  // Render the current tab's content
-  if (currentTab === 'inventory') {
-    createInventoryUI();
-  } else if (currentTab === 'equipment') {
-    createEquipmentUI();
-  } else if (currentTab === 'stats') {
-    // Add stats UI function if defined
-  } else if (currentTab === 'traits') {
-    createTraitsUI();
-  } else if (currentTab === 'talents') {
-    // Add talents UI function if defined
-  } else if (currentTab === 'abilities') {
-    // Add abilities UI function if defined
-  } else if (currentTab === 'resources') {
-    // Add resources UI function if defined (e.g., createResourceUI if you have it)
-  }
+  background(255); // Maintain the background
+  // Add any continuous updates (e.g., resource bar animations) here if needed
+  // Do not re-render tab content unless it requires real-time updates
 }
 
-function switchTab(tabName) {
-  console.log(`Switching to tab: ${tabName}`);
+function switchTab(tabId) {
+  console.log(`Switching to tab: ${tabId}`);
+  // Hide all tab content
   document.querySelectorAll('.tabcontent').forEach(tab => {
     tab.style.display = 'none';
     tab.classList.remove('active');
   });
-  let selectedTab = document.getElementById(tabName);
+
+  // Show the selected tab
+  let selectedTab = document.getElementById(tabId);
   selectedTab.style.display = 'block';
   selectedTab.classList.add('active');
+
+  // Update active tablink style
   document.querySelectorAll('.tablink').forEach(btn => {
     btn.classList.remove('active');
-    if (btn.getAttribute('data-tab') === tabName) btn.classList.add('active');
+    if (btn.getAttribute('data-tab') === tabId) {
+      btn.classList.add('active');
+    }
   });
-  currentTab = tabName;
 
-  // Render the tab content
-  if (tabName === 'inventory') {
-    console.log("Before render, inventory:", JSON.stringify(inventory, null, 2));
+  // Refresh UI based on tab
+  if (tabId === "inventory") {
     createInventoryUI();
-  } else if (tabName === 'equipment') {
+  } else if (tabId === "equipment") {
     createEquipmentUI();
-  } else if (tabName === 'stats') {
-    // Add createStatsUI() when defined
-  } else if (tabName === 'traits') {
+  } else if (tabId === "abilities") {
+    createAbilitiesUI();
+  } else if (tabId === "traits") {
     createTraitsUI();
-  } else if (tabName === 'talents') {
-    // Add createTalentsUI() when defined
-  } else if (tabName === 'abilities') {
-    console.log("Rendering Abilities tab");
-    createAbilitiesUI(); // Ensure immediate render
-  } else if (tabName === 'resources') {
-    // Add createResourceUI() when defined
+  } else if (tabId === "resources") {
+    createResourceUI();
+  } else if (tabId === "stats") {
+    createStatsUI();
+  } else if (tabId === "talents") {
+    createTalentsUI();
   }
 }
 // Ensure availableEquipment is updated based on inventory
@@ -353,7 +339,7 @@ const additionalAttributes = [
     color: "#2980B9",
   },
   {
-    name: "Willpower",
+    name: "Determination",
     desc:
       "Your mental resilience and determination to resist external influences. Used for resisting mind control, fear effects, psychic attacks, and maintaining focus under pressure.",
     color: "#FF69B4",
@@ -1021,7 +1007,7 @@ function showEditInventoryModal() {
   let categorySelect = createSelect()
     .parent(categoryDiv)
     .style("width", "100%");
-  ["Consumables", "Crystalls", "Miscellaneous"].forEach((cat) =>
+  ["Consumables", "Materials", "Miscellaneous"].forEach((cat) =>
     categorySelect.option(cat)
   );
   createSpan("The type of item (for Equipment, use the Equipment tab).")
@@ -1262,7 +1248,7 @@ function showAddItemModal() {
     .style("font-size", "12px")
     .style("color", "#666")
     .style("display", "block");
-  ["Consumables", "Crystalls", "Miscellaneous"].forEach((cat) => {
+  ["Consumables", "Materials", "Miscellaneous"].forEach((cat) => {
     if (availableItems[cat].length > 0) categorySelect.option(cat);
   });
 
@@ -2261,7 +2247,6 @@ createResourceUI();
       activeTab.classList.add("active");
       activeTab.style.display = "block";
 
-      // Refresh UI based on tab
 // Refresh UI based on tab
 console.log(`Switching to tab: ${tabId}`);
     if (tabId === "inventory") {
@@ -2274,8 +2259,6 @@ console.log(`Switching to tab: ${tabId}`);
       createTraitsUI();
     } else if (tabId === "resources") {
       createResourceUI();
-    } else if (tabId === "stats") {
-      createStatsUI();
     } else if (tabId === "talents") {
       createTalentsUI();
     }
@@ -4760,7 +4743,7 @@ function createInventoryUI() {
   inventoryContainer.html("");
 
   createElement("h2", "Inventory").parent(inventoryContainer);
-  createSpan("Use buttons to add, edit, or remove items. Click an item’s name to view details. Adjust Quantity directly. *Crystalls are for crafting raw Crystalls.*")
+  createSpan("Use buttons to add, edit, or remove items. Click an item’s name to view details. Adjust Quantity directly.")
     .parent(inventoryContainer)
     .style("font-size", "12px")
     .style("color", "#666")
@@ -4804,7 +4787,7 @@ function createInventoryUI() {
     .mousePressed(() => {
       showConfirmationModal("Are you sure you want to add the default items list to your inventory?", () => {
         console.log("Adding default items list to inventory");
-        ["Consumables", "Crystalls", "Crystals", "Miscellaneous"].forEach(cat => {
+        ["Consumables", "Materials", "Crystals", "Miscellaneous"].forEach(cat => {
           let defaultItems = availableItems[cat] || [];
           defaultItems.forEach(item => {
             if (!inventory.some(i => i.name === item.name && i.category === cat)) {
@@ -4821,7 +4804,7 @@ function createInventoryUI() {
 
   let categoryContainer = createDiv().parent(inventoryContainer).style("margin-top", "10px");
 
-  let inventoryCategories = ["Equipment", "Crystals", "Consumables", "Crystalls", "Quest Items", "Miscellaneous"];
+  let inventoryCategories = ["Equipment", "Crystals", "Consumables", "Materials", "Quest Items", "Miscellaneous"];
   let itemsByCategory = {};
   inventoryCategories.forEach(cat => itemsByCategory[cat] = []);
   inventory.forEach(item => {
@@ -5043,7 +5026,7 @@ function showModifyItemsModal() {
   let categorySelect = createSelect()
     .parent(categoryDiv)
     .style("width", "100%");
-  ["Consumables", "Crystalls", "Quest Items", "Miscellaneous"].forEach(cat => categorySelect.option(cat));
+  ["Consumables", "Materials", "Quest Items", "Miscellaneous"].forEach(cat => categorySelect.option(cat));
   createSpan("Select the category of the item.")
     .parent(categoryDiv)
     .style("font-size", "12px")
@@ -5269,7 +5252,7 @@ function showAddCustomInventoryModal() {
   let categorySelect = createSelect()
     .parent(categoryDiv)
     .style("width", "100%");
-  ["Consumables", "Crystalls", "Miscellaneous"].forEach((cat) =>
+  ["Consumables", "Materials", "Miscellaneous"].forEach((cat) =>
     categorySelect.option(cat)
   );
   createSpan("The type of item (for Equipment, use the Equipment tab).")
