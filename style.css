@@ -71,15 +71,21 @@ header button {
 }
 
 .tabcontent {
-  display: none;
+  display: none; /* Hide inactive tabs */
 }
 
 .tabcontent.active {
-  display: block;
+  display: block; /* Show active tab */
 }
 
 /* Resource section specific styling */
-#resource-bars,
+#resource-bars {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  position: relative; /* Establish positioning context */
+}
+
 #resource-controls {
   width: 100%;
   max-width: 600px;
@@ -89,12 +95,10 @@ header button {
 #resource-bars canvas {
   display: block;
   margin: 0 auto;
-  width: 100% !important;
-  max-width: 600px;
-  height: 200px; /* Matches canvasHeight in setup() */
+  position: relative; /* Ensure canvas has a position */
+  z-index: 1; /* Ensure canvas is above other elements but below modals */
 }
 
-/* Resource row styling */
 .resource-row {
   display: flex;
   flex-wrap: wrap;
@@ -114,6 +118,8 @@ header button {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
+  table-layout: auto; /* Ensure columns adjust to content */
+  overflow-x: auto; /* Allow horizontal scrolling if needed */
 }
 
 .rules-table th,
@@ -163,105 +169,83 @@ header button {
   font-size: 12px;
 }
 
-/* Style for category headers in the Items table */
-.expandable-section h3 {
+/* Style for category headers in Inventory UI */
+h3 {
   cursor: pointer;
   padding: 5px;
   background-color: #f2f2f2;
   margin: 0;
-  position: relative;
+  position: relative; /* For adding a collapse indicator */
 }
 
-.expandable-section h3::before {
-  content: "▶";
+/* Add a collapse/expand indicator (optional) */
+h3::before {
+  content: "▶"; /* Right arrow when collapsed */
   display: inline-block;
   margin-right: 5px;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s;
 }
 
-.expandable-section h3.expanded::before {
-  content: "▼";
+/* Rotate arrow when expanded */
+h3.expanded::before {
+  content: "▼"; /* Down arrow when expanded */
 }
 
 /* Modal styling */
 .modal {
   position: fixed;
-  top: 50%;
+  top: 60%; /* Still lowered from earlier */
   left: 50%;
   transform: translate(-50%, -50%);
   background: white;
   padding: 15px;
   border: 2px solid #000;
   z-index: 1000;
-  max-height: 80vh;
-  max-width: 90vw;
-  width: auto;
-  overflow-y: auto;
-  overflow-x: hidden;
+  max-height: 50vh; /* Reduced from 80vh to limit vertical growth */
+  width: 80vw; /* Default to wider */
+  max-width: 95vw; /* Allow it to expand more horizontally */
+  overflow-x: auto; /* Scroll horizontally if needed */
+  overflow-y: auto; /* Still scroll vertically if content exceeds */
   box-sizing: border-box;
   font-size: 14px;
+  display: flex; /* Enable flexbox for horizontal layout */
+  flex-wrap: wrap; /* Allow wrapping if too wide */
+  gap: 10px; /* Space between elements */
 }
 
 /* Responsive adjustments */
 @media (max-width: 600px) {
-  header {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .tabs {
-    justify-content: flex-start;
-  }
-
-  .resource-input {
-    flex: 0 0 50px;
-    width: 50px;
-    font-size: 12px;
-  }
-
-  .resource-button {
-    min-width: 50px;
-    font-size: 12px;
-  }
-
-  .resource-button.small-button {
-    min-width: 20px;
-    font-size: 10px;
-  }
-
-  #resource-bars canvas {
-    width: 100% !important;
-    max-width: 100%;
-    height: 200px;
-  }
-
   .modal {
-    width: 80vw; /* Tightened from 85vw */
-    max-height: 60vh; /* Tightened from 65vh */
+    width: 90vw; /* Wider on mobile */
+    max-height: 40vh; /* Even shorter on mobile */
+    top: 70%; /* Kept lower */
     padding: 10px;
     font-size: 12px;
+    overflow-x: auto;
     overflow-y: auto;
+    flex-wrap: wrap; /* Wrap content if needed */
   }
-
   .modal h3 {
-    font-size: 14px; /* Even smaller header */
-    margin: 5px 0;
+    font-size: 14px;
+    margin: 0 0 5px 0; /* Tighten spacing */
+    width: 100%; /* Full width for header */
   }
-
-  .modal div {
-    margin-bottom: 5px; /* Tighter spacing */
+  .modal .resource-row {
+    flex: 1 1 auto; /* Grow horizontally */
+    min-width: 150px; /* Minimum width for each section */
+    margin-bottom: 5px;
   }
-
   .modal select,
   .modal input,
   .modal textarea {
     width: 100%;
-    font-size: 11px; /* Smaller inputs */
+    font-size: 11px;
     padding: 2px;
+    box-sizing: border-box;
   }
-
   .modal button {
     padding: 2px 5px;
     font-size: 11px;
+    margin: 0 5px; /* Space buttons horizontally */
   }
 }
