@@ -1,4 +1,3 @@
-let currentModal = null;
 // Global resource variables – starting with 25 HP and 10 MP
 let max_hp = 25,
   current_hp = 25;
@@ -194,30 +193,64 @@ function setup() {
 }
 // p5.js draw function
 function draw() {
-  background(255); // Maintain the background
-  // Add any continuous updates (e.g., resource bar animations) here if needed
-  // Do not re-render tab content unless it requires real-time updates
+  // Only draw if the Resources tab is active
+  if (document.getElementById('resources').classList.contains('active')) {
+    background(255); // Clear the canvas with white
+
+    // Draw HP bar (red)
+    fill(255, 0, 0);
+    noStroke();
+    let hpWidth = map(current_hp, 0, max_hp, 0, width - 40);
+    rect(20, 20, hpWidth, 20);
+    textSize(16);
+    fill(0);
+    text(`HP: ${current_hp}/${max_hp}`, 20, 15);
+
+    // Draw MP bar (blue)
+    fill(0, 0, 255);
+    let mpWidth = map(current_mp, 0, max_mp, 0, width - 40);
+    rect(20, 60, mpWidth, 20);
+    fill(0);
+    text(`MP: ${current_mp}/${max_mp}`, 20, 55);
+
+    // Draw Stamina bar (green)
+    fill(0, 255, 0);
+    let staminaWidth = map(current_stamina, 0, max_stamina, 0, width - 40);
+    rect(20, 100, staminaWidth, 20);
+    fill(0);
+    text(`Stamina: ${current_stamina}/${max_stamina}`, 20, 95);
+
+    // Draw ATG bar (yellow)
+    fill(255, 255, 0);
+    let atgWidth = map(current_ATG, 0, max_ATG, 0, width - 40);
+    rect(20, 140, atgWidth, 20);
+    fill(0);
+    text(`ATG: ${current_ATG}/${max_ATG}`, 20, 135);
+  }
 }
 
 function switchTab(tabId) {
   console.log(`Switching to tab: ${tabId}`);
-  if (currentModal) {
-    currentModal.remove();
-    currentModal = null;
-  }
+  // Hide all tab content
   document.querySelectorAll('.tabcontent').forEach(tab => {
     tab.style.display = 'none';
     tab.classList.remove('active');
   });
+
+  // Show the selected tab
   let selectedTab = document.getElementById(tabId);
   selectedTab.style.display = 'block';
   selectedTab.classList.add('active');
+
+  // Update active tablink style
   document.querySelectorAll('.tablink').forEach(btn => {
     btn.classList.remove('active');
     if (btn.getAttribute('data-tab') === tabId) {
       btn.classList.add('active');
     }
   });
+
+  // Refresh UI based on tab
   if (tabId === "inventory") {
     createInventoryUI();
   } else if (tabId === "equipment") {
