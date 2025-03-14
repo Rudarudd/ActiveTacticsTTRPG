@@ -1622,19 +1622,16 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
 }
 function showAddEditEquipmentModal() {
   if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv().class("modal"); // Use CSS class instead of inline styles
+  modalDiv = createDiv().class("modal");
 
-  // Header (full width)
   createElement("h3", "Modify Equipment").parent(modalDiv);
 
-  // Error message (full width)
   let errorMessage = createP("")
     .parent(modalDiv)
     .style("color", "red")
     .style("display", "none")
     .style("margin-bottom", "10px");
 
-  // Main container for horizontal layout
   let fieldsContainer = createDiv()
     .parent(modalDiv)
     .class("resource-row")
@@ -1644,30 +1641,24 @@ function showAddEditEquipmentModal() {
 
   // Row 1: Type, Equipment Select, Name
   let row1 = createDiv().parent(fieldsContainer).class("resource-row").style("display", "flex").style("gap", "10px");
-  
-  // Equipment Type
   let typeDiv = createDiv().parent(row1).style("flex", "1").style("min-width", "120px");
   createSpan("Equipment Type:").parent(typeDiv).style("display", "block");
   let typeSelect = createSelect().parent(typeDiv).style("width", "100%");
   ["On-Hand", "Off-Hand", "Chest", "Helm", "Gloves", "Greaves", "Accessory"].forEach(type => typeSelect.option(type));
   createSpan("Slot").parent(typeDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  // Equipment selection
   let equipmentSelectDiv = createDiv().parent(row1).style("flex", "1").style("min-width", "120px");
   createSpan("Equipment:").parent(equipmentSelectDiv).style("display", "block");
   let equipmentSelect = createSelect().parent(equipmentSelectDiv).style("width", "100%");
   createSpan("Edit or 'None'").parent(equipmentSelectDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  // Name
   let nameDiv = createDiv().parent(row1).style("flex", "1").style("min-width", "120px");
   createSpan("Name:").parent(nameDiv).style("display", "block");
   let nameInput = createInput("").parent(nameDiv).style("width", "100%").attribute("placeholder", "e.g., Iron Blade");
   createSpan("ID").parent(nameDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  // Row 2: Quality, Slots, Weapon Category (conditional)
+  // Row 2: Quality, Slots, Weapon Category
   let row2 = createDiv().parent(fieldsContainer).class("resource-row").style("display", "flex").style("gap", "10px");
-
-  // Quality
   let qualityDiv = createDiv().parent(row2).style("flex", "1").style("min-width", "120px");
   createSpan("Quality:").parent(qualityDiv).style("display", "block");
   let qualitySelect = createSelect().parent(qualityDiv).style("width", "100%");
@@ -1675,24 +1666,20 @@ function showAddEditEquipmentModal() {
   qualitySelect.value("Common");
   createSpan("Rarity").parent(qualityDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  // Essence Crystal Slots
   let slotsDiv = createDiv().parent(row2).style("flex", "1").style("min-width", "120px");
   createSpan("Crystal Slots:").parent(slotsDiv).style("display", "block");
   let slotsSelect = createSelect().parent(slotsDiv).style("width", "100%");
   [0, 1, 2, 3, 4].forEach(slot => slotsSelect.option(slot));
   createSpan("Slots").parent(slotsDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  // Weapon Category (hidden by default)
   let weaponCategoryDiv = createDiv().parent(row2).style("flex", "1").style("min-width", "120px").style("display", "none");
   createSpan("Weapon Category:").parent(weaponCategoryDiv).style("display", "block");
   let weaponCategorySelect = createSelect().parent(weaponCategoryDiv).style("width", "100%");
   ["Melee - Heavy", "Melee - Balanced", "Melee - Light", "Ranged - Short", "Ranged - Long", "Magical - Offensive", "Magical - Support", "Shields", "Hybrid"].forEach(category => weaponCategorySelect.option(category));
   createSpan("Abilities").parent(weaponCategoryDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  // Row 3: Conditional fields (Linked Stat, Damage Dice, Defense, Penalty)
+  // Row 3: Conditional fields
   let row3 = createDiv().parent(fieldsContainer).class("resource-row").style("display", "flex").style("gap", "10px");
-
-  // Linked Stat (weapons)
   let linkedStatDiv = createDiv().parent(row3).style("flex", "1").style("min-width", "120px").style("display", "none");
   createSpan("Linked Stat:").parent(linkedStatDiv).style("display", "block");
   let linkedStatSelect = createSelect().parent(linkedStatDiv).style("width", "100%");
@@ -1700,21 +1687,18 @@ function showAddEditEquipmentModal() {
   linkedStatSelect.option("MAG");
   createSpan("Damage Stat").parent(linkedStatDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  // Damage Dice + Modifier (weapons)
   let damageDiceDiv = createDiv().parent(row3).style("flex", "1").style("min-width", "120px").style("display", "none");
   createSpan("Damage:").parent(damageDiceDiv).style("display", "block");
   let damageDiceInput = createInput("", "text").parent(damageDiceDiv).style("width", "60px").style("margin-right", "5px").attribute("placeholder", "e.g., 2d6");
   let weaponModifierInput = createInput("0", "number").parent(damageDiceDiv).style("width", "40px").attribute("placeholder", "Mod");
   createSpan("Dice + Mod").parent(damageDiceDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  // Defense + Modifier (armor)
   let defenseDiv = createDiv().parent(row3).style("flex", "1").style("min-width", "120px").style("display", "none");
   createSpan("Defense:").parent(defenseDiv).style("display", "block");
   let defenseInput = createInput("0", "number").parent(defenseDiv).style("width", "40px").style("margin-right", "5px");
   let armorModifierInput = createInput("0", "number").parent(defenseDiv).style("width", "40px").attribute("placeholder", "Mod");
   createSpan("Def + Mod").parent(defenseDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  // Movement Penalty (armor)
   let penaltyDiv = createDiv().parent(row3).style("flex", "1").style("min-width", "120px").style("display", "none");
   createSpan("Penalty (ft):").parent(penaltyDiv).style("display", "block");
   let penaltySelect = createSelect().parent(penaltyDiv).style("width", "100%");
@@ -1723,8 +1707,6 @@ function showAddEditEquipmentModal() {
 
   // Row 4: Stat Bonus and Requirements
   let row4 = createDiv().parent(fieldsContainer).class("resource-row").style("display", "flex").style("gap", "10px");
-
-  // Stat Bonus
   let stATGonusDiv = createDiv().parent(row4).style("flex", "1").style("min-width", "120px");
   createSpan("Stat Bonus:").parent(stATGonusDiv).style("display", "block");
   let stATGonusAmountInput = createInput("0", "number").parent(stATGonusDiv).style("width", "40px").style("margin-right", "5px");
@@ -1732,7 +1714,6 @@ function showAddEditEquipmentModal() {
   ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => stATGonusStatSelect.option(stat));
   createSpan("Boost").parent(stATGonusDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  // Stat Requirements (condensed)
   let statReqDiv = createDiv().parent(row4).style("flex", "2").style("min-width", "150px");
   createSpan("Stat Req:").parent(statReqDiv).style("display", "block");
   let statReq1Div = createDiv().parent(statReqDiv).style("display", "flex").style("gap", "5px");
@@ -1745,17 +1726,17 @@ function showAddEditEquipmentModal() {
   let statReq2Input = createInput("", "number").parent(statReq2Div).style("width", "40px").attribute("placeholder", "Val");
   createSpan("Min Stats").parent(statReqDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  // Row 5: Description (full width due to textarea)
+  // Row 5: Description
   let descDiv = createDiv().parent(fieldsContainer).style("width", "100%").style("min-width", "200px");
   createSpan("Description:").parent(descDiv).style("display", "block");
   let descriptionInput = createElement("textarea")
     .parent(descDiv)
     .style("width", "100%")
-    .style("height", "40px") // Reduced height to minimize vertical space
+    .style("height", "40px")
     .attribute("placeholder", "Describe the equipment...");
   createSpan("Lore").parent(descDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  // Buttons (horizontal)
+  // Buttons
   let buttonDiv = createDiv().parent(modalDiv).style("display", "flex").style("gap", "5px").style("margin-top", "10px");
   let addButton = createButton("Add").parent(buttonDiv).style("margin", "0");
   let saveButton = createButton("Save").parent(buttonDiv).style("margin", "0");
