@@ -201,26 +201,23 @@ function draw() {
 
 function switchTab(tabId) {
   console.log(`Switching to tab: ${tabId}`);
-  // Hide all tab content
+  if (currentModal) {
+    currentModal.remove();
+    currentModal = null;
+  }
   document.querySelectorAll('.tabcontent').forEach(tab => {
     tab.style.display = 'none';
     tab.classList.remove('active');
   });
-
-  // Show the selected tab
   let selectedTab = document.getElementById(tabId);
   selectedTab.style.display = 'block';
   selectedTab.classList.add('active');
-
-  // Update active tablink style
   document.querySelectorAll('.tablink').forEach(btn => {
     btn.classList.remove('active');
     if (btn.getAttribute('data-tab') === tabId) {
       btn.classList.add('active');
     }
   });
-
-  // Refresh UI based on tab
   if (tabId === "inventory") {
     createInventoryUI();
   } else if (tabId === "equipment") {
