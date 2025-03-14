@@ -4,8 +4,6 @@ body {
   margin: 0;
   padding: 20px;
   box-sizing: border-box;
-  min-height: 100vh; /* Ensure body takes full viewport height */
-  overflow-x: hidden; /* Prevent horizontal scroll issues */
 }
 
 /* Header styling */
@@ -36,7 +34,6 @@ header button {
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
-  min-height: calc(100vh - 60px); /* Adjust for header and padding */
 }
 
 /* Tabs styling */
@@ -74,27 +71,15 @@ header button {
 }
 
 .tabcontent {
-  display: none; /* Hide inactive tabs */
+  display: none; /* Fix: Hide inactive tabs */
 }
 
 .tabcontent.active {
-  display: block; /* Show active tab */
+  display: block; /* Fix: Show active tab */
 }
 
 /* Resource section specific styling */
-#resources {
-  min-height: 200px; /* Ensure a minimum height to prevent collapse */
-  position: relative; /* Establish positioning context */
-}
-
-#resource-bars {
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-  position: relative; /* Establish positioning context */
-  min-height: 100px; /* Ensure a minimum height to prevent collapse */
-}
-
+#resource-bars,
 #resource-controls {
   width: 100%;
   max-width: 600px;
@@ -104,11 +89,6 @@ header button {
 #resource-bars canvas {
   display: block;
   margin: 0 auto;
-  position: relative; /* Ensure canvas has a position */
-  z-index: 1; /* Ensure canvas is above other elements but below modals */
-  width: 100% !important; /* Force full width on mobile */
-  max-width: 600px; /* Cap width on larger screens */
-  height: auto; /* Maintain aspect ratio */
 }
 
 /* Resource row styling */
@@ -131,8 +111,6 @@ header button {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
-  table-layout: auto; /* Ensure columns adjust to content */
-  overflow-x: auto; /* Allow horizontal scrolling if needed */
 }
 
 .rules-table th,
@@ -182,8 +160,8 @@ header button {
   font-size: 12px;
 }
 
-/* Style for category headers in Inventory UI */
-h3 {
+/* Style for category headers in the Items table */
+.expandable-section h3 {
   cursor: pointer;
   padding: 5px;
   background-color: #f2f2f2;
@@ -191,21 +169,20 @@ h3 {
   position: relative; /* For adding a collapse indicator */
 }
 
-/* Add a collapse/expand indicator */
-h3::before {
+/* Add a collapse/expand indicator only in expandable sections */
+.expandable-section h3::before {
   content: "▶"; /* Right arrow when collapsed */
   display: inline-block;
   margin-right: 5px;
-  transition: transform 0.3s ease; /* Smooth transition for future animations */
+  transition: transform 0.3s ease; /* Smooth transition for animations */
 }
 
 /* Rotate and change arrow when expanded */
-h3.expanded::before {
+.expandable-section h3.expanded::before {
   content: "▼"; /* Down arrow when expanded */
-  transform: rotate(0deg); /* Ensure no rotation conflict */
 }
 
-/* Modal styling */
+/* Modal styling (added for inventory modals) */
 .modal {
   position: fixed;
   top: 50%;
@@ -214,10 +191,13 @@ h3.expanded::before {
   background: white;
   padding: 20px;
   border: 2px solid #000;
-  z-index: 1000; /* Modal remains above canvas */
-  max-height: 80vh; /* Prevent modal from covering the entire screen */
-  overflow-y: auto; /* Allow scrolling if content overflows */
-  box-sizing: border-box; /* Ensure padding doesn’t increase size */
+  z-index: 1000;
+  max-height: 80vh; /* Cap height */
+  max-width: 90vw; /* Cap width to prevent overflow */
+  width: auto; /* Let content dictate width up to max */
+  overflow-y: auto; /* Scroll if content exceeds height */
+  overflow-x: hidden; /* Prevent horizontal overflow */
+  box-sizing: border-box;
 }
 
 /* Responsive adjustments */
@@ -247,27 +227,10 @@ h3.expanded::before {
     font-size: 10px;
   }
 
-  /* Ensure canvas visibility on mobile */
-  #resource-bars canvas {
-    width: 100% !important; /* Override any inline width set by p5.js */
-    max-width: 100%; /* Prevent overflow */
-    display: block !important; /* Force visibility */
-    height: auto !important; /* Maintain aspect ratio on mobile */
-  }
-
-  /* Adjust container and content for mobile viewport */
-  .container {
-    padding: 10px; /* Reduce padding on mobile */
-    min-height: calc(100vh - 40px); /* Adjust for smaller screens */
-  }
-
-  .content {
-    padding: 0; /* Remove extra padding to maximize space */
-  }
-
-  /* Prevent modal from pushing content off-screen */
   .modal {
-    width: 90vw; /* Use viewport width for mobile */
-    max-height: 70vh; /* Reduce max height on mobile */
+    width: 90vw; /* Full width on mobile */
+    max-height: 70vh; /* Slightly smaller on mobile */
+    max-width: 90vw; /* Reinforce width cap */
+    overflow-y: auto; /* Ensure scrolling works */
   }
 }
