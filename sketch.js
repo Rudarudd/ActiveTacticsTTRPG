@@ -170,127 +170,200 @@ const weaponCategories = [
   "Hybrid"
 ];
 
-// Add currentTab to track the active tab
-let currentTab = 'resources'; // Default tab
+// Global variables (keep these from both versions as needed)
+let cnv;
+let currentTab = 'resources';
+let modalDiv = null;
+let resourceUIContainer;
+let skillsContainer;
+let maxHpInput, setMaxHpButton, maxMpInput, setMaxMpButton;
+let maxStaminaInput, setMaxStaminaButton, maxATGInput, setMaxATGButton;
+let hpPlus, hpMinus, mpPlus, mpMinus, staminaPlus, staminaMinus, ATGPlus, ATGMinus;
+let resetButton, staminaATGLink = false, staminaATGLinkButton;
 
-// p5.js setup function
+// Single setup function
 function setup() {
-  let cnv = createCanvas(800, 600);
-  cnv.parent('resources');
+  let resourceBarsContainer = select("#resource-bars");
+  if (!resourceBarsContainer) {
+    console.error("No #resource-bars div found in HTML!");
+    return;
+  }
+  let resourceControlsContainer = select("#resource-controls");
+  if (!resourceControlsContainer) {
+    console.error("No #resource-controls div found in HTML!");
+    return;
+  }
+  let containerWidth = resourceBarsContainer.elt.clientWidth;
+  let canvasWidth = min(containerWidth, 600);
+  let canvasHeight = 200; // Use 200 to match your first version and fit all bars
+  cnv = createCanvas(canvasWidth, canvasHeight);
+  cnv.parent(resourceBarsContainer);
+  textFont("Arial");
+  textSize(16);
+  textAlign(LEFT, TOP);
 
-  initializeInventory();
+  resourceUIContainer = createDiv()
+    .parent(resourceControlsContainer)
+    .id("resourceUIContainer");
+  skillsContainer = createDiv().id("skillsContainer");
+
+  // Initialize all UI components
+  createResourceUI();
+  createStatsUI();
+  createTalentsUI();
+  createTraitsUI();
   updateAvailableEquipment();
+  createEquipmentUI();
+  createInventoryUI();
 
-  // Set up tab switching using switchTab function
-  document.querySelectorAll('.tablink').forEach(button => {
-    button.addEventListener('click', () => {
-      switchTab(button.getAttribute('data-tab'));
+  // Tab functionality
+  const tablinks = document.querySelectorAll(".tablink");
+  const tabcontents = document.querySelectorAll(".tabcontent");
+  tablinks.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      tablinks.forEach((b) => b.classList.remove("active"));
+      tabcontents.forEach((tc) => {
+        tc.classList.remove("active");
+        tc.style.display = "none";
+      });
+      btn.classList.add("active");
+      const tabId = btn.getAttribute("data-tab");
+      const activeTab = document.getElementById(tabId);
+      activeTab.classList.add("active");
+      activeTab.style.display = "block";
+      currentTab = tabId;
+
+      // Refresh UI based on tab
+      console.log(`Switching to tab: ${tabId}`);
+      if (tabId === "resources") {
+        cnv.show(); // Ensure canvas is visible
+        createResourceUI();
+        redraw(); // Force redraw of resource bars
+      } else {
+        cnv.hide(); // Hide canvas on other tabs
+        if (tabId === "inventory") createInventoryUI();
+        else if (tabId === "equipment") createEquipmentUI();
+        else if (tabId === "abilities") createAbilitiesUI();
+        else if (tabId === "traits") createTraitsUI();
+        else if (tabId === "stats") createStatsUI();
+        else if (tabId === "talents") createTalentsUI();
+      }
     });
   });
 
-  // Simulate click on the default active tab (Resources)
+  // Simulate click on default tab
   document.querySelector(".tablink.active").click();
 }
-// p5.js draw function
+
+function windowResized() {
+  let resourceBarsContainer = select("#resource-bars");
+  let containerWidth = resourceBarsContainer.elt.clientWidth;
+  let canvasWidth = min(containerWidth, 600);
+  resizeCanvas(canvasWidth, 200); // Match setup height
+}
+
 function draw() {
-  background(255); // Maintain the background
-  // Add any continuous updates (e.g., resource bar animations) here if needed
-  // Do not re-render tab content unless it requires real-time updates
+  background(255);
+  displayBars();
 }
 
-function switchTab(tabId) {
-  console.log(`Switching to tab: ${tabId}`);
-  // Hide all tab content
-  document.querySelectorAll('.tabcontent').forEach(tab => {
-    tab.style.display = 'none';
-    tab.classList.remove('active');
-  });
+function displayBars() {
+  let bar_width = width * 0.6;
+  let bar_height = 20;
+  let x = width * 0.1;
+  let y_hp = 25, y_mp = 55, y_stamina = 85, y_ATG = 115;
 
-  // Show the selected tab
-  let selectedTab = document.getElementById(tabId);
-  selectedTab.style.display = 'block';
-  selectedTab.classList.add('active');
+  stroke(0);
+  fill(128);
+  rect(x, y_hp, bar_width, bar_height);
+  noStroke();
+  fill(255, 0, 0);
+  let hp_width = (current_hp / max_hp) * bar_width;
+  rect(x, y_hp, hp_width, bar_height);
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+  fill(255);
+  text(`HP: ${current_hp}/${max_hp}`, x + bar_width / 2, y_hp + bar_height / 2);
 
-  // Update active tablink style
-  document.querySelectorAll('.tablink').forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.getAttribute('data-tab') === tabId) {
-      btn.classList.add('active');
-    }
-  });
+  stroke(0);
+  fill(128);
+  rect(x, y_mp, bar_width, bar_height);
+  noStroke();
+  fill(128, 0, 128);
+  let mp_width = (current_mp / max_mp) * bar_width;
+  rect(x, y_mp, mp_width, bar_height);
+  fill(255);
+  text(`MP: ${current_mp}/${max_mp}`, x + bar_width / 2, y_mp + bar_height / 2);
 
-  // Refresh UI based on tab
-  if (tabId === "inventory") {
-    createInventoryUI();
-  } else if (tabId === "equipment") {
-    createEquipmentUI();
-  } else if (tabId === "abilities") {
-    createAbilitiesUI();
-  } else if (tabId === "traits") {
-    createTraitsUI();
-  } else if (tabId === "resources") {
-    createResourceUI();
-  } else if (tabId === "stats") {
-    createStatsUI();
-  } else if (tabId === "talents") {
-    createTalentsUI();
-  }
+  stroke(0);
+  fill(128);
+  rect(x, y_stamina, bar_width, bar_height);
+  noStroke();
+  fill(0, 150, 0);
+  let stamina_width = (current_stamina / max_stamina) * bar_width;
+  rect(x, y_stamina, stamina_width, bar_height);
+  fill(255);
+  text(`STA: ${current_stamina}/${max_stamina}`, x + bar_width / 2, y_stamina + bar_height / 2);
+
+  stroke(0);
+  fill(128);
+  rect(x, y_ATG, bar_width, bar_height);
+  noStroke();
+  fill(0, 0, 255);
+  let ATG_width = (current_ATG / max_ATG) * bar_width;
+  rect(x, y_ATG, ATG_width, bar_height);
+  fill(255);
+  text(`ATG: ${current_ATG}/${max_ATG}`, x + bar_width / 2, y_ATG + bar_height / 2);
 }
-// Ensure availableEquipment is updated based on inventory
-function updateAvailableEquipment() {
-  for (let slot in availableEquipment) {
-    availableEquipment[slot] = inventory.filter(
-      (item) => item.type === slot && item.category === "Equipment"
-    );
-  }
-  console.log("Updated availableEquipment:", availableEquipment); // Debug
-}
-updateAvailableEquipment(); // Initial update
 
-function updateAbilities() {
-  characterAbilities = [];
-  for (let slot in equippedItems) {
-    let item = equippedItems[slot];
-    if (item && item.equippedCrystals) {
-      item.equippedCrystals.forEach(crystal => {
-        if (crystal && crystal.abilities) {
-          crystal.abilities.forEach(ability => {
-            if (!characterAbilities.includes(ability)) {
-              characterAbilities.push(ability);
-            }
-          });
-        }
+// Keep your createResourceUI and helper functions as-is
+function createResourceUI() {
+  // Your existing implementation...
+}
+
+// Update modal closure (e.g., showConfirmationModal)
+function showConfirmationModal(message, onConfirm, isError = false) {
+  if (modalDiv) modalDiv.remove();
+  modalDiv = createDiv()
+    .style("position", "fixed")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("width", "300px");
+  createElement("p", message).parent(modalDiv);
+  if (isError) {
+    createButton("Close")
+      .parent(modalDiv)
+      .style("margin", "5px")
+      .mousePressed(() => {
+        modalDiv.remove();
+        if (currentTab === "resources") redraw();
       });
-    }
+  } else {
+    createButton("Confirm")
+      .parent(modalDiv)
+      .style("margin", "5px")
+      .mousePressed(() => {
+        onConfirm();
+        modalDiv.remove();
+        if (currentTab === "resources") redraw();
+      });
+    createButton("Cancel")
+      .parent(modalDiv)
+      .style("margin", "5px")
+      .mousePressed(() => {
+        modalDiv.remove();
+        if (currentTab === "resources") redraw();
+      });
   }
-  console.log("Current Abilities:", characterAbilities);
-  createAbilitiesUI(); // Called here!
 }
 
-// UI elements for resource tracker (created in createResourceUI)
-let maxHpInput, setMaxHpButton, maxMpInput, setMaxMpButton;
-let maxStaminaInput, setMaxStaminaButton, maxATGInput, setMaxATGButton;
-let hpPlus,
-  hpMinus,
-  mpPlus,
-  mpMinus,
-  staminaPlus,
-  staminaMinus,
-  ATGPlus,
-  ATGMinus;
-let resetButton;
-let staminaATGLink = false,
-  staminaATGLinkButton;
-let cnv;
-let modalDiv = null; // For modals
-
-// Global container variables (set in setup)
-let resourceUIContainer;
-let skillsContainer;
-
-// For description modals
-let descriptionModal = null;
-
+// Remove redundant switchTab function
+// Delete: function switchTab(tabId) { ... }
 // For linking stats to skills
 let statLabelElements = {};
 let attributeCheckboxes = {};
@@ -2192,382 +2265,7 @@ function showAddEditEquipmentModal() {
       errorMessage.style("display", "none");
     });
 }
-// ### p5.js Setup and Draw ###
 
-function setup() {
-  let resourceBarsContainer = select("#resource-bars");
-  if (!resourceBarsContainer) {
-    console.error("No #resource-bars div found in HTML!");
-    return;
-  }
-  let resourceControlsContainer = select("#resource-controls");
-  if (!resourceControlsContainer) {
-    console.error("No #resource-controls div found in HTML!");
-    return;
-  }
-  let containerWidth = resourceBarsContainer.elt.clientWidth;
-  let canvasWidth = min(containerWidth, 600);
-  let canvasHeight = 150;
-  cnv = createCanvas(canvasWidth, canvasHeight);
-  cnv.parent(resourceBarsContainer);
-  textFont("Arial");
-  textSize(16);
-  textAlign(LEFT, TOP);
-
-  resourceUIContainer = createDiv()
-    .parent(resourceControlsContainer)
-    .id("resourceUIContainer");
-  skillsContainer = createDiv().id("skillsContainer");
-
-  // Initialize all UI components
-createResourceUI();
-  createStatsUI();
-  createTalentsUI();
-  createTraitsUI();
-  updateAvailableEquipment(); // Moved up to sync availableEquipment first
-  createEquipmentUI();        // Now uses the populated availableEquipment
-  createInventoryUI();        // Keep this last if it depends on equipment
-
-  // Tab functionality
-  const tablinks = document.querySelectorAll(".tablink");
-  const tabcontents = document.querySelectorAll(".tabcontent");
-  tablinks.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      // Hide all tabs and remove active class
-      tablinks.forEach((b) => b.classList.remove("active"));
-      tabcontents.forEach((tc) => {
-        tc.classList.remove("active");
-        tc.style.display = "none"; // Ensure CSS display is toggled
-      });
-
-      // Show the clicked tab
-      btn.classList.add("active");
-      const tabId = btn.getAttribute("data-tab");
-      const activeTab = document.getElementById(tabId);
-      activeTab.classList.add("active");
-      activeTab.style.display = "block";
-
-// Refresh UI based on tab
-console.log(`Switching to tab: ${tabId}`);
-    if (tabId === "inventory") {
-      createInventoryUI();
-    } else if (tabId === "equipment") {
-      createEquipmentUI();
-    } else if (tabId === "abilities") {
-      createAbilitiesUI();
-    } else if (tabId === "traits") {
-      createTraitsUI();
-    } else if (tabId === "resources") {
-      createResourceUI();
-    } else if (tabId === "talents") {
-      createTalentsUI();
-    }
-  });
-});
-
-  // Simulate click on the default active tab (Resources)
-  document.querySelector(".tablink.active").click();
-}
-
-function windowResized() {
-  let resourceBarsContainer = select("#resource-bars");
-  let containerWidth = resourceBarsContainer.elt.clientWidth;
-  let canvasWidth = min(containerWidth, 600);
-  resizeCanvas(canvasWidth, 150);
-}
-
-function draw() {
-  background(255);
-  displayBars();
-}
-
-function displayBars() {
-  let bar_width = width * 0.6;
-  let bar_height = 20;
-  let x = width * 0.1;
-  let y_hp = 25,
-    y_mp = 55,
-    y_stamina = 85,
-    y_ATG = 115;
-
-  stroke(0);
-  fill(128);
-  rect(x, y_hp, bar_width, bar_height);
-  noStroke();
-  fill(255, 0, 0);
-  let hp_width = (current_hp / max_hp) * bar_width;
-  rect(x, y_hp, hp_width, bar_height);
-  textAlign(CENTER, CENTER);
-  textStyle(BOLD);
-  fill(255);
-  textSize(16);
-  text(`HP: ${current_hp}/${max_hp}`, x + bar_width / 2, y_hp + bar_height / 2);
-
-  stroke(0);
-  fill(128);
-  rect(x, y_mp, bar_width, bar_height);
-  noStroke();
-  fill(128, 0, 128);
-  let mp_width = (current_mp / max_mp) * bar_width;
-  rect(x, y_mp, mp_width, bar_height);
-  fill(255);
-  text(`MP: ${current_mp}/${max_mp}`, x + bar_width / 2, y_mp + bar_height / 2);
-
-  stroke(0);
-  fill(128);
-  rect(x, y_stamina, bar_width, bar_height);
-  noStroke();
-  fill(0, 150, 0);
-  let stamina_width = (current_stamina / max_stamina) * bar_width;
-  rect(x, y_stamina, stamina_width, bar_height);
-  fill(255);
-  text(
-    `STA: ${current_stamina}/${max_stamina}`,
-    x + bar_width / 2,
-    y_stamina + bar_height / 2
-  );
-
-  stroke(0);
-  fill(128);
-  rect(x, y_ATG, bar_width, bar_height);
-  noStroke();
-  fill(0, 0, 255);
-  let ATG_width = (current_ATG / max_ATG) * bar_width;
-  rect(x, y_ATG, ATG_width, bar_height);
-  fill(255);
-  text(
-    `ATG: ${current_ATG}/${max_ATG}`,
-    x + bar_width / 2,
-    y_ATG + bar_height / 2
-  );
-}
-
-// ### Resource UI ###
-
-function createResourceUI() {
-  let rUI = resourceUIContainer;
-  rUI.html("");
-
-  let hpRow = createDiv().parent(rUI).class("resource-row");
-  createSpan("HP:").parent(hpRow);
-  maxHpInput = createInput(max_hp.toString(), "number")
-    .parent(hpRow)
-    .class("resource-input");
-  setMaxHpButton = createButton("Set Max")
-    .parent(hpRow)
-    .class("resource-button")
-    .mousePressed(setMaxHp);
-  hpPlus = createButton("+10")
-    .parent(hpRow)
-    .class("resource-button small-button")
-    .mousePressed(() => {
-      current_hp = min(current_hp + 10, max_hp);
-    });
-  hpMinus = createButton("-10")
-    .parent(hpRow)
-    .class("resource-button small-button")
-    .mousePressed(() => {
-      current_hp = max(current_hp - 10, 0);
-    });
-
-  let mpRow = createDiv().parent(rUI).class("resource-row");
-  createSpan("MP:").parent(mpRow);
-  maxMpInput = createInput(max_mp.toString(), "number")
-    .parent(mpRow)
-    .class("resource-input");
-  setMaxMpButton = createButton("Set Max")
-    .parent(mpRow)
-    .class("resource-button")
-    .mousePressed(setMaxMp);
-  mpPlus = createButton("+5")
-    .parent(mpRow)
-    .class("resource-button small-button")
-    .mousePressed(() => {
-      current_mp = min(current_mp + 5, max_mp);
-    });
-  mpMinus = createButton("-5")
-    .parent(mpRow)
-    .class("resource-button small-button")
-    .mousePressed(() => {
-      current_mp = max(current_mp - 5, 0);
-    });
-
-  let staminaRow = createDiv().parent(rUI).class("resource-row");
-  createSpan("STA:").parent(staminaRow);
-  maxStaminaInput = createInput(max_stamina.toString(), "number")
-    .parent(staminaRow)
-    .class("resource-input");
-  setMaxStaminaButton = createButton("Set Max")
-    .parent(staminaRow)
-    .class("resource-button")
-    .mousePressed(setMaxStamina);
-  staminaPlus = createButton("+25")
-    .parent(staminaRow)
-    .class("resource-button small-button")
-    .mousePressed(() => {
-      current_stamina = min(current_stamina + 25, max_stamina);
-    });
-  staminaMinus = createButton("-25")
-    .parent(staminaRow)
-    .class("resource-button small-button")
-    .mousePressed(() => {
-      current_stamina = max(current_stamina - 25, 0);
-      if (staminaATGLink) {
-        current_ATG = min(current_ATG + 25, max_ATG);
-      }
-    });
-
-  let ATGRow = createDiv().parent(rUI).class("resource-row");
-  createSpan("ATG:").parent(ATGRow);
-  maxATGInput = createInput(max_ATG.toString(), "number")
-    .parent(ATGRow)
-    .class("resource-input");
-  setMaxATGButton = createButton("Set Max")
-    .parent(ATGRow)
-    .class("resource-button")
-    .mousePressed(setMaxATG);
-  ATGPlus = createButton("+25")
-    .parent(ATGRow)
-    .class("resource-button small-button")
-    .mousePressed(() => {
-      current_ATG = min(current_ATG + 25, max_ATG);
-    });
-  ATGMinus = createButton("-50")
-    .parent(ATGRow)
-    .class("resource-button small-button")
-    .mousePressed(() => {
-      current_ATG = max(current_ATG - 50, 0);
-    });
-
-  let adjustmentRow = createDiv().parent(rUI).class("resource-row");
-  createSpan("Adjust: ").parent(adjustmentRow);
-  let adjustmentInput = createInput("", "number")
-    .parent(adjustmentRow)
-    .class("resource-input")
-    .style("width", "50px");
-  let resourceSelect = createSelect()
-    .parent(adjustmentRow)
-    .style("margin-left", "5px");
-  resourceSelect.option("HP");
-  resourceSelect.option("MP");
-  resourceSelect.option("STA");
-  resourceSelect.option("ATG");
-  createButton("+")
-    .parent(adjustmentRow)
-    .class("resource-button small-button")
-    .style("margin-left", "5px")
-    .mousePressed(() =>
-      adjustResource(
-        resourceSelect.value(),
-        parseInt(adjustmentInput.value()),
-        true
-      )
-    );
-  createButton("-")
-    .parent(adjustmentRow)
-    .class("resource-button small-button")
-    .style("margin-left", "5px")
-    .mousePressed(() =>
-      adjustResource(
-        resourceSelect.value(),
-        parseInt(adjustmentInput.value()),
-        false
-      )
-    );
-
-  let linkRow = createDiv().parent(rUI).class("resource-row");
-  staminaATGLinkButton = createButton(staminaATGLink ? "Link: ON" : "Link: OFF")
-    .parent(linkRow)
-    .class("resource-button")
-    .mousePressed(toggleStaminaATGLink)
-    .style("background-color", staminaATGLink ? "green" : "red");
-  createSpan("When ON, using STA adds to ATG").parent(linkRow);
-
-  let resetRow = createDiv().parent(rUI).class("resource-row");
-  resetButton = createButton("Reset All")
-    .parent(resetRow)
-    .class("resource-button")
-    .mousePressed(resetResources);
-}
-
-function adjustResource(resource, value, isAddition) {
-  if (isNaN(value)) {
-    showConfirmationModal("Please enter a valid number.", () => {}, true);
-    return;
-  }
-  let adjustment = isAddition ? value : -value;
-  switch (resource) {
-    case "HP":
-      current_hp = constrain(current_hp + adjustment, 0, max_hp);
-      break;
-    case "MP":
-      current_mp = constrain(current_mp + adjustment, 0, max_mp);
-      break;
-    case "STA":
-      current_stamina = constrain(current_stamina + adjustment, 0, max_stamina);
-      if (!isAddition && staminaATGLink) {
-        current_ATG = min(current_ATG + value, max_ATG);
-      }
-      break;
-    case "ATG":
-      current_ATG = constrain(current_ATG + adjustment, 0, max_ATG);
-      break;
-  }
-}
-
-function setMaxHp() {
-  let value = parseInt(maxHpInput.value());
-  if (!isNaN(value) && value > 0) {
-    max_hp = value;
-    current_hp = min(current_hp, value);
-  }
-}
-
-function setMaxMp() {
-  let value = parseInt(maxMpInput.value());
-  if (!isNaN(value) && value > 0) {
-    max_mp = value;
-    current_mp = min(current_mp, value);
-  }
-}
-
-function setMaxStamina() {
-  let value = parseInt(maxStaminaInput.value());
-  if (!isNaN(value) && value > 0) {
-    max_stamina = value;
-    current_stamina = min(current_stamina, value);
-  }
-}
-
-function setMaxATG() {
-  let value = parseInt(maxATGInput.value());
-  if (!isNaN(value) && value > 0) {
-    max_ATG = value;
-    current_ATG = min(current_ATG, value);
-  }
-}
-
-function resetResources() {
-  current_hp = max_hp;
-  current_mp = max_mp;
-  current_stamina = max_stamina;
-  current_ATG = 0;
-}
-
-function toggleStaminaATGLink() {
-  staminaATGLink = !staminaATGLink;
-  staminaATGLinkButton.html(staminaATGLink ? "Link: ON" : "Link: OFF");
-  staminaATGLinkButton.style(
-    "background-color",
-    staminaATGLink ? "green" : "red"
-  );
-}
-
-// Function to redraw the resource bars
-function redrawResourceBars() {
-  // Replace this with your actual code to draw the bars
-  displayBars(); // Assuming this is your function to render the bars
-}
 // ### Stats UI ###
 
 function createStatsUI() {
@@ -2576,11 +2274,15 @@ function createStatsUI() {
     console.error("No #stats div found in HTML!");
     return;
   }
-  statsContainer.html("");
+  statsContainer.html(""); // Clear entire stats tab
 
   createElement("h2", "Stats").parent(statsContainer);
-  let statsDesc = createP("Stats determine your character’s core abilities. Click a stat name for details.").parent(statsContainer);
-  statsDesc.style("font-size", "12px").style("color", "#666").style("margin-top", "5px").style("margin-bottom", "10px");
+  let statsDesc = createP("Stats determine your character’s core abilities. Click a stat name for details.")
+    .parent(statsContainer)
+    .style("font-size", "12px")
+    .style("color", "#666")
+    .style("margin-top", "5px")
+    .style("margin-bottom", "10px");
 
   createStatInput("Level", "Level", level, statsContainer, "Level", false);
   createStatInput("EXP", "EXP", exp, statsContainer, "EXP", false);
@@ -2589,7 +2291,12 @@ function createStatsUI() {
   let movementLabel = createSpan("Movement: ").parent(movementDiv).style("cursor", "pointer");
   movementLabel.mouseClicked(() => showStatDescription("Movement", statDescriptions["Movement"] || "No description available."));
   statLabelElements["Movement"] = movementLabel;
-  let movementInput = createInput(movement + " ft", "text").parent(movementDiv).style("width", "50px").attribute("readonly", "true").style("background-color", "#e0e0e0").id("movementInput");
+  let movementInput = createInput(movement + " ft", "text")
+    .parent(movementDiv)
+    .style("width", "50px")
+    .attribute("readonly", "true")
+    .style("background-color", "#e0e0e0")
+    .id("movementInput");
 
   createStatInput("STR", "Strength", stat_str, statsContainer, "STR", true);
   createStatInput("VIT", "Vitality", stat_vit, statsContainer, "VIT", true);
@@ -2600,6 +2307,15 @@ function createStatsUI() {
   createStatInput("LCK", "Luck", stat_lck, statsContainer, "LCK", true, true);
 
   createAdditionalAttributesUI();
+
+  // Reapply stat label colors from attributeLinkMapping
+  for (let skillName in attributeLinkMapping) {
+    let stat = attributeLinkMapping[skillName];
+    if (statLabelElements[stat]) {
+      let skillColor = additionalAttributes.find((a) => a.name === skillName).color;
+      statLabelElements[stat].style("color", skillColor);
+    }
+  }
 }
 
 function createStatInput(abbrev, name, initialValue, container, statName, linkable, greyOutAtMax = false) {
@@ -2613,7 +2329,6 @@ function createStatInput(abbrev, name, initialValue, container, statName, linkab
     let val = int(input.value());
     val = constrain(val, 1, 99);
     tryChangeStat(statName, val);
-    // Update input to reflect current stat value
     let currentStatValue;
     switch (statName) {
       case "Level": currentStatValue = level; break;
@@ -2637,22 +2352,19 @@ function createStatInput(abbrev, name, initialValue, container, statName, linkab
   let bonusSpan = createSpan().parent(div).style("color", "green").style("margin-left", "5px");
   stATGonusElements[abbrev] = bonusSpan;
 }
+
 function tryChangeStat(statName, newValue) {
-  // Convert and constrain the new value
   let newValueInt = constrain(int(newValue), 1, 99);
 
-  // Handle Level and EXP separately (no equipment checks needed)
   if (statName === "Level" || statName === "EXP") {
     if (statName === "Level") level = newValueInt;
     else if (statName === "EXP") exp = newValueInt;
     return true;
   }
 
-  // Calculate the new total stat value (base + bonuses)
   let bonuses = getStATGonuses();
   let newTotal = newValueInt + (bonuses[statName] || 0);
 
-  // Check all equipped items for stat requirements
   for (let slot in equippedItems) {
     let item = equippedItems[slot];
     if (item && item.statRequirements && item.statRequirements[statName]) {
@@ -2667,7 +2379,6 @@ function tryChangeStat(statName, newValue) {
     }
   }
 
-  // If all checks pass, update the stat
   switch (statName) {
     case "STR": stat_str = newValueInt; break;
     case "VIT": stat_vit = newValueInt; updateResourcesBasedOnStats(); break;
@@ -2677,11 +2388,15 @@ function tryChangeStat(statName, newValue) {
     case "SPR": stat_spr = newValueInt; break;
     case "LCK": stat_lck = newValueInt; break;
   }
+  updateStATGonusesDisplay();
   return true;
 }
+
 function createAdditionalAttributesUI() {
   let statsContainer = select("#stats");
   if (!statsContainer) return;
+
+  skillsContainer.html(""); // Clear to prevent duplicates
   skillsContainer
     .parent(statsContainer)
     .style("padding", "5px")
@@ -2761,8 +2476,7 @@ function linkStatToSkill(skillName, selectedStat) {
     }
     statLinkMapping[selectedStat] = skillName;
     attributeLinkMapping[skillName] = selectedStat;
-    let skillColor = additionalAttributes.find((a) => a.name === skillName)
-      .color;
+    let skillColor = additionalAttributes.find((a) => a.name === skillName).color;
     statLabelElements[selectedStat].style("color", skillColor);
   }
 
@@ -4827,6 +4541,19 @@ function createInventoryUI() {
     let contentDiv = createDiv().parent(categoryDiv);
     contentDiv.style("display", categoryStates[category] ? "block" : "none");
 
+    // Toggle visibility and class for arrow indicator
+    categoryHeader.mousePressed(() => {
+      const isVisible = contentDiv.style("display") === "block";
+      categoryStates[category] = !isVisible;
+      contentDiv.style("display", isVisible ? "none" : "block");
+      // Toggle expanded class using the DOM element
+      if (isVisible) {
+        categoryHeader.elt.classList.remove("expanded");
+      } else {
+        categoryHeader.elt.classList.add("expanded");
+      }
+    });
+
     if (category === "Equipment") {
       let equipmentByType = {};
       items.forEach(item => {
@@ -4992,12 +4719,6 @@ function createInventoryUI() {
         });
       }
     }
-
-    categoryHeader.mousePressed(() => {
-      const isVisible = contentDiv.style("display") === "block";
-      categoryStates[category] = !isVisible;
-      contentDiv.style("display", isVisible ? "none" : "block");
-    });
   });
 }
 function showModifyItemsModal() {
