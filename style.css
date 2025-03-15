@@ -71,11 +71,11 @@ header button {
 }
 
 .tabcontent {
-  display: none; /* Fix: Hide inactive tabs */
+  display: none;
 }
 
 .tabcontent.active {
-  display: block; /* Fix: Show active tab */
+  display: block;
 }
 
 /* Resource section specific styling */
@@ -86,11 +86,20 @@ header button {
   margin: 0 auto;
 }
 
+#resource-bars {
+  position: relative; /* Added to provide positioning context for the canvas */
+  height: 200px; /* Ensures the container matches the canvas height */
+}
+
 #resource-bars canvas {
   display: block;
   margin: 0 auto;
+  width: 100% !important;
+  max-width: 600px;
+  height: 200px; /* Matches canvasHeight in setup() */
 }
 
+/* Resource row styling */
 .resource-row {
   display: flex;
   flex-wrap: wrap;
@@ -99,6 +108,7 @@ header button {
   align-items: center;
 }
 
+/* Stamina rules styling */
 #stamina-rules {
   margin-top: 20px;
   padding: 10px;
@@ -159,16 +169,43 @@ header button {
   font-size: 12px;
 }
 
-/* Modal styling (added for inventory modals) */
+/* Style for category headers in the Items table */
+.expandable-section h3 {
+  cursor: pointer;
+  padding: 5px;
+  background-color: #f2f2f2;
+  margin: 0;
+  position: relative;
+}
+
+.expandable-section h3::before {
+  content: "▶";
+  display: inline-block;
+  margin-right: 5px;
+  transition: transform 0.3s ease;
+}
+
+.expandable-section h3.expanded::before {
+  content: "▼";
+}
+
+/* Modal styling */
 .modal {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   background: white;
-  padding: 20px;
+  padding: 15px;
   border: 2px solid #000;
   z-index: 1000;
+  max-height: 80vh;
+  max-width: 90vw;
+  width: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  font-size: 14px;
 }
 
 /* Responsive adjustments */
@@ -196,5 +233,41 @@ header button {
   .resource-button.small-button {
     min-width: 20px;
     font-size: 10px;
+  }
+
+  #resource-bars canvas {
+    width: 100% !important;
+    max-width: 100%;
+    height: 200px;
+  }
+
+  .modal {
+    width: 80vw;
+    max-height: 60vh;
+    padding: 10px;
+    font-size: 12px;
+    overflow-y: auto;
+  }
+
+  .modal h3 {
+    font-size: 14px;
+    margin: 5px 0;
+  }
+
+  .modal div {
+    margin-bottom: 5px;
+  }
+
+  .modal select,
+  .modal input,
+  .modal textarea {
+    width: 100%;
+    font-size: 11px;
+    padding: 2px;
+  }
+
+  .modal button {
+    padding: 2px 5px;
+    font-size: 11px;
   }
 }
