@@ -175,99 +175,43 @@ let currentTab = 'resources'; // Default tab
 
 // p5.js setup function
 function setup() {
-  let resourceBarsContainer = select("#resource-bars");
-  if (!resourceBarsContainer) {
-    console.error("No #resource-bars div found in HTML!");
-    return;
-  }
-  let resourceControlsContainer = select("#resource-controls");
-  if (!resourceControlsContainer) {
-    console.error("No #resource-controls div found in HTML!");
-    return;
-  }
-  let containerWidth = resourceBarsContainer.elt.clientWidth;
-  let canvasWidth = min(containerWidth, 600);
-  let canvasHeight = 200; // Increased from 150 to fit all bars comfortably
-  cnv = createCanvas(canvasWidth, canvasHeight);
-  cnv.parent(resourceBarsContainer);
-  textFont("Arial");
-  textSize(16);
-  textAlign(LEFT, TOP);
+  let cnv = createCanvas(800, 600);
+  cnv.parent('resources');
 
-  resourceUIContainer = createDiv()
-    .parent(resourceControlsContainer)
-    .id("resourceUIContainer");
-  skillsContainer = createDiv().id("skillsContainer");
-
-  // Initialize all UI components
-  createResourceUI();
-  createStatsUI();
-  createTalentsUI();
-  createTraitsUI();
+  initializeInventory();
   updateAvailableEquipment();
-  createEquipmentUI();
-  createInventoryUI();
 
-  // Tab functionality
-  const tablinks = document.querySelectorAll(".tablink");
-  const tabcontents = document.querySelectorAll(".tabcontent");
-  tablinks.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      // Hide all tabs and remove active class
-      tablinks.forEach((b) => b.classList.remove("active"));
-      tabcontents.forEach((tc) => {
-        tc.classList.remove("active");
-        tc.style.display = "none";
-      });
-
-      // Show the clicked tab
-      btn.classList.add("active");
-      const tabId = btn.getAttribute("data-tab");
-      const activeTab = document.getElementById(tabId);
-      activeTab.classList.add("active");
-      activeTab.style.display = "block";
-
-      // Refresh UI based on tab
-      console.log(`Switching to tab: ${tabId}`);
-      if (tabId === "inventory") {
-        createInventoryUI();
-      } else if (tabId === "equipment") {
-        createEquipmentUI();
-      } else if (tabId === "abilities") {
-        createAbilitiesUI();
-      } else if (tabId === "traits") {
-        createTraitsUI();
-      } else if (tabId === "resources") {
-        createResourceUI();
-        redraw(); // Force redraw of resource bars
-      } else if (tabId === "stats") {
-        createStatsUI();
-      } else if (tabId === "talents") {
-        createTalentsUI();
-      }
+  // Set up tab switching using switchTab function
+  document.querySelectorAll('.tablink').forEach(button => {
+    button.addEventListener('click', () => {
+      switchTab(button.getAttribute('data-tab'));
     });
   });
 
   // Simulate click on the default active tab (Resources)
   document.querySelector(".tablink.active").click();
 }
+// p5.js draw function
+function draw() {
+  background(255); // Maintain the background
+  // Add any continuous updates (e.g., resource bar animations) here if needed
+  // Do not re-render tab content unless it requires real-time updates
+}
+
 function switchTab(tabId) {
   console.log(`Switching to tab: ${tabId}`);
-  
-  // Only remove the modal if switching AWAY from the tab that spawned it
-  if (currentModal && currentModal.tabSource && currentModal.tabSource !== tabId) {
-    currentModal.remove();
-    currentModal = null;
-  }
-
+  // Hide all tab content
   document.querySelectorAll('.tabcontent').forEach(tab => {
     tab.style.display = 'none';
     tab.classList.remove('active');
   });
+
+  // Show the selected tab
   let selectedTab = document.getElementById(tabId);
   selectedTab.style.display = 'block';
   selectedTab.classList.add('active');
 
+  // Update active tablink style
   document.querySelectorAll('.tablink').forEach(btn => {
     btn.classList.remove('active');
     if (btn.getAttribute('data-tab') === tabId) {
@@ -285,13 +229,21 @@ function switchTab(tabId) {
   } else if (tabId === "traits") {
     createTraitsUI();
   } else if (tabId === "resources") {
-    createResourceUI(); // If this exists, it’ll run
-    redraw(); // Force p5.js to redraw the canvas immediately
+    createResourceUI();
   } else if (tabId === "stats") {
     createStatsUI();
   } else if (tabId === "talents") {
     createTalentsUI();
   }
+}
+// Ensure availableEquipment is updated based on inventory
+function updateAvailableEquipment() {
+  for (let slot in availableEquipment) {
+    availableEquipment[slot] = inventory.filter(
+      (item) => item.type === slot && item.category === "Equipment"
+    );
+  }
+  console.log("Updated availableEquipment:", availableEquipment); // Debug
 }
 updateAvailableEquipment(); // Initial update
 
@@ -4875,19 +4827,6 @@ function createInventoryUI() {
     let contentDiv = createDiv().parent(categoryDiv);
     contentDiv.style("display", categoryStates[category] ? "block" : "none");
 
-    // Toggle visibility and class for arrow indicator
-    categoryHeader.mousePressed(() => {
-      const isVisible = contentDiv.style("display") === "block";
-      categoryStates[category] = !isVisible;
-      contentDiv.style("display", isVisible ? "none" : "block");
-      // Toggle expanded class using the DOM element
-      if (isVisible) {
-        categoryHeader.elt.classList.remove("expanded");
-      } else {
-        categoryHeader.elt.classList.add("expanded");
-      }
-    });
-
     if (category === "Equipment") {
       let equipmentByType = {};
       items.forEach(item => {
@@ -5053,6 +4992,12 @@ function createInventoryUI() {
         });
       }
     }
+
+    categoryHeader.mousePressed(() => {
+      const isVisible = contentDiv.style("display") === "block";
+      categoryStates[category] = !isVisible;
+      contentDiv.style("display", isVisible ? "none" : "block");
+    });
   });
 }
 function showModifyItemsModal() {
