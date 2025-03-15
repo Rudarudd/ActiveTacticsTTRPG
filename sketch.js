@@ -1973,7 +1973,9 @@ function showAddEditEquipmentModal() {
     .style("z-index", "1000")
     .style("width", "300px")
     .style("max-height", "80vh") // From your CSS
-    .style("overflow-y", "auto"); // From your CSS
+    .style("overflow-y", "auto")
+    .style("box-sizing", "border-box")
+    .style("font-size", "14px");
 
   createElement("h3", "Modify Equipment").parent(modalDiv);
 
@@ -1991,10 +1993,7 @@ function showAddEditEquipmentModal() {
   let typeSelect = createSelect()
     .parent(typeDiv)
     .style("width", "100%");
-  // Updated to use "Accessory" instead of "Accessory 1" and "Accessory 2"
-  [
-    "On-Hand", "Off-Hand", "Chest", "Helm", "Gloves", "Greaves", "Accessory"
-  ].forEach(type => typeSelect.option(type));
+  ["On-Hand", "Off-Hand", "Chest", "Helm", "Gloves", "Greaves", "Accessory"].forEach(type => typeSelect.option(type));
   createSpan("The slot where the equipment is equipped.")
     .parent(typeDiv)
     .style("font-size", "12px")
@@ -2225,7 +2224,6 @@ function showAddEditEquipmentModal() {
 
   function updateEquipmentOptions() {
     let selectedType = typeSelect.value();
-    // For Accessories, filter by type "Accessory" instead of "Accessory 1" or "Accessory 2"
     let allEquipment = inventory.filter(item => 
       item.category === "Equipment" && 
       (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType)
@@ -2269,8 +2267,8 @@ function showAddEditEquipmentModal() {
       penaltySelect.value(item.movementPenalty || "0");
       slotsSelect.value(item.crystalSlots || 0);
       linkedStatSelect.value(item.linkedStat || "STR");
-      stATGonusStatSelect.value(item.stATGonus ? item.stATGonus.stat : "None");
-      stATGonusAmountInput.value(item.stATGonus ? item.stATGonus.amount : 0);
+      stATGonusStatSelect.value(item.stATGonuses ? Object.keys(item.stATGonuses)[0] : "None");
+      stATGonusAmountInput.value(item.stATGonuses && Object.keys(item.stATGonuses).length > 0 ? item.stATGonuses[Object.keys(item.stATGonuses)[0]] : 0);
       let statReqs = item.statRequirements || {};
       let stats = Object.keys(statReqs);
       statReq1Select.value(stats[0] || "None");
@@ -2321,7 +2319,7 @@ function showAddEditEquipmentModal() {
 
       let stATGonusStat = stATGonusStatSelect.value();
       let stATGonusAmount = parseInt(stATGonusAmountInput.value()) || 0;
-      let stATGonus = stATGonusStat !== "None" && stATGonusAmount !== 0 ? { stat: stATGonusStat, amount: stATGonusAmount } : null;
+      let stATGonus = stATGonusStat !== "None" && stATGonusAmount !== 0 ? { [stATGonusStat]: stATGonusAmount } : null;
 
       let statReq1 = statReq1Select.value();
       let statReq1Value = parseInt(statReq1Input.value());
@@ -2352,7 +2350,7 @@ function showAddEditEquipmentModal() {
         newEquipment.weaponCategory = weaponCategorySelect.value();
       }
 
-      if (stATGonus) newEquipment.stATGonus = stATGonus;
+      if (stATGonus) newEquipment.stATGonuses = stATGonus;
       if (Object.keys(statRequirements).length > 0) newEquipment.statRequirements = statRequirements;
 
       console.log("Adding new equipment:", newEquipment);
@@ -2405,7 +2403,7 @@ function showAddEditEquipmentModal() {
 
       let stATGonusStat = stATGonusStatSelect.value();
       let stATGonusAmount = parseInt(stATGonusAmountInput.value()) || 0;
-      let stATGonus = stATGonusStat !== "None" && stATGonusAmount !== 0 ? { stat: stATGonusStat, amount: stATGonusAmount } : null;
+      let stATGonus = stATGonusStat !== "None" && stATGonusAmount !== 0 ? { [stATGonusStat]: stATGonusAmount } : null;
 
       let statReq1 = statReq1Select.value();
       let statReq1Value = parseInt(statReq1Input.value());
@@ -2448,8 +2446,8 @@ function showAddEditEquipmentModal() {
         delete updatedEquipment.weaponCategory;
       }
 
-      if (stATGonus) updatedEquipment.stATGonus = stATGonus;
-      else delete updatedEquipment.stATGonus;
+      if (stATGonus) updatedEquipment.stATGonuses = stATGonus;
+      else delete updatedEquipment.stATGonuses;
       if (Object.keys(statRequirements).length > 0) updatedEquipment.statRequirements = statRequirements;
       else delete updatedEquipment.statRequirements;
 
