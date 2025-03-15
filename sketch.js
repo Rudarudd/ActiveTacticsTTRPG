@@ -582,7 +582,10 @@ function showConfirmationModal(message, onConfirm, isError = false) {
       .style("margin", "5px")
       .mousePressed(() => {
         modalDiv.remove();
-        if (currentTab === "resources") redraw();
+        if (currentTab === "resources") {
+          loop(); // Restart draw loop
+          redraw(); // Force redraw
+        }
       });
   } else {
     createButton("Confirm")
@@ -591,18 +594,23 @@ function showConfirmationModal(message, onConfirm, isError = false) {
       .mousePressed(() => {
         onConfirm();
         modalDiv.remove();
-        if (currentTab === "resources") redraw();
+        if (currentTab === "resources") {
+          loop(); // Restart draw loop
+          redraw(); // Force redraw
+        }
       });
     createButton("Cancel")
       .parent(modalDiv)
       .style("margin", "5px")
       .mousePressed(() => {
         modalDiv.remove();
-        if (currentTab === "resources") redraw();
+        if (currentTab === "resources") {
+          loop(); // Restart draw loop
+          redraw(); // Force redraw
+        }
       });
   }
 }
-
 // Remove redundant switchTab function
 // Delete: function switchTab(tabId) { ... }
 // For linking stats to skills
@@ -1258,7 +1266,7 @@ function canWieldItem(item) {
 function showConfirmationModal(message, onConfirm, isError = false) {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv()
-    .style("position", "absolute")
+    .style("position", "fixed")
     .style("top", "50%")
     .style("left", "50%")
     .style("transform", "translate(-50%, -50%)")
@@ -1272,7 +1280,10 @@ function showConfirmationModal(message, onConfirm, isError = false) {
     createButton("Close")
       .parent(modalDiv)
       .style("margin", "5px")
-      .mousePressed(() => modalDiv.remove());
+      .mousePressed(() => {
+        modalDiv.remove();
+        if (currentTab === "resources") redraw();
+      });
   } else {
     createButton("Confirm")
       .parent(modalDiv)
@@ -1280,11 +1291,15 @@ function showConfirmationModal(message, onConfirm, isError = false) {
       .mousePressed(() => {
         onConfirm();
         modalDiv.remove();
+        if (currentTab === "resources") redraw();
       });
     createButton("Cancel")
       .parent(modalDiv)
       .style("margin", "5px")
-      .mousePressed(() => modalDiv.remove());
+      .mousePressed(() => {
+        modalDiv.remove();
+        if (currentTab === "resources") redraw();
+      });
   }
 }
 function getAvailableCrystals() {
