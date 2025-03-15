@@ -1953,16 +1953,27 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
 }
 function showAddEditEquipmentModal() {
   if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv()
-    .style("position", "absolute")
-    .style("top", "50%")
+  modalDiv = createDiv();
+
+  // Dynamic top position based on viewport height
+  const viewportHeight = window.innerHeight;
+  const estimatedModalHeight = 500; // Adjust based on actual modal height (measure in browser)
+  const minTopOffset = 20; // Minimum distance from top (in pixels)
+  const topPosition = Math.max(minTopOffset, (viewportHeight - estimatedModalHeight) / 2);
+
+  // Apply positioning and styles
+  modalDiv
+    .style("position", "fixed") // Use fixed to keep modal in viewport
+    .style("top", topPosition + "px")
     .style("left", "50%")
-    .style("transform", "translate(-50%, -50%)")
+    .style("transform", "translateX(-50%)") // Only center horizontally
     .style("background", "#fff")
     .style("padding", "20px")
     .style("border", "2px solid #000")
     .style("z-index", "1000")
-    .style("width", "300px");
+    .style("width", "300px")
+    .style("max-height", "80vh") // From your CSS
+    .style("overflow-y", "auto"); // From your CSS
 
   createElement("h3", "Modify Equipment").parent(modalDiv);
 
@@ -2523,7 +2534,6 @@ function showAddEditEquipmentModal() {
       errorMessage.style("display", "none");
     });
 }
-
 // ### Stats UI ###
 
 function createStatsUI() {
