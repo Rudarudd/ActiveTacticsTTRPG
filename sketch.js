@@ -184,7 +184,7 @@ let maxStaminaInput, setMaxStaminaButton, maxATGInput, setMaxATGButton;
 let hpPlus, hpMinus, mpPlus, mpMinus, staminaPlus, staminaMinus, ATGPlus, ATGMinus;
 let resetButton, staminaATGLink = false, staminaATGLinkButton;
 
-// Single setup function
+// Setup Function
 function setup() {
   let resourceBarsContainer = select("#resource-bars");
   if (!resourceBarsContainer) {
@@ -241,6 +241,9 @@ function setup() {
       if (tabId === "resources") {
         cnv.show();
         createResourceUI();
+        let containerWidth = select("#resource-bars").elt.clientWidth;
+        let canvasWidth = min(containerWidth, 600);
+        resizeCanvas(canvasWidth, 200); // Resize on tab switch
         loop(); // Start draw loop
         redraw(); // Force immediate redraw
       } else {
@@ -270,7 +273,6 @@ function setup() {
     }
   });
 }
-
 function windowResized() {
   let resourceBarsContainer = select("#resource-bars");
   let containerWidth = resourceBarsContainer.elt.clientWidth;
@@ -5828,4 +5830,31 @@ function createAbilitiesUI() {
   createP(`Available Ability Points: ${abilityPoints}`)
     .parent(abilitiesContainer)
     .style("margin-top", "10px");
+}
+function updateAbilities() {
+  console.log("Updating abilities...");
+  characterAbilities = []; // Reset the abilities array
+
+  // Collect abilities from equipped crystals
+  for (let slot in equippedItems) {
+    let item = equippedItems[slot];
+    if (item && item.equippedCrystals) {
+      item.equippedCrystals.forEach(crystal => {
+        if (crystal && crystal.abilities) {
+          crystal.abilities.forEach(ability => {
+            if (!characterAbilities.includes(ability)) {
+              characterAbilities.push(ability);
+            }
+          });
+        }
+      });
+    }
+  }
+
+  // Optionally, refresh the Abilities UI if it’s the active tab
+  if (currentTab === "abilities") {
+    createAbilitiesUI();
+  }
+
+  console.log("Updated characterAbilities:", characterAbilities);
 }
