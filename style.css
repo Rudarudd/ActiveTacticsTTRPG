@@ -71,11 +71,11 @@ header button {
 }
 
 .tabcontent {
-  display: none;
+  display: none; /* Fix: Hide inactive tabs */
 }
 
 .tabcontent.active {
-  display: block;
+  display: block; /* Fix: Show active tab */
 }
 
 /* Resource section specific styling */
@@ -89,12 +89,8 @@ header button {
 #resource-bars canvas {
   display: block;
   margin: 0 auto;
-  width: 100% !important;
-  max-width: 600px;
-  height: 200px; /* Matches canvasHeight in setup() */
 }
 
-/* Resource row styling */
 .resource-row {
   display: flex;
   flex-wrap: wrap;
@@ -163,43 +159,16 @@ header button {
   font-size: 12px;
 }
 
-/* Style for category headers in the Items table */
-.expandable-section h3 {
-  cursor: pointer;
-  padding: 5px;
-  background-color: #f2f2f2;
-  margin: 0;
-  position: relative;
-}
-
-.expandable-section h3::before {
-  content: "▶";
-  display: inline-block;
-  margin-right: 5px;
-  transition: transform 0.3s ease;
-}
-
-.expandable-section h3.expanded::before {
-  content: "▼";
-}
-
-/* Modal styling */
+/* Modal styling (added for inventory modals) */
 .modal {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   background: white;
-  padding: 15px;
+  padding: 20px;
   border: 2px solid #000;
   z-index: 1000;
-  max-height: 80vh;
-  max-width: 90vw;
-  width: auto;
-  overflow-y: auto;
-  overflow-x: hidden;
-  box-sizing: border-box;
-  font-size: 14px;
 }
 
 /* Responsive adjustments */
@@ -227,41 +196,5 @@ header button {
   .resource-button.small-button {
     min-width: 20px;
     font-size: 10px;
-  }
-
-  #resource-bars canvas {
-    width: 100% !important;
-    max-width: 100%;
-    height: 200px;
-  }
-
-  .modal {
-    width: 80vw; /* Tightened from 85vw */
-    max-height: 60vh; /* Tightened from 65vh */
-    padding: 10px;
-    font-size: 12px;
-    overflow-y: auto;
-  }
-
-  .modal h3 {
-    font-size: 14px; /* Even smaller header */
-    margin: 5px 0;
-  }
-
-  .modal div {
-    margin-bottom: 5px; /* Tighter spacing */
-  }
-
-  .modal select,
-  .modal input,
-  .modal textarea {
-    width: 100%;
-    font-size: 11px; /* Smaller inputs */
-    padding: 2px;
-  }
-
-  .modal button {
-    padding: 2px 5px;
-    font-size: 11px;
   }
 }
