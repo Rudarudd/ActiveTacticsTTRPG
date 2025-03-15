@@ -316,10 +316,233 @@ function displayBars() {
   text(`ATG: ${current_ATG}/${max_ATG}`, x + bar_width / 2, y_ATG + bar_height / 2);
 }
 
-// Keep your createResourceUI and helper functions as-is
+// ### Resource UI ###
+
 function createResourceUI() {
-  // Your existing implementation...
+  let rUI = resourceUIContainer;
+  rUI.html("");
+
+  let hpRow = createDiv().parent(rUI).class("resource-row");
+  createSpan("HP:").parent(hpRow);
+  maxHpInput = createInput(max_hp.toString(), "number")
+    .parent(hpRow)
+    .class("resource-input");
+  setMaxHpButton = createButton("Set Max")
+    .parent(hpRow)
+    .class("resource-button")
+    .mousePressed(setMaxHp);
+  hpPlus = createButton("+10")
+    .parent(hpRow)
+    .class("resource-button small-button")
+    .mousePressed(() => {
+      current_hp = min(current_hp + 10, max_hp);
+    });
+  hpMinus = createButton("-10")
+    .parent(hpRow)
+    .class("resource-button small-button")
+    .mousePressed(() => {
+      current_hp = max(current_hp - 10, 0);
+    });
+
+  let mpRow = createDiv().parent(rUI).class("resource-row");
+  createSpan("MP:").parent(mpRow);
+  maxMpInput = createInput(max_mp.toString(), "number")
+    .parent(mpRow)
+    .class("resource-input");
+  setMaxMpButton = createButton("Set Max")
+    .parent(mpRow)
+    .class("resource-button")
+    .mousePressed(setMaxMp);
+  mpPlus = createButton("+5")
+    .parent(mpRow)
+    .class("resource-button small-button")
+    .mousePressed(() => {
+      current_mp = min(current_mp + 5, max_mp);
+    });
+  mpMinus = createButton("-5")
+    .parent(mpRow)
+    .class("resource-button small-button")
+    .mousePressed(() => {
+      current_mp = max(current_mp - 5, 0);
+    });
+
+  let staminaRow = createDiv().parent(rUI).class("resource-row");
+  createSpan("STA:").parent(staminaRow);
+  maxStaminaInput = createInput(max_stamina.toString(), "number")
+    .parent(staminaRow)
+    .class("resource-input");
+  setMaxStaminaButton = createButton("Set Max")
+    .parent(staminaRow)
+    .class("resource-button")
+    .mousePressed(setMaxStamina);
+  staminaPlus = createButton("+25")
+    .parent(staminaRow)
+    .class("resource-button small-button")
+    .mousePressed(() => {
+      current_stamina = min(current_stamina + 25, max_stamina);
+    });
+  staminaMinus = createButton("-25")
+    .parent(staminaRow)
+    .class("resource-button small-button")
+    .mousePressed(() => {
+      current_stamina = max(current_stamina - 25, 0);
+      if (staminaATGLink) {
+        current_ATG = min(current_ATG + 25, max_ATG);
+      }
+    });
+
+  let ATGRow = createDiv().parent(rUI).class("resource-row");
+  createSpan("ATG:").parent(ATGRow);
+  maxATGInput = createInput(max_ATG.toString(), "number")
+    .parent(ATGRow)
+    .class("resource-input");
+  setMaxATGButton = createButton("Set Max")
+    .parent(ATGRow)
+    .class("resource-button")
+    .mousePressed(setMaxATG);
+  ATGPlus = createButton("+25")
+    .parent(ATGRow)
+    .class("resource-button small-button")
+    .mousePressed(() => {
+      current_ATG = min(current_ATG + 25, max_ATG);
+    });
+  ATGMinus = createButton("-50")
+    .parent(ATGRow)
+    .class("resource-button small-button")
+    .mousePressed(() => {
+      current_ATG = max(current_ATG - 50, 0);
+    });
+
+  let adjustmentRow = createDiv().parent(rUI).class("resource-row");
+  createSpan("Adjust: ").parent(adjustmentRow);
+  let adjustmentInput = createInput("", "number")
+    .parent(adjustmentRow)
+    .class("resource-input")
+    .style("width", "50px");
+  let resourceSelect = createSelect()
+    .parent(adjustmentRow)
+    .style("margin-left", "5px");
+  resourceSelect.option("HP");
+  resourceSelect.option("MP");
+  resourceSelect.option("STA");
+  resourceSelect.option("ATG");
+  createButton("+")
+    .parent(adjustmentRow)
+    .class("resource-button small-button")
+    .style("margin-left", "5px")
+    .mousePressed(() =>
+      adjustResource(
+        resourceSelect.value(),
+        parseInt(adjustmentInput.value()),
+        true
+      )
+    );
+  createButton("-")
+    .parent(adjustmentRow)
+    .class("resource-button small-button")
+    .style("margin-left", "5px")
+    .mousePressed(() =>
+      adjustResource(
+        resourceSelect.value(),
+        parseInt(adjustmentInput.value()),
+        false
+      )
+    );
+
+  let linkRow = createDiv().parent(rUI).class("resource-row");
+  staminaATGLinkButton = createButton(staminaATGLink ? "Link: ON" : "Link: OFF")
+    .parent(linkRow)
+    .class("resource-button")
+    .mousePressed(toggleStaminaATGLink)
+    .style("background-color", staminaATGLink ? "green" : "red");
+  createSpan("When ON, using STA adds to ATG").parent(linkRow);
+
+  let resetRow = createDiv().parent(rUI).class("resource-row");
+  resetButton = createButton("Reset All")
+    .parent(resetRow)
+    .class("resource-button")
+    .mousePressed(resetResources);
 }
+
+function adjustResource(resource, value, isAddition) {
+  if (isNaN(value)) {
+    showConfirmationModal("Please enter a valid number.", () => {}, true);
+    return;
+  }
+  let adjustment = isAddition ? value : -value;
+  switch (resource) {
+    case "HP":
+      current_hp = constrain(current_hp + adjustment, 0, max_hp);
+      break;
+    case "MP":
+      current_mp = constrain(current_mp + adjustment, 0, max_mp);
+      break;
+    case "STA":
+      current_stamina = constrain(current_stamina + adjustment, 0, max_stamina);
+      if (!isAddition && staminaATGLink) {
+        current_ATG = min(current_ATG + value, max_ATG);
+      }
+      break;
+    case "ATG":
+      current_ATG = constrain(current_ATG + adjustment, 0, max_ATG);
+      break;
+  }
+}
+
+function setMaxHp() {
+  let value = parseInt(maxHpInput.value());
+  if (!isNaN(value) && value > 0) {
+    max_hp = value;
+    current_hp = min(current_hp, value);
+  }
+}
+
+function setMaxMp() {
+  let value = parseInt(maxMpInput.value());
+  if (!isNaN(value) && value > 0) {
+    max_mp = value;
+    current_mp = min(current_mp, value);
+  }
+}
+
+function setMaxStamina() {
+  let value = parseInt(maxStaminaInput.value());
+  if (!isNaN(value) && value > 0) {
+    max_stamina = value;
+    current_stamina = min(current_stamina, value);
+  }
+}
+
+function setMaxATG() {
+  let value = parseInt(maxATGInput.value());
+  if (!isNaN(value) && value > 0) {
+    max_ATG = value;
+    current_ATG = min(current_ATG, value);
+  }
+}
+
+function resetResources() {
+  current_hp = max_hp;
+  current_mp = max_mp;
+  current_stamina = max_stamina;
+  current_ATG = 0;
+}
+
+function toggleStaminaATGLink() {
+  staminaATGLink = !staminaATGLink;
+  staminaATGLinkButton.html(staminaATGLink ? "Link: ON" : "Link: OFF");
+  staminaATGLinkButton.style(
+    "background-color",
+    staminaATGLink ? "green" : "red"
+  );
+}
+
+// Function to redraw the resource bars
+function redrawResourceBars() {
+  // Replace this with your actual code to draw the bars
+  displayBars(); // Assuming this is your function to render the bars
+}
+// ### Stats UI ###
 
 // Update modal closure (e.g., showConfirmationModal)
 function showConfirmationModal(message, onConfirm, isError = false) {
