@@ -1,3 +1,6 @@
+// Clear localStorage at startup (remove after testing)
+localStorage.removeItem('inventory');
+localStorage.removeItem('equippedItems');
 // Global resource variables – starting with 25 HP and 10 MP
 let max_hp = 25,
   current_hp = 25;
@@ -195,7 +198,7 @@ function setup() {
   }
   let containerWidth = resourceBarsContainer.elt.clientWidth;
   let canvasWidth = min(containerWidth, 600);
-  let canvasHeight = 200; // Use 200 to match your first version and fit all bars
+  let canvasHeight = 200;
   cnv = createCanvas(canvasWidth, canvasHeight);
   cnv.parent(resourceBarsContainer);
   textFont("Arial");
@@ -208,6 +211,7 @@ function setup() {
   skillsContainer = createDiv().id("skillsContainer");
 
   // Initialize all UI components
+  initializeInventory();
   createResourceUI();
   createStatsUI();
   createTalentsUI();
@@ -233,14 +237,15 @@ function setup() {
       activeTab.style.display = "block";
       currentTab = tabId;
 
-      // Refresh UI based on tab
       console.log(`Switching to tab: ${tabId}`);
       if (tabId === "resources") {
-        cnv.show(); // Ensure canvas is visible
+        cnv.show();
         createResourceUI();
-        redraw(); // Force redraw of resource bars
+        loop(); // Start draw loop
+        redraw(); // Force immediate redraw
       } else {
-        cnv.hide(); // Hide canvas on other tabs
+        cnv.hide();
+        noLoop(); // Stop draw loop
         if (tabId === "inventory") createInventoryUI();
         else if (tabId === "equipment") createEquipmentUI();
         else if (tabId === "abilities") createAbilitiesUI();
@@ -253,6 +258,17 @@ function setup() {
 
   // Simulate click on default tab
   document.querySelector(".tablink.active").click();
+
+  // Scroll listener to force redraw when #resource-bars is in view
+  window.addEventListener('scroll', () => {
+    if (currentTab === 'resources') {
+      let barsDiv = select('#resource-bars');
+      let rect = barsDiv.elt.getBoundingClientRect();
+      if (rect.top >= 0 && rect.bottom <= window.innerHeight) {
+        redraw();
+      }
+    }
+  });
 }
 
 function windowResized() {
@@ -263,8 +279,10 @@ function windowResized() {
 }
 
 function draw() {
-  background(255);
-  displayBars();
+  if (currentTab === 'resources') {
+    background(255);
+    displayBars();
+  }
 }
 
 function displayBars() {
