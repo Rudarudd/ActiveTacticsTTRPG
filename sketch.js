@@ -1959,20 +1959,24 @@ function showAddEditEquipmentModal() {
   const viewportHeight = window.innerHeight;
   const estimatedModalHeight = 500; // Adjust based on actual modal height (measure in browser)
   const minTopOffset = 20; // Minimum distance from top (in pixels)
-  const topPosition = Math.max(minTopOffset, (viewportHeight - estimatedModalHeight) / 2);
+  const maxTopOffset = Math.min(100, viewportHeight * 0.1); // Maximum distance from top (e.g., 100px or 10% of viewport height)
+
+  // Center the modal, but cap the top position
+  let idealTopPosition = (viewportHeight - estimatedModalHeight) / 2;
+  const topPosition = Math.min(Math.max(minTopOffset, idealTopPosition), maxTopOffset);
 
   // Apply positioning and styles
   modalDiv
-    .style("position", "fixed") // Use fixed to keep modal in viewport
+    .style("position", "fixed")
     .style("top", topPosition + "px")
     .style("left", "50%")
-    .style("transform", "translateX(-50%)") // Only center horizontally
+    .style("transform", "translateX(-50%)")
     .style("background", "#fff")
     .style("padding", "20px")
     .style("border", "2px solid #000")
     .style("z-index", "1000")
     .style("width", "300px")
-    .style("max-height", "80vh") // From your CSS
+    .style("max-height", "80vh")
     .style("overflow-y", "auto")
     .style("box-sizing", "border-box")
     .style("font-size", "14px");
@@ -5216,105 +5220,6 @@ function showModifyItemsModal() {
       modalDiv.remove();
       errorMessage.style("display", "none");
     });
-}
-function showAddCustomInventoryModal() {
-  if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv()
-    .style("position", "absolute")
-    .style("top", "50%")
-    .style("left", "50%")
-    .style("transform", "translate(-50%, -50%)")
-    .style("background", "#fff")
-    .style("padding", "20px")
-    .style("border", "2px solid #000")
-    .style("z-index", "1000")
-    .style("width", "300px");
-
-  createElement("h3", "Add Custom Item").parent(modalDiv);
-
-  let categoryDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Category:")
-    .parent(categoryDiv)
-    .style("display", "block");
-  let categorySelect = createSelect()
-    .parent(categoryDiv)
-    .style("width", "100%");
-  ["Consumables", "Materials", "Miscellaneous"].forEach((cat) =>
-    categorySelect.option(cat)
-  );
-  createSpan("The type of item (for Equipment, use the Equipment tab).")
-    .parent(categoryDiv)
-    .style("font-size", "12px")
-    .style("color", "#666")
-    .style("display", "block");
-
-  let nameDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Name:")
-    .parent(nameDiv)
-    .style("display", "block");
-  let nameInput = createInput("")
-    .parent(nameDiv)
-    .style("width", "100%")
-    .attribute("placeholder", "e.g., Custom Potion");
-
-  let descDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Description:")
-    .parent(descDiv)
-    .style("display", "block");
-  let descriptionInput = createElement("textarea")
-    .parent(descDiv)
-    .style("width", "100%")
-    .style("height", "60px")
-    .attribute("placeholder", "Describe the item...");
-
-  let quantityDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Quantity:")
-    .parent(quantityDiv)
-    .style("display", "block");
-  let quantityInput = createInput("1", "number")
-    .parent(quantityDiv)
-    .style("width", "100%")
-    .attribute("min", "1");
-
-  let qualityDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Quality:")
-    .parent(qualityDiv)
-    .style("display", "block");
-  let qualitySelect = createSelect()
-    .parent(qualityDiv)
-    .style("width", "100%");
-  ["Poor", "Common", "Uncommon", "Rare", "Legendary"].forEach(q => qualitySelect.option(q));
-
-  createButton("Add")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => {
-      let category = categorySelect.value();
-      let name = nameInput.value();
-      if (!name) {
-        showConfirmationModal("Please provide a name for the item.", () => {}, true);
-        return;
-      }
-      let newItem = {
-        name: name,
-        description: descriptionInput.value(),
-        category: category,
-        quantity: parseInt(quantityInput.value()) || 1,
-        quality: qualitySelect.value() || "Common"
-      };
-      inventory.push(newItem);
-      console.log("Added custom item:", newItem); // Debug
-      updateAvailableEquipment();
-      console.log("Updated availableEquipment:", availableEquipment); // Debug
-      createEquipmentUI(); // Refresh Equipment table
-      createInventoryUI(); // Refresh Inventory
-      modalDiv.remove();
-    });
-
-  createButton("Cancel")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => modalDiv.remove());
 }
 function showAddEditInventoryModal() {
   if (modalDiv) modalDiv.remove();
