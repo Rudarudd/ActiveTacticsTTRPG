@@ -2554,12 +2554,12 @@ function showAddEditEquipmentModal() {
 
   // JavaScript to dynamically adjust modal height
   function adjustModalHeight() {
-    const modal = modalDiv.elt; // Get the DOM element of the modal
+    const modal = modalDiv.elt;
     const viewportHeight = window.innerHeight;
-    const topBarHeight = document.querySelector('header')?.offsetHeight || 50; // Estimate or measure your top bar height
-    const availableHeight = viewportHeight - topBarHeight - 40; // Subtract header and padding (40px for margins)
+    const topBarHeight = document.querySelector('header')?.offsetHeight || 50; // Measure the actual header height
+    const availableHeight = viewportHeight * 0.95 - topBarHeight; // Use 95% of viewport height, minus top bar
     
-    // Get the total height of the modal content, including buttons
+    // Calculate total content height, including buttons
     const contentHeight = contentWrapper.elt.scrollHeight + buttonContainer.elt.offsetHeight + 40; // 40px for modal padding
     
     // Set the modal height to fit the content, capped at available height
@@ -2567,6 +2567,13 @@ function showAddEditEquipmentModal() {
     modal.style.height = `${maxModalHeight}px`;
     modal.style.maxHeight = 'none'; // Override CSS max-height
     modal.style.overflowY = contentHeight > availableHeight ? 'auto' : 'hidden'; // Scroll only if content exceeds available height
+
+    // Debugging: Log heights to console
+    console.log("Viewport Height:", viewportHeight);
+    console.log("Top Bar Height:", topBarHeight);
+    console.log("Available Height:", availableHeight);
+    console.log("Content Height:", contentHeight);
+    console.log("Modal Height Set To:", maxModalHeight);
   }
 
   // Run the adjustment when the modal opens
@@ -2935,7 +2942,7 @@ function showAddEditEquipmentModal() {
           modalDiv.remove();
           errorMessage.style("display", "none");
           successMessage.style("display", "none");
-          window.removeEventListener('resize', resizeHandler); // Clean up listener
+          window.removeEventListener('resize', resizeHandler);
         }
       );
     });
