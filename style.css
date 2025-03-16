@@ -241,7 +241,6 @@ header button {
     height: 200px;
   }
 
-/* Modal styling */
 .modal {
   position: fixed;
   top: 50%;
@@ -257,26 +256,32 @@ header button {
   box-sizing: border-box;
   font-size: 14px;
   min-height: 300px; /* Prevents modal from shrinking too much */
-  max-height: 80vh;  /* Default for smaller screens */
+  max-height: 80vh;  /* Default for smaller screens, overridden by JS */
   overflow-y: auto;  /* Scrollbar only if content exceeds max-height */
 }
 
-/* Adjust max-height for taller screens */
+/* Specific styling for the Equipment modal */
+.equipment-modal {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Adjust max-height for taller screens (optional, as JS will override) */
 @media (min-height: 800px) {
-  .modal {
+  .equipment-modal {
     max-height: 85vh;
   }
 }
 
 @media (min-height: 1000px) {
-  .modal {
+  .equipment-modal {
     max-height: 90vh;
   }
 }
 
-/* Responsive adjustments for smaller screens (unchanged from your original) */
+/* Responsive adjustments for smaller screens */
 @media (max-width: 600px) {
-  .modal {
+  .equipment-modal {
     width: 80vw;
     max-height: 60vh;
     padding: 10px;
