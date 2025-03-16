@@ -241,7 +241,8 @@ header button {
     height: 200px;
   }
 
-  .modal {
+/* Modal styling */
+.modal {
   position: fixed;
   top: 50%;
   left: 50%;
@@ -250,15 +251,30 @@ header button {
   padding: 15px;
   border: 2px solid #000;
   z-index: 1000;
-  max-height: 80vh;
   max-width: 90vw;
   width: auto;
-  overflow-y: auto;
   overflow-x: hidden;
   box-sizing: border-box;
   font-size: 14px;
+  min-height: 300px; /* Prevents modal from shrinking too much */
+  max-height: 80vh;  /* Default for smaller screens */
+  overflow-y: auto;  /* Scrollbar only if content exceeds max-height */
 }
 
+/* Adjust max-height for taller screens */
+@media (min-height: 800px) {
+  .modal {
+    max-height: 85vh;
+  }
+}
+
+@media (min-height: 1000px) {
+  .modal {
+    max-height: 90vh;
+  }
+}
+
+/* Responsive adjustments for smaller screens (unchanged from your original) */
 @media (max-width: 600px) {
   .modal {
     width: 80vw;
