@@ -2255,20 +2255,15 @@ function showAddEditEquipmentModal() {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv();
 
-  // Dynamic top position based on viewport height
+  // Dynamic positioning
   const viewportHeight = window.innerHeight;
-  const estimatedModalHeight = 500; // Adjust based on actual modal height (measure in browser)
-  const minTopOffset = 20; // Minimum distance from top (in pixels)
-  const maxTopOffset = Math.min(100, viewportHeight * 0.1); // Maximum distance from top (e.g., 100px or 10% of viewport height)
+  const minTopOffset = 20; // Minimum distance from top
+  const maxHeightPercentage = 0.8; // Max 80% of viewport height
 
-  // Center the modal, but cap the top position
-  let idealTopPosition = (viewportHeight - estimatedModalHeight) / 2;
-  const topPosition = Math.min(Math.max(minTopOffset, idealTopPosition), maxTopOffset);
-
-  // Apply positioning and styles to the modal with flexbox
+  // Style the modal
   modalDiv
     .style("position", "fixed")
-    .style("top", topPosition + "px")
+    .style("top", `${minTopOffset}px`) // Start near top, let content push it
     .style("left", "50%")
     .style("transform", "translateX(-50%)")
     .style("background", "#fff")
@@ -2276,19 +2271,30 @@ function showAddEditEquipmentModal() {
     .style("border", "2px solid #000")
     .style("z-index", "1000")
     .style("width", "300px")
-    .style("max-height", "80vh")
-    .style("display", "flex") // Enable flexbox
-    .style("flex-direction", "column") // Stack children vertically
+    .style("max-height", `${viewportHeight * maxHeightPercentage}px`) // Cap at 80vh
+    .style("display", "flex")
+    .style("flex-direction", "column")
     .style("box-sizing", "border-box")
     .style("font-size", "14px");
 
-  // Create a scrollable content wrapper
+  // Scrollable content wrapper
   let contentWrapper = createDiv()
     .parent(modalDiv)
-    .style("flex", "1") // Take up available space
-    .style("overflow-y", "auto"); // Enable scrolling for content
+    .style("flex", "1 1 auto") // Grow/shrink as needed, but allow overflow
+    .style("overflow-y", "auto") // Scroll only if content overflows
+    .style("max-height", `calc(${viewportHeight * maxHeightPercentage}px - 100px)`); // Account for header/buttons
 
-  // Move all content into contentWrapper
+  // Non-scrollable button container
+  let buttonContainer = createDiv()
+    .parent(modalDiv)
+    .style("flex", "0 0 auto") // Fixed height, no shrinking
+    .style("padding-top", "10px")
+    .style("border-top", "1px solid #ccc")
+    .style("display", "flex")
+    .style("justify-content", "space-between")
+    .style("gap", "5px");
+
+  // Content inside wrapper
   createElement("h3", "Modify Equipment").parent(contentWrapper);
 
   let successMessage = createP("")
@@ -2304,9 +2310,7 @@ function showAddEditEquipmentModal() {
     .style("margin-bottom", "10px");
 
   let typeDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
-  let typeLabel = createSpan("Equipment Type:")
-    .parent(typeDiv)
-    .style("display", "block");
+  createSpan("Equipment Type:").parent(typeDiv).style("display", "block");
   let typeSelect = createSelect()
     .parent(typeDiv)
     .style("width", "100%")
@@ -2319,9 +2323,7 @@ function showAddEditEquipmentModal() {
     .style("display", "block");
 
   let weaponCategoryDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px").style("display", "none");
-  let weaponCategoryLabel = createSpan("Weapon Category:")
-    .parent(weaponCategoryDiv)
-    .style("display", "block");
+  createSpan("Weapon Category:").parent(weaponCategoryDiv).style("display", "block");
   let weaponCategorySelect = createSelect()
     .parent(weaponCategoryDiv)
     .style("width", "100%")
@@ -2360,9 +2362,7 @@ function showAddEditEquipmentModal() {
   });
 
   let nameDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
-  let nameLabel = createSpan("Name:")
-    .parent(nameDiv)
-    .style("display", "block");
+  createSpan("Name:").parent(nameDiv).style("display", "block");
   let nameInput = createInput("")
     .parent(nameDiv)
     .style("width", "100%")
@@ -2375,9 +2375,7 @@ function showAddEditEquipmentModal() {
     .style("display", "block");
 
   let qualityDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
-  let qualityLabel = createSpan("Quality:")
-    .parent(qualityDiv)
-    .style("display", "block");
+  createSpan("Quality:").parent(qualityDiv).style("display", "block");
   let qualitySelect = createSelect()
     .parent(qualityDiv)
     .style("width", "100%")
@@ -2391,9 +2389,7 @@ function showAddEditEquipmentModal() {
     .style("display", "block");
 
   let descDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
-  let descLabel = createSpan("Description:")
-    .parent(descDiv)
-    .style("display", "block");
+  createSpan("Description:").parent(descDiv).style("display", "block");
   let descriptionInput = createElement("textarea")
     .parent(descDiv)
     .style("width", "100%")
@@ -2407,9 +2403,7 @@ function showAddEditEquipmentModal() {
     .style("display", "block");
 
   let penaltyDiv = createDiv().parent(contentWrapper).style("display", "none");
-  let penaltyLabel = createSpan("Movement Penalty (ft):")
-    .parent(penaltyDiv)
-    .style("display", "block");
+  createSpan("Movement Penalty (ft):").parent(penaltyDiv).style("display", "block");
   let penaltySelect = createSelect()
     .parent(penaltyDiv)
     .style("width", "100%")
@@ -2418,9 +2412,7 @@ function showAddEditEquipmentModal() {
   ["0", "-5", "-10", "-15"].forEach(penalty => penaltySelect.option(penalty));
 
   let slotsDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
-  let slotsLabel = createSpan("Essence Crystal Slots:")
-    .parent(slotsDiv)
-    .style("display", "block");
+  createSpan("Essence Crystal Slots:").parent(slotsDiv).style("display", "block");
   let slotsSelect = createSelect()
     .parent(slotsDiv)
     .style("width", "100%")
@@ -2433,9 +2425,7 @@ function showAddEditEquipmentModal() {
     .style("display", "block");
 
   let linkedStatDiv = createDiv().parent(contentWrapper).style("display", "block");
-  let linkedStatLabel = createSpan("Linked Stat (Weapons):")
-    .parent(linkedStatDiv)
-    .style("display", "block");
+  createSpan("Linked Stat (Weapons):").parent(linkedStatDiv).style("display", "block");
   let linkedStatSelect = createSelect()
     .parent(linkedStatDiv)
     .style("width", "100%")
@@ -2449,9 +2439,7 @@ function showAddEditEquipmentModal() {
     .style("display", "block");
 
   let stATGonusDiv = createDiv().parent(contentWrapper);
-  let stATGonusLabel = createSpan("Stat Bonus:")
-    .parent(stATGonusDiv)
-    .style("display", "block");
+  createSpan("Stat Bonus:").parent(stATGonusDiv).style("display", "block");
   let stATGonusAmountInput = createInput("0", "number")
     .parent(stATGonusDiv)
     .style("width", "50px")
@@ -2470,12 +2458,8 @@ function showAddEditEquipmentModal() {
     .style("display", "block");
 
   let statReqDiv = createDiv().parent(contentWrapper).style("display", "block");
-  let statReqLabel = createSpan("Stat Requirements (Optional):")
-    .parent(statReqDiv)
-    .style("display", "block");
-  let statReq1Div = createDiv()
-    .parent(statReqDiv)
-    .style("margin-bottom", "5px");
+  createSpan("Stat Requirements (Optional):").parent(statReqDiv).style("display", "block");
+  let statReq1Div = createDiv().parent(statReqDiv).style("margin-bottom", "5px");
   let statReq1Select = createSelect()
     .parent(statReq1Div)
     .style("width", "80px")
@@ -2488,9 +2472,7 @@ function showAddEditEquipmentModal() {
     .attribute("placeholder", "Value")
     .id("equipment-statreq1-input");
 
-  let statReq2Div = createDiv()
-    .parent(statReqDiv)
-    .style("margin-bottom", "10px");
+  let statReq2Div = createDiv().parent(statReqDiv).style("margin-bottom", "10px");
   let statReq2Select = createSelect()
     .parent(statReq2Div)
     .style("width", "80px")
@@ -2509,9 +2491,7 @@ function showAddEditEquipmentModal() {
     .style("display", "block");
 
   let damageDiceDiv = createDiv().parent(contentWrapper).style("display", "block");
-  let damageDiceLabel = createSpan("Damage Dice + Modifier (Weapons):")
-    .parent(damageDiceDiv)
-    .style("display", "block");
+  createSpan("Damage Dice + Modifier (Weapons):").parent(damageDiceDiv).style("display", "block");
   let damageDiceInput = createInput("", "text")
     .parent(damageDiceDiv)
     .style("width", "80px")
@@ -2526,9 +2506,7 @@ function showAddEditEquipmentModal() {
     .id("equipment-weapon-modifier-input");
 
   let defenseDiv = createDiv().parent(contentWrapper).style("display", "none");
-  let defenseLabel = createSpan("Defense + Modifier (Armor):")
-    .parent(defenseDiv)
-    .style("display", "block");
+  createSpan("Defense + Modifier (Armor):").parent(defenseDiv).style("display", "block");
   let defenseInput = createInput("0", "number")
     .parent(defenseDiv)
     .style("width", "50px")
@@ -2540,26 +2518,6 @@ function showAddEditEquipmentModal() {
     .style("margin-bottom", "10px")
     .attribute("placeholder", "Mod")
     .id("equipment-armor-modifier-input");
-
-  // Button container at the bottom (non-scrollable)
-  let buttonContainer = createDiv()
-    .parent(modalDiv)
-    .style("padding", "10px 0")
-    .style("border-top", "1px solid #ccc")
-    .style("display", "flex")
-    .style("justify-content", "space-between")
-    .style("gap", "5px");
-
-  // Event listeners
-  typeSelect.changed(() => {
-    updateTypeVisibility();
-    updateEquipmentOptions();
-  });
-  equipmentSelect.changed(loadEquipmentData);
-
-  // Initial calls
-  updateTypeVisibility();
-  updateEquipmentOptions();
 
   // Buttons
   createButton("Add")
@@ -2592,7 +2550,7 @@ function showAddEditEquipmentModal() {
           return;
         }
         if (inventory.some(item => item.name === name && item.category === "Equipment")) {
-          errorMessage.html(`An equipment with the name "${name}" already exists. Please choose a different name.`);
+          errorMessage.html(`An equipment with the name "${name}" already exists.`);
           errorMessage.style("display", "block");
           successMessage.style("display", "none");
           return;
@@ -2634,7 +2592,6 @@ function showAddEditEquipmentModal() {
         if (stATGonus) newEquipment.stATGonuses = stATGonus;
         if (Object.keys(statRequirements).length > 0) newEquipment.statRequirements = statRequirements;
 
-        console.log("Adding new equipment:", newEquipment);
         inventory.push(newEquipment);
       } else if (idx >= allEquipment.length) {
         let availableIdx = idx - allEquipment.length;
@@ -2646,10 +2603,7 @@ function showAddEditEquipmentModal() {
         }
         let item = availableEquipment[availableIdx];
         let newEquipment = { ...item, quantity: 1 };
-        console.log("Adding available equipment:", newEquipment);
-
-        let existingItem = inventory.find(i => i.name === item.name && i.category === "Equipment");
-        if (!existingItem) {
+        if (!inventory.some(i => i.name === item.name && i.category === "Equipment")) {
           inventory.push(newEquipment);
         } else {
           errorMessage.html(`Item "${item.name}" already exists in inventory. Use Save to update it.`);
@@ -2665,13 +2619,10 @@ function showAddEditEquipmentModal() {
       }
 
       localStorage.setItem('inventory', JSON.stringify(inventory));
-      console.log("Updated inventory:", inventory);
       updateAvailableEquipment();
       createInventoryUI();
       createEquipmentUI();
       modalDiv.remove();
-      errorMessage.style("display", "none");
-      successMessage.style("display", "none");
     });
 
   createButton("Save")
@@ -2702,12 +2653,7 @@ function showAddEditEquipmentModal() {
         !inventory.some(i => i.name === item.name && i.category === "Equipment")
       );
 
-      let item;
-      let inventoryIdx;
-      let isFromAvailableItems = false;
-      let availableItemIdx = -1;
-      let originalName = null;
-
+      let item, inventoryIdx, isFromAvailableItems = false, availableItemIdx = -1, originalName = null;
       if (idx < allEquipment.length) {
         item = allEquipment[idx];
         inventoryIdx = inventory.indexOf(item);
@@ -2723,7 +2669,7 @@ function showAddEditEquipmentModal() {
         item = availableEquipment[availableIdx];
         inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === "Equipment");
         isFromAvailableItems = true;
-        availableItemIdx = availableItems["Equipment"].findIndex(i => i.name === item.name && i.category === "Equipment");
+        availableItemIdx = availableItems["Equipment"].findIndex(i => i.name === item.name);
       }
 
       let newName = nameInput.value().trim();
@@ -2736,14 +2682,14 @@ function showAddEditEquipmentModal() {
 
       let existingItemWithNewName = inventory.find(i => i.name === newName && i.category === "Equipment" && i !== item);
       if (existingItemWithNewName) {
-        errorMessage.html(`An equipment with the name "${newName}" already exists in inventory. Please choose a different name.`);
+        errorMessage.html(`An equipment with the name "${newName}" already exists in inventory.`);
         errorMessage.style("display", "block");
         successMessage.style("display", "none");
         return;
       }
-      let existingAvailableWithNewName = availableItems["Equipment"].find(i => i.name === newName && i.category === "Equipment" && i !== item);
+      let existingAvailableWithNewName = availableItems["Equipment"].find(i => i.name === newName && i !== item);
       if (existingAvailableWithNewName && !isFromAvailableItems) {
-        errorMessage.html(`An equipment with the name "${newName}" already exists in available items. Please choose a different name.`);
+        errorMessage.html(`An equipment with the name "${newName}" already exists in available items.`);
         errorMessage.style("display", "block");
         successMessage.style("display", "none");
         return;
@@ -2800,18 +2746,13 @@ function showAddEditEquipmentModal() {
       else delete updatedEquipment.statRequirements;
 
       if (isFromAvailableItems && availableItemIdx !== -1) {
-        console.log(`Updating availableItems["Equipment"] at index ${availableItemIdx} with:`, updatedEquipment);
         availableItems["Equipment"][availableItemIdx] = updatedEquipment;
-        if (inventoryIdx !== -1) {
-          inventory.splice(inventoryIdx, 1);
-          console.log("Removed duplicate from inventory:", item.name);
-        }
+        if (inventoryIdx !== -1) inventory.splice(inventoryIdx, 1);
       } else {
         inventory[inventoryIdx] = updatedEquipment;
         if (originalName) {
-          let availableIdx = availableItems["Equipment"].findIndex(i => i.name === originalName && i.category === "Equipment");
+          let availableIdx = availableItems["Equipment"].findIndex(i => i.name === originalName);
           if (availableIdx !== -1) {
-            console.log(`Syncing name change in availableItems["Equipment"] from ${originalName} to ${newName}`);
             availableItems["Equipment"][availableIdx] = { ...updatedEquipment };
           }
         }
@@ -2839,7 +2780,6 @@ function showAddEditEquipmentModal() {
       successMessage.style("display", "block");
       errorMessage.style("display", "none");
 
-      modalDiv.elt.scrollTop = 0;
       equipmentSelect.html("");
       updateEquipmentOptions();
       equipmentSelect.value("-1");
@@ -2895,8 +2835,6 @@ function showAddEditEquipmentModal() {
           createInventoryUI();
           createEquipmentUI();
           modalDiv.remove();
-          errorMessage.style("display", "none");
-          successMessage.style("display", "none");
         }
       );
     });
@@ -2912,9 +2850,18 @@ function showAddEditEquipmentModal() {
     .style("cursor", "pointer")
     .mousePressed(() => {
       modalDiv.remove();
-      errorMessage.style("display", "none");
-      successMessage.style("display", "none");
     });
+
+  // Event listeners
+  typeSelect.changed(() => {
+    updateTypeVisibility();
+    updateEquipmentOptions();
+  });
+  equipmentSelect.changed(loadEquipmentData);
+
+  // Initial calls
+  updateTypeVisibility();
+  updateEquipmentOptions();
 }
 // ### Stats UI ###
 
