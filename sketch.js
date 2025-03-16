@@ -310,8 +310,13 @@ function updateTypeVisibility() {
 }
 
 function updateEquipmentOptions() {
-  let selectedType = (modalDiv && select("#equipment-type-select").value()) || "";
+  // Check if modalDiv exists and is still in the DOM
+  let selectedType = "";
+  if (modalDiv && modalDiv.elt && document.body.contains(modalDiv.elt)) {
+    selectedType = select("#equipment-type-select").value() || "";
+  }
   if (!selectedType) return;
+
   let equipmentSelect = modalDiv.elt.querySelector('#equipment-select');
   if (!equipmentSelect) return;
 
@@ -5357,23 +5362,25 @@ createButton("Delete")
   .mousePressed(() => {
     let inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === item.category);
     if (inventoryIdx !== -1) {
-      showConfirmationModal(`Are you sure you want to delete ${item.name}?`, () => {
-        let isEquipped = Object.values(equippedItems).some(equipped => 
-          equipped && equipped.name === item.name
-        );
-        if (isEquipped) {
-          showConfirmationModal(`${item.name} is currently equipped. Unequip it before deleting.`, () => {}, true);
-          return;
+      showConfirmationModal(
+        `Are you sure you want to delete "${item.name}"?`,
+        () => {
+          if (item.category === "Crystals") {
+            let isEquipped = Object.values(equippedItems).some(equipped => 
+              equipped && equipped.equippedCrystals && equipped.equippedCrystals.some(c => c && c.name === item.name)
+            );
+            if (isEquipped) {
+              showConfirmationModal(`${item.name} is currently equipped as a crystal. Unequip it before deleting.`, () => {}, true);
+              return;
+            }
+          }
+          inventory.splice(inventoryIdx, 1);
+          localStorage.setItem('inventory', JSON.stringify(inventory));
+          updateAvailableEquipment(); // This will only trigger updateEquipmentOptions if modal is active
+          createInventoryUI();
+          createEquipmentUI();
         }
-        inventory.splice(inventoryIdx, 1);
-        localStorage.setItem('inventory', JSON.stringify(inventory));
-        updateAvailableEquipment();
-        createInventoryUI();
-        createEquipmentUI();
-        if (modalDiv && modalDiv.elt && document.body.contains(modalDiv.elt)) {
-          updateEquipmentOptions();
-        }
-      });
+      );
     } else {
       console.error(`Item ${item.name} not found in inventory for deletion!`);
     }
@@ -5488,6 +5495,12 @@ function showModifyItemsModal() {
     .style("display", "none")
     .style("margin-bottom", "10px");
 
+  let successMessage = createP("")
+    .parent(modalDiv)
+    .style("color", "green")
+    .style("display", "none")
+    .style("margin-bottom", "10px");
+
   let categoryDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
   createSpan("Category:").parent(categoryDiv).style("display", "block");
   let categorySelect = createSelect()
@@ -5535,25 +5548,45 @@ function showModifyItemsModal() {
   function updateItemOptions() {
     let selectedCategory = categorySelect.value();
     let allItems = inventory.filter(item => item.category === selectedCategory);
+    let availableItemsForCategory = availableItems[selectedCategory] ? availableItems[selectedCategory].filter(item => 
+      !inventory.some(i => i.name === item.name && i.category === selectedCategory)
+    ) : [];
+
     itemSelect.html("");
     itemSelect.option("None", -1);
-    allItems.forEach((item, idx) => itemSelect.option(item.name, idx));
-    loadItemData();
+    allItems.forEach((item, idx) => itemSelect.option(`[Inventory] ${item.name}`, idx));
+    availableItemsForCategory.forEach((item, idx) => itemSelect.option(`[Available] ${item.name}`, allItems.length + idx));
+
+    console.log(`updateItemOptions - Selected Category: ${selectedCategory}`);
+    console.log("Inventory (allItems):", allItems);
+    console.log("Available Items:", availableItemsForCategory);
   }
 
   function loadItemData() {
     let idx = parseInt(itemSelect.value());
     let selectedCategory = categorySelect.value();
     let allItems = inventory.filter(item => item.category === selectedCategory);
+    let availableItemsForCategory = availableItems[selectedCategory] ? availableItems[selectedCategory].filter(item => 
+      !inventory.some(i => i.name === item.name && i.category === selectedCategory)
+    ) : [];
+
     if (idx === -1) {
       nameInput.value("");
       qualitySelect.value("Common");
       descriptionInput.value("");
-    } else if (idx >= 0 && idx < allItems.length) {
+    } else if (idx < allItems.length) {
       let item = allItems[idx];
       nameInput.value(item.name || "");
       qualitySelect.value(item.quality || "Common");
       descriptionInput.value(item.description || "");
+    } else {
+      let availableIdx = idx - allItems.length;
+      if (availableIdx >= 0 && availableIdx < availableItemsForCategory.length) {
+        let item = availableItemsForCategory[availableIdx];
+        nameInput.value(item.name || "");
+        qualitySelect.value(item.quality || "Common");
+        descriptionInput.value(item.description || "");
+      }
     }
   }
 
@@ -5564,78 +5597,164 @@ function showModifyItemsModal() {
   createButton("Add")
     .parent(modalDiv)
     .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#4CAF50") // Green for Add
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
     .mousePressed(() => {
       let idx = parseInt(itemSelect.value());
-      if (idx !== -1) {
-        errorMessage.html("Please select 'None' to add a new item.");
+      let selectedCategory = categorySelect.value();
+      let allItems = inventory.filter(item => item.category === selectedCategory);
+      let availableItemsForCategory = availableItems[selectedCategory] ? availableItems[selectedCategory].filter(item => 
+        !inventory.some(i => i.name === item.name && i.category === selectedCategory)
+      ) : [];
+
+      if (idx === -1) {
+        // Add a new custom item
+        let category = categorySelect.value();
+        let newName = nameInput.value().trim();
+
+        if (!newName) {
+          errorMessage.html("Please provide a name for the item.");
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+
+        if (inventory.some(item => item.name === newName && item.category === category)) {
+          errorMessage.html(`An item with the name "${newName}" already exists in ${category}. Please choose a different name.`);
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+
+        if (availableItems[selectedCategory] && availableItems[selectedCategory].some(item => item.name === newName)) {
+          errorMessage.html(`An item with the name "${newName}" already exists in available items for ${category}. Please choose a different name.`);
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+
+        let newItem = {
+          name: newName,
+          category: category,
+          description: descriptionInput.value(),
+          quality: qualitySelect.value(),
+          quantity: 1
+        };
+
+        console.log("Adding new item:", newItem);
+        inventory.push(newItem);
+      } else if (idx >= allItems.length) {
+        // Add an available item to inventory
+        let availableIdx = idx - allItems.length;
+        if (availableIdx < 0 || availableIdx >= availableItemsForCategory.length) {
+          errorMessage.html("Invalid available item selected.");
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+        let item = availableItemsForCategory[availableIdx];
+        let newItem = { ...item, quantity: 1 }; // Add with quantity 1
+
+        // Check if item already exists in inventory to avoid duplicates
+        if (inventory.some(i => i.name === item.name && i.category === selectedCategory)) {
+          errorMessage.html(`Item "${item.name}" already exists in inventory. Use Save to update it.`);
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+
+        console.log("Adding available item to inventory:", newItem);
+        inventory.push(newItem);
+      } else {
+        errorMessage.html("Please select 'None' to add a new item or an available item.");
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
-      let category = categorySelect.value();
-      let newName = nameInput.value().trim();
-
-      if (!newName) {
-        errorMessage.html("Please provide a name for the item.");
-        errorMessage.style("display", "block");
-        return;
-      }
-
-      if (inventory.some(item => item.name === newName && item.category === category)) {
-        errorMessage.html(`An item with the name "${newName}" already exists in ${category}. Please choose a different name.`);
-        errorMessage.style("display", "block");
-        return;
-      }
-
-      let newItem = {
-        name: newName,
-        category: category,
-        description: descriptionInput.value(),
-        quality: qualitySelect.value(),
-        quantity: 1
-      };
-
-      console.log("Adding new item:", newItem);
-      inventory.push(newItem);
       localStorage.setItem('inventory', JSON.stringify(inventory));
       console.log("Updated inventory:", inventory);
       updateAvailableEquipment();
       createInventoryUI();
       modalDiv.remove();
       errorMessage.style("display", "none");
+      successMessage.style("display", "none");
     });
 
   createButton("Save")
     .parent(modalDiv)
     .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#2196F3") // Blue for Save
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
     .mousePressed(() => {
       let idx = parseInt(itemSelect.value());
       if (idx === -1) {
         errorMessage.html("Please select an item to edit.");
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
       let selectedCategory = categorySelect.value();
       let allItems = inventory.filter(item => item.category === selectedCategory);
-      if (idx < 0 || idx >= allItems.length) {
-        errorMessage.html("Invalid item selected.");
-        errorMessage.style("display", "block");
-        return;
+      let availableItemsForCategory = availableItems[selectedCategory] ? availableItems[selectedCategory].filter(item => 
+        !inventory.some(i => i.name === item.name && i.category === selectedCategory)
+      ) : [];
+
+      let item;
+      let originalName;
+      let isFromAvailableItems = false;
+      let availableItemIdx = -1;
+      let inventoryIdx = -1;
+
+      if (idx < allItems.length) {
+        // Existing inventory item
+        item = allItems[idx];
+        originalName = item.name;
+        inventoryIdx = inventory.indexOf(item);
+      } else {
+        // Available item
+        let availableIdx = idx - allItems.length;
+        if (availableIdx < 0 || availableIdx >= availableItemsForCategory.length) {
+          errorMessage.html("Invalid item selected.");
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+        item = availableItemsForCategory[availableIdx];
+        originalName = item.name;
+        inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === selectedCategory);
+        isFromAvailableItems = true;
+        availableItemIdx = availableItems[selectedCategory].findIndex(i => i.name === originalName);
       }
 
-      let item = allItems[idx];
       let newName = nameInput.value().trim();
-
       if (!newName) {
         errorMessage.html("Please provide a name for the item.");
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
-      if (newName !== item.name && inventory.some(i => i.name === newName && i.category === selectedCategory)) {
+      if (newName !== item.name && inventory.some(i => i.name === newName && i.category === selectedCategory && i !== item)) {
         errorMessage.html(`An item with the name "${newName}" already exists in ${selectedCategory}. Please choose a different name.`);
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
+        return;
+      }
+
+      if (newName !== item.name && availableItems[selectedCategory] && availableItems[selectedCategory].some(i => i.name === newName && i !== item)) {
+        errorMessage.html(`An item with the name "${newName}" already exists in available items for ${selectedCategory}. Please choose a different name.`);
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
@@ -5647,23 +5766,60 @@ function showModifyItemsModal() {
         quantity: item.quantity || 1
       };
 
-      let inventoryIdx = inventory.indexOf(item);
-      inventory[inventoryIdx] = updatedItem;
+      if (isFromAvailableItems && availableItemIdx !== -1) {
+        // Update the original entry in availableItems
+        console.log(`Updating availableItems["${selectedCategory}"] at index ${availableItemIdx} with:`, updatedItem);
+        availableItems[selectedCategory][availableItemIdx] = updatedItem;
+
+        // Remove from inventory if it was added there
+        if (inventoryIdx !== -1) {
+          inventory.splice(inventoryIdx, 1);
+          console.log("Removed duplicate from inventory:", item.name);
+        }
+      } else {
+        // Update the inventory entry
+        inventory[inventoryIdx] = updatedItem;
+
+        // If the item exists in availableItems with the original name, update its name there too
+        if (originalName && availableItems[selectedCategory]) {
+          let availableIdx = availableItems[selectedCategory].findIndex(i => i.name === originalName);
+          if (availableIdx !== -1) {
+            console.log(`Syncing name change in availableItems["${selectedCategory}"] from ${originalName} to ${newName}`);
+            availableItems[selectedCategory][availableIdx] = { ...updatedItem };
+          }
+        }
+      }
+
       localStorage.setItem('inventory', JSON.stringify(inventory));
       updateAvailableEquipment();
       createInventoryUI();
-      modalDiv.remove();
+
+      // Show success message and reset form state without closing the modal
+      successMessage.html("Item Updated");
+      successMessage.style("display", "block");
       errorMessage.style("display", "none");
+
+      // Reset the form
+      itemSelect.value("-1");
+      updateItemOptions();
+      loadItemData();
     });
 
   createButton("Remove")
     .parent(modalDiv)
     .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#f44336") // Red for Remove
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
     .mousePressed(() => {
       let idx = parseInt(itemSelect.value());
       if (idx === -1) {
         errorMessage.html("Please select an item to remove.");
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
@@ -5672,6 +5828,7 @@ function showModifyItemsModal() {
       if (idx < 0 || idx >= allItems.length) {
         errorMessage.html("Invalid item selected.");
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
@@ -5685,6 +5842,7 @@ function showModifyItemsModal() {
           createInventoryUI();
           modalDiv.remove();
           errorMessage.style("display", "none");
+          successMessage.style("display", "none");
         }
       );
     });
@@ -5692,9 +5850,16 @@ function showModifyItemsModal() {
   createButton("Close")
     .parent(modalDiv)
     .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#ccc") // Gray for Close
+    .style("color", "black")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
     .mousePressed(() => {
       modalDiv.remove();
       errorMessage.style("display", "none");
+      successMessage.style("display", "none");
     });
 }
 function showAddEditInventoryModal() {
