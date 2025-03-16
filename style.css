@@ -199,56 +199,84 @@ header button {
   padding: 15px;
   border: 2px solid #000;
   z-index: 1000;
+  max-height: 80vh;
+  max-width: 90vw;
+  width: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .tabs {
+    justify-content: flex-start;
+  }
+
+  .resource-input {
+    flex: 0 0 50px;
+    width: 50px;
+    font-size: 12px;
+  }
+
+  .resource-button {
+    min-width: 50px;
+    font-size: 12px;
+  }
+
+  .resource-button.small-button {
+    min-width: 20px;
+    font-size: 10px;
+  }
+
+  #resource-bars canvas {
+    width: 100% !important;
+    max-width: 100%;
+    height: 200px;
+  }
+
+/* Modal styling */
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 15px;
+  border: 2px solid #000;
+  z-index: 1000;
   max-width: 90vw;
   width: auto;
   overflow-x: hidden;
   box-sizing: border-box;
   font-size: 14px;
-  min-height: 300px;
-  max-height: 80vh; /* Initial value, will be overridden by JS */
-  overflow-y: auto;
+  min-height: 300px; /* Prevents modal from shrinking too much */
+  max-height: 80vh;  /* Default for smaller screens */
+  overflow-y: auto;  /* Scrollbar only if content exceeds max-height */
 }
 
-/* Specific styling for the Equipment modal */
-.equipment-modal {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Reduce padding and margins for Equipment modal content */
-.equipment-modal h3,
-.equipment-modal div {
-  margin: 5px 0;
-}
-
-.equipment-modal span,
-.equipment-modal input,
-.equipment-modal select,
-.equipment-modal textarea {
-  margin: 2px 0;
-}
-
-/* Adjust textarea height to reduce space */
-.equipment-modal textarea {
-  height: 40px; /* Reduced from 60px */
-}
-
-/* Adjust max-height for taller screens (optional, as JS will override) */
+/* Adjust max-height for taller screens */
 @media (min-height: 800px) {
-  .equipment-modal {
+  .modal {
     max-height: 85vh;
   }
 }
 
 @media (min-height: 1000px) {
-  .equipment-modal {
-    max-height: 95vh;
+  .modal {
+    max-height: 90vh;
   }
 }
 
-/* Responsive adjustments for smaller screens */
+/* Responsive adjustments for smaller screens (unchanged from your original) */
 @media (max-width: 600px) {
-  .equipment-modal {
+  .modal {
     width: 80vw;
     max-height: 60vh;
     padding: 10px;
