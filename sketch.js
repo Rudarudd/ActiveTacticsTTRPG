@@ -2265,7 +2265,7 @@ function showAddEditEquipmentModal() {
   let idealTopPosition = (viewportHeight - estimatedModalHeight) / 2;
   const topPosition = Math.min(Math.max(minTopOffset, idealTopPosition), maxTopOffset);
 
-  // Apply positioning and styles to the modal
+  // Apply positioning and styles to the modal with flexbox
   modalDiv
     .style("position", "fixed")
     .style("top", topPosition + "px")
@@ -2277,34 +2277,40 @@ function showAddEditEquipmentModal() {
     .style("z-index", "1000")
     .style("width", "300px")
     .style("max-height", "80vh")
-    .style("overflow-y", "auto")
+    .style("display", "flex") // Enable flexbox
+    .style("flex-direction", "column") // Stack children vertically
     .style("box-sizing", "border-box")
     .style("font-size", "14px");
 
-  createElement("h3", "Modify Equipment").parent(modalDiv);
-
-  // Success message (initially hidden)
-  let successMessage = createP("")
+  // Create a scrollable content wrapper
+  let contentWrapper = createDiv()
     .parent(modalDiv)
+    .style("flex", "1") // Take up available space
+    .style("overflow-y", "auto"); // Enable scrolling for content
+
+  // Move all content into contentWrapper
+  createElement("h3", "Modify Equipment").parent(contentWrapper);
+
+  let successMessage = createP("")
+    .parent(contentWrapper)
     .style("color", "green")
     .style("display", "none")
     .style("margin-bottom", "10px");
 
   let errorMessage = createP("")
-    .parent(modalDiv)
+    .parent(contentWrapper)
     .style("color", "red")
     .style("display", "none")
     .style("margin-bottom", "10px");
 
-  // Move Equipment Type to the top
-  let typeDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  let typeDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   let typeLabel = createSpan("Equipment Type:")
     .parent(typeDiv)
     .style("display", "block");
   let typeSelect = createSelect()
     .parent(typeDiv)
     .style("width", "100%")
-    .id("equipment-type-select"); // Added ID for easier DOM access
+    .id("equipment-type-select");
   ["On-Hand", "Off-Hand", "Chest", "Helm", "Gloves", "Greaves", "Accessory"].forEach(type => typeSelect.option(type));
   createSpan("The slot where the equipment is equipped.")
     .parent(typeDiv)
@@ -2312,15 +2318,14 @@ function showAddEditEquipmentModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  // Add Weapon Category dropdown (visible for On-Hand and Off-Hand)
-  let weaponCategoryDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px").style("display", "none");
+  let weaponCategoryDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px").style("display", "none");
   let weaponCategoryLabel = createSpan("Weapon Category:")
     .parent(weaponCategoryDiv)
     .style("display", "block");
   let weaponCategorySelect = createSelect()
     .parent(weaponCategoryDiv)
     .style("width", "100%")
-    .id("weapon-category-select"); // Added ID for easier DOM access
+    .id("weapon-category-select");
   [
     "Melee - Heavy", "Melee - Balanced", "Melee - Light",
     "Ranged - Short", "Ranged - Long",
@@ -2333,20 +2338,18 @@ function showAddEditEquipmentModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  // Equipment selection dropdown (filtered by type)
-  let equipmentSelectDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  let equipmentSelectDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Equipment:").parent(equipmentSelectDiv).style("display", "block");
   let equipmentSelect = createSelect()
     .parent(equipmentSelectDiv)
     .style("width", "100%")
-    .id("equipment-select"); // Added ID for easier DOM access
+    .id("equipment-select");
   createSpan("Select an item to edit, add from available, or 'None' to create new.")
     .parent(equipmentSelectDiv)
     .style("font-size", "12px")
     .style("color", "#666")
     .style("display", "block");
 
-  // Populate with existing inventory items and available items
   equipmentSelect.option("None", -1);
   let allEquipment = inventory.filter(item => item.category === "Equipment");
   allEquipment.forEach((item, idx) => equipmentSelect.option(`[Inventory] ${item.name}`, idx));
@@ -2356,7 +2359,7 @@ function showAddEditEquipmentModal() {
     }
   });
 
-  let nameDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  let nameDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   let nameLabel = createSpan("Name:")
     .parent(nameDiv)
     .style("display", "block");
@@ -2364,21 +2367,21 @@ function showAddEditEquipmentModal() {
     .parent(nameDiv)
     .style("width", "100%")
     .attribute("placeholder", "e.g., Iron Blade")
-    .id("equipment-name-input"); // Added ID for easier DOM access
+    .id("equipment-name-input");
   createSpan("The equipment’s unique identifier.")
     .parent(nameDiv)
     .style("font-size", "12px")
     .style("color", "#666")
     .style("display", "block");
 
-  let qualityDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  let qualityDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   let qualityLabel = createSpan("Quality:")
     .parent(qualityDiv)
     .style("display", "block");
   let qualitySelect = createSelect()
     .parent(qualityDiv)
     .style("width", "100%")
-    .id("equipment-quality-select"); // Added ID for easier DOM access
+    .id("equipment-quality-select");
   ["Common", "Uncommon", "Rare", "Epic", "Legendary"].forEach(quality => qualitySelect.option(quality));
   qualitySelect.value("Common");
   createSpan("The rarity or quality of the equipment.")
@@ -2387,7 +2390,7 @@ function showAddEditEquipmentModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  let descDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  let descDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   let descLabel = createSpan("Description:")
     .parent(descDiv)
     .style("display", "block");
@@ -2396,14 +2399,14 @@ function showAddEditEquipmentModal() {
     .style("width", "100%")
     .style("height", "60px")
     .attribute("placeholder", "Describe the equipment...")
-    .id("equipment-description-input"); // Added ID for easier DOM access
+    .id("equipment-description-input");
   createSpan("What the equipment does or its lore.")
     .parent(descDiv)
     .style("font-size", "12px")
     .style("color", "#666")
     .style("display", "block");
 
-  let penaltyDiv = createDiv().parent(modalDiv).style("display", "none");
+  let penaltyDiv = createDiv().parent(contentWrapper).style("display", "none");
   let penaltyLabel = createSpan("Movement Penalty (ft):")
     .parent(penaltyDiv)
     .style("display", "block");
@@ -2411,17 +2414,17 @@ function showAddEditEquipmentModal() {
     .parent(penaltyDiv)
     .style("width", "100%")
     .style("margin-bottom", "10px")
-    .id("equipment-penalty-select"); // Added ID for easier DOM access
+    .id("equipment-penalty-select");
   ["0", "-5", "-10", "-15"].forEach(penalty => penaltySelect.option(penalty));
 
-  let slotsDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  let slotsDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   let slotsLabel = createSpan("Essence Crystal Slots:")
     .parent(slotsDiv)
     .style("display", "block");
   let slotsSelect = createSelect()
     .parent(slotsDiv)
     .style("width", "100%")
-    .id("equipment-slots-select"); // Added ID for easier DOM access
+    .id("equipment-slots-select");
   [0, 1, 2, 3, 4].forEach(slot => slotsSelect.option(slot));
   createSpan("Number of slots for Essence Crystals.")
     .parent(slotsDiv)
@@ -2429,14 +2432,14 @@ function showAddEditEquipmentModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  let linkedStatDiv = createDiv().parent(modalDiv).style("display", "block");
+  let linkedStatDiv = createDiv().parent(contentWrapper).style("display", "block");
   let linkedStatLabel = createSpan("Linked Stat (Weapons):")
     .parent(linkedStatDiv)
     .style("display", "block");
   let linkedStatSelect = createSelect()
     .parent(linkedStatDiv)
     .style("width", "100%")
-    .id("equipment-linked-stat-select"); // Added ID for easier DOM access
+    .id("equipment-linked-stat-select");
   linkedStatSelect.option("STR");
   linkedStatSelect.option("MAG");
   createSpan("Stat for weapon damage (STR or MAG).")
@@ -2445,7 +2448,7 @@ function showAddEditEquipmentModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  let stATGonusDiv = createDiv().parent(modalDiv);
+  let stATGonusDiv = createDiv().parent(contentWrapper);
   let stATGonusLabel = createSpan("Stat Bonus:")
     .parent(stATGonusDiv)
     .style("display", "block");
@@ -2453,12 +2456,12 @@ function showAddEditEquipmentModal() {
     .parent(stATGonusDiv)
     .style("width", "50px")
     .style("margin-right", "5px")
-    .id("equipment-statonus-amount-input"); // Added ID for easier DOM access
+    .id("equipment-statonus-amount-input");
   let stATGonusStatSelect = createSelect()
     .parent(stATGonusDiv)
     .style("width", "100px")
     .style("margin-bottom", "10px")
-    .id("equipment-statonus-stat-select"); // Added ID for easier DOM access
+    .id("equipment-statonus-stat-select");
   ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => stATGonusStatSelect.option(stat));
   createSpan("Stat to boost and amount.")
     .parent(stATGonusDiv)
@@ -2466,7 +2469,7 @@ function showAddEditEquipmentModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  let statReqDiv = createDiv().parent(modalDiv).style("display", "block");
+  let statReqDiv = createDiv().parent(contentWrapper).style("display", "block");
   let statReqLabel = createSpan("Stat Requirements (Optional):")
     .parent(statReqDiv)
     .style("display", "block");
@@ -2477,13 +2480,13 @@ function showAddEditEquipmentModal() {
     .parent(statReq1Div)
     .style("width", "80px")
     .style("margin-right", "5px")
-    .id("equipment-statreq1-select"); // Added ID for easier DOM access
+    .id("equipment-statreq1-select");
   ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statReq1Select.option(stat));
   let statReq1Input = createInput("", "number")
     .parent(statReq1Div)
     .style("width", "50px")
     .attribute("placeholder", "Value")
-    .id("equipment-statreq1-input"); // Added ID for easier DOM access
+    .id("equipment-statreq1-input");
 
   let statReq2Div = createDiv()
     .parent(statReqDiv)
@@ -2492,20 +2495,20 @@ function showAddEditEquipmentModal() {
     .parent(statReq2Div)
     .style("width", "80px")
     .style("margin-right", "5px")
-    .id("equipment-statreq2-select"); // Added ID for easier DOM access
+    .id("equipment-statreq2-select");
   ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statReq2Select.option(stat));
   let statReq2Input = createInput("", "number")
     .parent(statReq2Div)
     .style("width", "50px")
     .attribute("placeholder", "Value")
-    .id("equipment-statreq2-input"); // Added ID for easier DOM access
+    .id("equipment-statreq2-input");
   createSpan("Minimum stats needed to equip (e.g., 5 STR).")
     .parent(statReqDiv)
     .style("font-size", "12px")
     .style("color", "#666")
     .style("display", "block");
 
-  let damageDiceDiv = createDiv().parent(modalDiv).style("display", "block");
+  let damageDiceDiv = createDiv().parent(contentWrapper).style("display", "block");
   let damageDiceLabel = createSpan("Damage Dice + Modifier (Weapons):")
     .parent(damageDiceDiv)
     .style("display", "block");
@@ -2514,15 +2517,15 @@ function showAddEditEquipmentModal() {
     .style("width", "80px")
     .style("margin-right", "5px")
     .attribute("placeholder", "e.g., 2d6")
-    .id("equipment-damage-dice-input"); // Added ID for easier DOM access
+    .id("equipment-damage-dice-input");
   let weaponModifierInput = createInput("0", "number")
     .parent(damageDiceDiv)
     .style("width", "50px")
     .style("margin-bottom", "10px")
     .attribute("placeholder", "Mod")
-    .id("equipment-weapon-modifier-input"); // Added ID for easier DOM access
+    .id("equipment-weapon-modifier-input");
 
-  let defenseDiv = createDiv().parent(modalDiv).style("display", "none");
+  let defenseDiv = createDiv().parent(contentWrapper).style("display", "none");
   let defenseLabel = createSpan("Defense + Modifier (Armor):")
     .parent(defenseDiv)
     .style("display", "block");
@@ -2530,70 +2533,217 @@ function showAddEditEquipmentModal() {
     .parent(defenseDiv)
     .style("width", "50px")
     .style("margin-right", "5px")
-    .id("equipment-defense-input"); // Added ID for easier DOM access
+    .id("equipment-defense-input");
   let armorModifierInput = createInput("0", "number")
     .parent(defenseDiv)
     .style("width", "50px")
     .style("margin-bottom", "10px")
     .attribute("placeholder", "Mod")
-    .id("equipment-armor-modifier-input"); // Added ID for easier DOM access
+    .id("equipment-armor-modifier-input");
 
-  // Create a sticky button container at the bottom
+  // Button container at the bottom (non-scrollable)
   let buttonContainer = createDiv()
     .parent(modalDiv)
-    .style("position", "sticky")
-    .style("bottom", "0")
-    .style("background", "#fff")
     .style("padding", "10px 0")
     .style("border-top", "1px solid #ccc")
     .style("display", "flex")
     .style("justify-content", "space-between")
     .style("gap", "5px");
 
-  // Event listeners using globally defined functions
+  // Event listeners
   typeSelect.changed(() => {
     updateTypeVisibility();
     updateEquipmentOptions();
   });
   equipmentSelect.changed(loadEquipmentData);
 
-  // Initial calls to populate the modal
+  // Initial calls
   updateTypeVisibility();
   updateEquipmentOptions();
 
-  // Add button with improved styling
-createButton("Add")
-  .parent(buttonContainer)
-  .style("margin", "5px")
-  .style("padding", "5px 10px")
-  .style("background-color", "#4CAF50")
-  .style("color", "white")
-  .style("border", "none")
-  .style("border-radius", "3px")
-  .style("cursor", "pointer")
-  .mousePressed(() => {
-    let idx = parseInt(equipmentSelect.value());
-    let selectedType = typeSelect.value();
-    let allEquipment = inventory.filter(item => 
-      item.category === "Equipment" && 
-      item.type === selectedType
-    );
-    let availableEquipment = availableItems["Equipment"].filter(item => 
-      item.type === selectedType && 
-      !inventory.some(i => i.name === item.name && i.category === "Equipment")
-    );
+  // Buttons
+  createButton("Add")
+    .parent(buttonContainer)
+    .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#4CAF50")
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
+    .mousePressed(() => {
+      let idx = parseInt(equipmentSelect.value());
+      let selectedType = typeSelect.value();
+      let allEquipment = inventory.filter(item => 
+        item.category === "Equipment" && 
+        item.type === selectedType
+      );
+      let availableEquipment = availableItems["Equipment"].filter(item => 
+        item.type === selectedType && 
+        !inventory.some(i => i.name === item.name && i.category === "Equipment")
+      );
 
-    if (idx === -1) {
-      // Create new custom equipment (unchanged)
-      let name = nameInput.value().trim();
-      if (!name) {
+      if (idx === -1) {
+        let name = nameInput.value().trim();
+        if (!name) {
+          errorMessage.html("Please provide a name for the equipment.");
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+        if (inventory.some(item => item.name === name && item.category === "Equipment")) {
+          errorMessage.html(`An equipment with the name "${name}" already exists. Please choose a different name.`);
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+
+        let stATGonusStat = stATGonusStatSelect.value();
+        let stATGonusAmount = parseInt(stATGonusAmountInput.value()) || 0;
+        let stATGonus = stATGonusStat !== "None" && stATGonusAmount !== 0 ? { [stATGonusStat]: stATGonusAmount } : null;
+
+        let statReq1 = statReq1Select.value();
+        let statReq1Value = parseInt(statReq1Input.value());
+        let statReq2 = statReq2Select.value();
+        let statReq2Value = parseInt(statReq2Input.value());
+        let statRequirements = {};
+        if (statReq1 !== "None" && statReq1Value) statRequirements[statReq1] = statReq1Value;
+        if (statReq2 !== "None" && statReq2Value) statRequirements[statReq2] = statReq2Value;
+
+        let newEquipment = {
+          name,
+          description: descriptionInput.value(),
+          type: selectedType,
+          category: "Equipment",
+          quality: qualitySelect.value(),
+          crystalSlots: parseInt(slotsSelect.value()) || 0,
+          quantity: 1
+        };
+
+        if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
+          newEquipment.movementPenalty = parseInt(penaltySelect.value()) || 0;
+          newEquipment.defense = parseInt(defenseInput.value()) || 0;
+          newEquipment.modifier = parseInt(armorModifierInput.value()) || 0;
+        } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
+          newEquipment.linkedStat = linkedStatSelect.value();
+          newEquipment.damageDice = damageDiceInput.value().trim();
+          newEquipment.modifier = parseInt(weaponModifierInput.value()) || 0;
+          newEquipment.weaponCategory = weaponCategorySelect.value();
+        }
+
+        if (stATGonus) newEquipment.stATGonuses = stATGonus;
+        if (Object.keys(statRequirements).length > 0) newEquipment.statRequirements = statRequirements;
+
+        console.log("Adding new equipment:", newEquipment);
+        inventory.push(newEquipment);
+      } else if (idx >= allEquipment.length) {
+        let availableIdx = idx - allEquipment.length;
+        if (availableIdx < 0 || availableIdx >= availableEquipment.length) {
+          errorMessage.html("Invalid available equipment selected.");
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+        let item = availableEquipment[availableIdx];
+        let newEquipment = { ...item, quantity: 1 };
+        console.log("Adding available equipment:", newEquipment);
+
+        let existingItem = inventory.find(i => i.name === item.name && i.category === "Equipment");
+        if (!existingItem) {
+          inventory.push(newEquipment);
+        } else {
+          errorMessage.html(`Item "${item.name}" already exists in inventory. Use Save to update it.`);
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+      } else {
+        errorMessage.html("Please select an available item or 'None' to add a new one.");
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
+        return;
+      }
+
+      localStorage.setItem('inventory', JSON.stringify(inventory));
+      console.log("Updated inventory:", inventory);
+      updateAvailableEquipment();
+      createInventoryUI();
+      createEquipmentUI();
+      modalDiv.remove();
+      errorMessage.style("display", "none");
+      successMessage.style("display", "none");
+    });
+
+  createButton("Save")
+    .parent(buttonContainer)
+    .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#2196F3")
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
+    .mousePressed(() => {
+      let idx = parseInt(equipmentSelect.value());
+      if (idx === -1) {
+        errorMessage.html("Please select an item to edit.");
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
+        return;
+      }
+
+      let selectedType = typeSelect.value();
+      let allEquipment = inventory.filter(item => 
+        item.category === "Equipment" && 
+        item.type === selectedType
+      );
+      let availableEquipment = availableItems["Equipment"].filter(item => 
+        item.type === selectedType && 
+        !inventory.some(i => i.name === item.name && i.category === "Equipment")
+      );
+
+      let item;
+      let inventoryIdx;
+      let isFromAvailableItems = false;
+      let availableItemIdx = -1;
+      let originalName = null;
+
+      if (idx < allEquipment.length) {
+        item = allEquipment[idx];
+        inventoryIdx = inventory.indexOf(item);
+        originalName = item.name;
+      } else {
+        let availableIdx = idx - allEquipment.length;
+        if (availableIdx >= availableEquipment.length) {
+          errorMessage.html("Invalid item selected.");
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+        item = availableEquipment[availableIdx];
+        inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === "Equipment");
+        isFromAvailableItems = true;
+        availableItemIdx = availableItems["Equipment"].findIndex(i => i.name === item.name && i.category === "Equipment");
+      }
+
+      let newName = nameInput.value().trim();
+      if (!newName) {
         errorMessage.html("Please provide a name for the equipment.");
         errorMessage.style("display", "block");
         successMessage.style("display", "none");
         return;
       }
-      if (inventory.some(item => item.name === name && item.category === "Equipment")) {
-        errorMessage.html(`An equipment with the name "${name}" already exists. Please choose a different name.`);
+
+      let existingItemWithNewName = inventory.find(i => i.name === newName && i.category === "Equipment" && i !== item);
+      if (existingItemWithNewName) {
+        errorMessage.html(`An equipment with the name "${newName}" already exists in inventory. Please choose a different name.`);
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
+        return;
+      }
+      let existingAvailableWithNewName = availableItems["Equipment"].find(i => i.name === newName && i.category === "Equipment" && i !== item);
+      if (existingAvailableWithNewName && !isFromAvailableItems) {
+        errorMessage.html(`An equipment with the name "${newName}" already exists in available items. Please choose a different name.`);
         errorMessage.style("display", "block");
         successMessage.style("display", "none");
         return;
@@ -2611,261 +2761,91 @@ createButton("Add")
       if (statReq1 !== "None" && statReq1Value) statRequirements[statReq1] = statReq1Value;
       if (statReq2 !== "None" && statReq2Value) statRequirements[statReq2] = statReq2Value;
 
-      let newEquipment = {
-        name,
+      let updatedEquipment = {
+        name: newName,
         description: descriptionInput.value(),
         type: selectedType,
         category: "Equipment",
         quality: qualitySelect.value(),
         crystalSlots: parseInt(slotsSelect.value()) || 0,
-        quantity: 1
+        quantity: item.quantity || 1
       };
 
       if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
-        newEquipment.movementPenalty = parseInt(penaltySelect.value()) || 0;
-        newEquipment.defense = parseInt(defenseInput.value()) || 0;
-        newEquipment.modifier = parseInt(armorModifierInput.value()) || 0;
+        updatedEquipment.movementPenalty = parseInt(penaltySelect.value()) || 0;
+        updatedEquipment.defense = parseInt(defenseInput.value()) || 0;
+        updatedEquipment.modifier = parseInt(armorModifierInput.value()) || 0;
+        delete updatedEquipment.linkedStat;
+        delete updatedEquipment.damageDice;
+        delete updatedEquipment.weaponCategory;
       } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
-        newEquipment.linkedStat = linkedStatSelect.value();
-        newEquipment.damageDice = damageDiceInput.value().trim();
-        newEquipment.modifier = parseInt(weaponModifierInput.value()) || 0;
-        newEquipment.weaponCategory = weaponCategorySelect.value();
+        updatedEquipment.linkedStat = linkedStatSelect.value();
+        updatedEquipment.damageDice = damageDiceInput.value().trim();
+        updatedEquipment.modifier = parseInt(weaponModifierInput.value()) || 0;
+        updatedEquipment.weaponCategory = weaponCategorySelect.value();
+        delete updatedEquipment.movementPenalty;
+        delete updatedEquipment.defense;
+      } else if (selectedType === "Accessory") {
+        delete updatedEquipment.movementPenalty;
+        delete updatedEquipment.linkedStat;
+        delete updatedEquipment.damageDice;
+        delete updatedEquipment.defense;
+        delete updatedEquipment.modifier;
+        delete updatedEquipment.weaponCategory;
       }
 
-      if (stATGonus) newEquipment.stATGonuses = stATGonus;
-      if (Object.keys(statRequirements).length > 0) newEquipment.statRequirements = statRequirements;
+      if (stATGonus) updatedEquipment.stATGonuses = stATGonus;
+      else delete updatedEquipment.stATGonuses;
+      if (Object.keys(statRequirements).length > 0) updatedEquipment.statRequirements = statRequirements;
+      else delete updatedEquipment.statRequirements;
 
-      console.log("Adding new equipment:", newEquipment);
-      inventory.push(newEquipment);
-    } else if (idx >= allEquipment.length) {
-      // Add from filtered availableEquipment
-      let availableIdx = idx - allEquipment.length;
-      if (availableIdx < 0 || availableIdx >= availableEquipment.length) {
-        errorMessage.html("Invalid available equipment selected.");
-        errorMessage.style("display", "block");
-        successMessage.style("display", "none");
-        return;
-      }
-      let item = availableEquipment[availableIdx];
-      let newEquipment = { ...item, quantity: 1 }; // Add with quantity 1
-      console.log("Adding available equipment:", newEquipment);
-
-      // Check if item already exists to avoid duplicates
-      let existingItem = inventory.find(i => i.name === item.name && i.category === "Equipment");
-      if (!existingItem) {
-        inventory.push(newEquipment);
-      } else {
-        errorMessage.html(`Item "${item.name}" already exists in inventory. Use Save to update it.`);
-        errorMessage.style("display", "block");
-        successMessage.style("display", "none");
-        return;
-      }
-    } else {
-      errorMessage.html("Please select an available item or 'None' to add a new one.");
-      errorMessage.style("display", "block");
-      successMessage.style("display", "none");
-      return;
-    }
-
-    localStorage.setItem('inventory', JSON.stringify(inventory));
-    console.log("Updated inventory:", inventory);
-    updateAvailableEquipment();
-    createInventoryUI();
-    createEquipmentUI();
-    modalDiv.remove();
-    errorMessage.style("display", "none");
-    successMessage.style("display", "none");
-  });
-
-  // Save button with improved styling and new behavior
-createButton("Save")
-  .parent(buttonContainer)
-  .style("margin", "5px")
-  .style("padding", "5px 10px")
-  .style("background-color", "#2196F3")
-  .style("color", "white")
-  .style("border", "none")
-  .style("border-radius", "3px")
-  .style("cursor", "pointer")
-  .mousePressed(() => {
-    let idx = parseInt(equipmentSelect.value());
-    if (idx === -1) {
-      errorMessage.html("Please select an item to edit.");
-      errorMessage.style("display", "block");
-      successMessage.style("display", "none");
-      return;
-    }
-
-    let selectedType = typeSelect.value();
-    let allEquipment = inventory.filter(item => 
-      item.category === "Equipment" && 
-      item.type === selectedType
-    );
-    let availableEquipment = availableItems["Equipment"].filter(item => 
-      item.type === selectedType && 
-      !inventory.some(i => i.name === item.name && i.category === "Equipment")
-    );
-
-    let item;
-    let inventoryIdx;
-    let isFromAvailableItems = false;
-    let availableItemIdx = -1;
-    let originalName = null;
-
-    if (idx < allEquipment.length) {
-      // Existing inventory item
-      item = allEquipment[idx];
-      inventoryIdx = inventory.indexOf(item);
-      originalName = item.name; // Store the original name before update
-    } else {
-      // Available item (not in inventory yet)
-      let availableIdx = idx - allEquipment.length;
-      if (availableIdx >= availableEquipment.length) {
-        errorMessage.html("Invalid item selected.");
-        errorMessage.style("display", "block");
-        successMessage.style("display", "none");
-        return;
-      }
-      item = availableEquipment[availableIdx];
-      inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === "Equipment");
-      isFromAvailableItems = true;
-      availableItemIdx = availableItems["Equipment"].findIndex(i => i.name === item.name && i.category === "Equipment");
-    }
-
-    let newName = nameInput.value().trim();
-    if (!newName) {
-      errorMessage.html("Please provide a name for the equipment.");
-      errorMessage.style("display", "block");
-      successMessage.style("display", "none");
-      return;
-    }
-
-    // Check for duplicate names, excluding the current item
-    let existingItemWithNewName = inventory.find(i => i.name === newName && i.category === "Equipment" && i !== item);
-    if (existingItemWithNewName) {
-      errorMessage.html(`An equipment with the name "${newName}" already exists in inventory. Please choose a different name.`);
-      errorMessage.style("display", "block");
-      successMessage.style("display", "none");
-      return;
-    }
-    let existingAvailableWithNewName = availableItems["Equipment"].find(i => i.name === newName && i.category === "Equipment" && i !== item);
-    if (existingAvailableWithNewName && !isFromAvailableItems) {
-      errorMessage.html(`An equipment with the name "${newName}" already exists in available items. Please choose a different name.`);
-      errorMessage.style("display", "block");
-      successMessage.style("display", "none");
-      return;
-    }
-
-    let stATGonusStat = stATGonusStatSelect.value();
-    let stATGonusAmount = parseInt(stATGonusAmountInput.value()) || 0;
-    let stATGonus = stATGonusStat !== "None" && stATGonusAmount !== 0 ? { [stATGonusStat]: stATGonusAmount } : null;
-
-    let statReq1 = statReq1Select.value();
-    let statReq1Value = parseInt(statReq1Input.value());
-    let statReq2 = statReq2Select.value();
-    let statReq2Value = parseInt(statReq2Input.value());
-    let statRequirements = {};
-    if (statReq1 !== "None" && statReq1Value) statRequirements[statReq1] = statReq1Value;
-    if (statReq2 !== "None" && statReq2Value) statRequirements[statReq2] = statReq2Value;
-
-    let updatedEquipment = {
-      name: newName,
-      description: descriptionInput.value(),
-      type: selectedType,
-      category: "Equipment",
-      quality: qualitySelect.value(),
-      crystalSlots: parseInt(slotsSelect.value()) || 0,
-      quantity: item.quantity || 1
-    };
-
-    if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
-      updatedEquipment.movementPenalty = parseInt(penaltySelect.value()) || 0;
-      updatedEquipment.defense = parseInt(defenseInput.value()) || 0;
-      updatedEquipment.modifier = parseInt(armorModifierInput.value()) || 0;
-      delete updatedEquipment.linkedStat;
-      delete updatedEquipment.damageDice;
-      delete updatedEquipment.weaponCategory;
-    } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
-      updatedEquipment.linkedStat = linkedStatSelect.value();
-      updatedEquipment.damageDice = damageDiceInput.value().trim();
-      updatedEquipment.modifier = parseInt(weaponModifierInput.value()) || 0;
-      updatedEquipment.weaponCategory = weaponCategorySelect.value();
-      delete updatedEquipment.movementPenalty;
-      delete updatedEquipment.defense;
-    } else if (selectedType === "Accessory") {
-      delete updatedEquipment.movementPenalty;
-      delete updatedEquipment.linkedStat;
-      delete updatedEquipment.damageDice;
-      delete updatedEquipment.defense;
-      delete updatedEquipment.modifier;
-      delete updatedEquipment.weaponCategory;
-    }
-
-    if (stATGonus) updatedEquipment.stATGonuses = stATGonus;
-    else delete updatedEquipment.stATGonuses;
-    if (Object.keys(statRequirements).length > 0) updatedEquipment.statRequirements = statRequirements;
-    else delete updatedEquipment.statRequirements;
-
-    if (isFromAvailableItems && availableItemIdx !== -1) {
-      // Update the original entry in availableItems["Equipment"]
-      console.log(`Updating availableItems["Equipment"] at index ${availableItemIdx} with:`, updatedEquipment);
-      availableItems["Equipment"][availableItemIdx] = updatedEquipment;
-
-      // If the item was already in inventory, remove it to avoid duplication
-      if (inventoryIdx !== -1) {
-        inventory.splice(inventoryIdx, 1);
-        console.log("Removed duplicate from inventory:", item.name);
-      }
-    } else {
-      // Update the inventory entry
-      inventory[inventoryIdx] = updatedEquipment;
-
-      // If the item exists in availableItems with the original name, update its name there too
-      if (originalName) {
-        let availableIdx = availableItems["Equipment"].findIndex(i => i.name === originalName && i.category === "Equipment");
-        if (availableIdx !== -1) {
-          console.log(`Syncing name change in availableItems["Equipment"] from ${originalName} to ${newName}`);
-          availableItems["Equipment"][availableIdx] = { ...updatedEquipment };
+      if (isFromAvailableItems && availableItemIdx !== -1) {
+        console.log(`Updating availableItems["Equipment"] at index ${availableItemIdx} with:`, updatedEquipment);
+        availableItems["Equipment"][availableItemIdx] = updatedEquipment;
+        if (inventoryIdx !== -1) {
+          inventory.splice(inventoryIdx, 1);
+          console.log("Removed duplicate from inventory:", item.name);
         }
-      }
-
-      // Sync equipped items
-      for (let slot in equippedItems) {
-        if (equippedItems[slot] && equippedItems[slot].name === item.name) {
-          equippedItems[slot] = { ...updatedEquipment };
-          if (equippedItems[slot].crystalSlots !== item.crystalSlots) {
-            equippedItems[slot].equippedCrystals = Array(equippedItems[slot].crystalSlots).fill(null);
-          } else {
-            equippedItems[slot].equippedCrystals = item.equippedCrystals || Array(equippedItems[slot].crystalSlots).fill(null);
+      } else {
+        inventory[inventoryIdx] = updatedEquipment;
+        if (originalName) {
+          let availableIdx = availableItems["Equipment"].findIndex(i => i.name === originalName && i.category === "Equipment");
+          if (availableIdx !== -1) {
+            console.log(`Syncing name change in availableItems["Equipment"] from ${originalName} to ${newName}`);
+            availableItems["Equipment"][availableIdx] = { ...updatedEquipment };
+          }
+        }
+        for (let slot in equippedItems) {
+          if (equippedItems[slot] && equippedItems[slot].name === item.name) {
+            equippedItems[slot] = { ...updatedEquipment };
+            if (equippedItems[slot].crystalSlots !== item.crystalSlots) {
+              equippedItems[slot].equippedCrystals = Array(equippedItems[slot].crystalSlots).fill(null);
+            } else {
+              equippedItems[slot].equippedCrystals = item.equippedCrystals || Array(equippedItems[slot].crystalSlots).fill(null);
+            }
           }
         }
       }
-    }
 
-    localStorage.setItem('inventory', JSON.stringify(inventory));
-    updateStATGonusesDisplay();
-    updateResourcesBasedOnStats();
-    updateAvailableEquipment();
-    updateAbilities();
-    createInventoryUI();
-    createEquipmentUI();
+      localStorage.setItem('inventory', JSON.stringify(inventory));
+      updateStATGonusesDisplay();
+      updateResourcesBasedOnStats();
+      updateAvailableEquipment();
+      updateAbilities();
+      createInventoryUI();
+      createEquipmentUI();
 
-    // Show success message and reset modal state
-    successMessage.html("Equipment Updated");
-    successMessage.style("display", "block");
-    errorMessage.style("display", "none");
+      successMessage.html("Equipment Updated");
+      successMessage.style("display", "block");
+      errorMessage.style("display", "none");
 
-    // Reset scroll position to the top
-    modalDiv.elt.scrollTop = 0;
+      modalDiv.elt.scrollTop = 0;
+      equipmentSelect.html("");
+      updateEquipmentOptions();
+      equipmentSelect.value("-1");
+      loadEquipmentData();
+    });
 
-    // Explicitly clear and rebuild the dropdown to prevent duplicates
-    equipmentSelect.html(""); // Clear all options
-    updateEquipmentOptions(); // Rebuild options from scratch
-    equipmentSelect.value("-1"); // Reset to "None"
-    loadEquipmentData(); // Reload form data
-  });
-
-  // Remove button with improved styling
   createButton("Remove")
     .parent(buttonContainer)
     .style("margin", "5px")
@@ -2900,7 +2880,6 @@ createButton("Save")
       showConfirmationModal(
         `Are you sure you want to remove "${item.name}"?`,
         () => {
-          // Update for Accessory slots: remove from both Accessory 1 and Accessory 2 if equipped
           if (equippedItems["Accessory 1"] && equippedItems["Accessory 1"].name === item.name) {
             equippedItems["Accessory 1"] = null;
           }
@@ -2922,7 +2901,6 @@ createButton("Save")
       );
     });
 
-  // Close button with improved styling
   createButton("Close")
     .parent(buttonContainer)
     .style("margin", "5px")
@@ -3322,17 +3300,31 @@ function showModifyCrystalsModal() {
     .style("padding", "20px")
     .style("border", "2px solid #000")
     .style("z-index", "1000")
-    .style("width", "300px");
+    .style("width", "300px")
+    .style("box-sizing", "border-box");
 
-  createElement("h3", "Modify Crystals").parent(modalDiv);
+  // Scrollable content wrapper
+  let contentWrapper = createDiv()
+    .parent(modalDiv)
+    .style("max-height", "60vh")
+    .style("overflow-y", "auto")
+    .style("padding-bottom", "10px");
+
+  createElement("h3", "Modify Crystals").parent(contentWrapper);
 
   let errorMessage = createP("")
-    .parent(modalDiv)
+    .parent(contentWrapper)
     .style("color", "red")
     .style("display", "none")
     .style("margin-bottom", "10px");
 
-  let crystalSelectDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  let successMessage = createP("")
+    .parent(contentWrapper)
+    .style("color", "green")
+    .style("display", "none")
+    .style("margin-bottom", "10px");
+
+  let crystalSelectDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Crystal:").parent(crystalSelectDiv).style("display", "block");
   let crystalSelect = createSelect().parent(crystalSelectDiv).style("width", "100%");
   createSpan("Select a crystal to edit or 'None' to add a new one.")
@@ -3341,42 +3333,64 @@ function showModifyCrystalsModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  let crystals = inventory.filter(item => item.category === "Crystals");
-  crystalSelect.option("None", -1);
-  crystals.forEach((crystal, idx) => crystalSelect.option(crystal.name, idx));
-
-  let nameDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  let nameDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Name:").parent(nameDiv).style("display", "inline-block").style("width", "100px");
   let nameInput = createInput("").parent(nameDiv).style("width", "180px");
   createSpan("The crystal’s unique identifier.").parent(nameDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  let descDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  let descDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Description:").parent(descDiv).style("display", "inline-block").style("width", "100px");
   let descInput = createInput("").parent(descDiv).style("width", "180px");
   createSpan("What the crystal does or its lore.").parent(descDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  let stATGonusDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  let stATGonusDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Stat Bonus:").parent(stATGonusDiv).style("display", "inline-block").style("width", "100px");
   let statSelect = createSelect().parent(stATGonusDiv).style("width", "80px").style("margin-right", "5px");
   ["None", "STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statSelect.option(stat));
   let amountInput = createInput("0", "number").parent(stATGonusDiv).style("width", "50px");
   createSpan("Stat to boost (e.g., MAG) and amount.").parent(stATGonusDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  let statReqDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  let statReqDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Stat Requirement:").parent(statReqDiv).style("display", "inline-block").style("width", "100px");
   let statReqSelect = createSelect().parent(statReqDiv).style("width", "80px").style("margin-right", "5px");
   ["None", "STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statReqSelect.option(stat));
   let statReqInput = createInput("0", "number").parent(statReqDiv).style("width", "50px");
   createSpan("Minimum stat needed to equip (e.g., 5 MAG).").parent(statReqDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  let abilitiesDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  let abilitiesDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Abilities:").parent(abilitiesDiv).style("display", "inline-block").style("width", "100px");
   let abilitiesInput = createInput("").parent(abilitiesDiv).style("width", "180px").attribute("placeholder", "e.g., Fire, Cure");
   createSpan("Skills granted (comma-separated).").parent(abilitiesDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
+  // Button container (outside the scrollable wrapper)
+  let buttonContainer = createDiv()
+    .parent(modalDiv)
+    .style("padding", "10px 0")
+    .style("border-top", "1px solid #ccc")
+    .style("display", "flex")
+    .style("justify-content", "space-between")
+    .style("gap", "5px");
+
+  function updateCrystalOptions() {
+    let crystals = inventory.filter(item => item.category === "Crystals");
+    let availableCrystals = availableItems["Crystals"] ? availableItems["Crystals"].filter(item => 
+      !inventory.some(i => i.name === item.name && i.category === "Crystals")
+    ) : [];
+
+    crystalSelect.html("");
+    crystalSelect.option("None", -1);
+    crystals.forEach((crystal, idx) => crystalSelect.option(`[Inventory] ${crystal.name}`, idx));
+    availableCrystals.forEach((crystal, idx) => crystalSelect.option(`[Available] ${crystal.name}`, crystals.length + idx));
+  }
+
   function loadCrystalData() {
     let idx = parseInt(crystalSelect.value());
-    if (idx === -1) { // "None" selected
+    let crystals = inventory.filter(item => item.category === "Crystals");
+    let availableCrystals = availableItems["Crystals"] ? availableItems["Crystals"].filter(item => 
+      !inventory.some(i => i.name === item.name && i.category === "Crystals")
+    ) : [];
+
+    if (idx === -1) {
       nameInput.value("");
       descInput.value("");
       statSelect.value("None");
@@ -3384,7 +3398,7 @@ function showModifyCrystalsModal() {
       statReqSelect.value("None");
       statReqInput.value(0);
       abilitiesInput.value("");
-    } else if (idx >= 0 && idx < crystals.length) {
+    } else if (idx < crystals.length) {
       let crystal = crystals[idx];
       nameInput.value(crystal.name || "");
       descInput.value(crystal.description || "");
@@ -3397,82 +3411,163 @@ function showModifyCrystalsModal() {
       statReqSelect.value(reqStat);
       statReqInput.value(reqStat !== "None" && statReqs[reqStat] ? statReqs[reqStat] : 0);
       abilitiesInput.value(crystal.abilities && Array.isArray(crystal.abilities) ? crystal.abilities.join(", ") : "");
+    } else {
+      let availableIdx = idx - crystals.length;
+      if (availableIdx >= 0 && availableIdx < availableCrystals.length) {
+        let crystal = availableCrystals[availableIdx];
+        nameInput.value(crystal.name || "");
+        descInput.value(crystal.description || "");
+        let stATGonuses = crystal.stATGonuses || {};
+        let stat = Object.keys(stATGonuses).length > 0 ? Object.keys(stATGonuses)[0] : "None";
+        statSelect.value(stat);
+        amountInput.value(stat !== "None" && stATGonuses[stat] ? stATGonuses[stat] : 0);
+        let statReqs = crystal.statRequirements || {};
+        let reqStat = Object.keys(statReqs).length > 0 ? Object.keys(statReqs)[0] : "None";
+        statReqSelect.value(reqStat);
+        statReqInput.value(reqStat !== "None" && statReqs[reqStat] ? statReqs[reqStat] : 0);
+        abilitiesInput.value(crystal.abilities && Array.isArray(crystal.abilities) ? crystal.abilities.join(", ") : "");
+      }
     }
   }
 
   crystalSelect.changed(loadCrystalData);
-  loadCrystalData();
+  updateCrystalOptions();
 
   createButton("Add")
-    .parent(modalDiv)
+    .parent(buttonContainer)
     .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#4CAF50")
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
     .mousePressed(() => {
       let idx = parseInt(crystalSelect.value());
-      if (idx !== -1) {
-        errorMessage.html("Please select 'None' to add a new crystal.");
+      let crystals = inventory.filter(item => item.category === "Crystals");
+      let availableCrystals = availableItems["Crystals"] ? availableItems["Crystals"].filter(item => 
+        !inventory.some(i => i.name === item.name && i.category === "Crystals")
+      ) : [];
+
+      if (idx === -1) {
+        let name = nameInput.value().trim();
+        let desc = descInput.value().trim();
+        let stat = statSelect.value();
+        let amount = parseInt(amountInput.value()) || 0;
+        let reqStat = statReqSelect.value();
+        let reqAmount = parseInt(statReqInput.value()) || 0;
+        let abilities = abilitiesInput.value().split(",").map(a => a.trim()).filter(a => a);
+
+        if (!name || !desc) {
+          errorMessage.html("Please provide a name and description.");
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+
+        if (inventory.some(item => item.name === name && item.category === "Crystals")) {
+          errorMessage.html(`A crystal with the name "${name}" already exists in inventory.`);
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+
+        if (availableItems["Crystals"] && availableItems["Crystals"].some(item => item.name === name)) {
+          errorMessage.html(`A crystal with the name "${name}" already exists in available items.`);
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+
+        let crystal = {
+          name,
+          description: desc,
+          category: "Crystals",
+          stATGonuses: stat !== "None" ? { [stat]: amount } : {},
+          statRequirements: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
+          abilities: abilities.length > 0 ? abilities : [],
+          quantity: 1,
+          quality: "Common"
+        };
+
+        inventory.push(crystal);
+      } else if (idx >= crystals.length) {
+        let availableIdx = idx - crystals.length;
+        if (availableIdx < 0 || availableIdx >= availableCrystals.length) {
+          errorMessage.html("Invalid available crystal selected.");
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+        let crystal = availableCrystals[availableIdx];
+        if (inventory.some(item => item.name === crystal.name && item.category === "Crystals")) {
+          errorMessage.html(`Crystal "${crystal.name}" already exists in inventory. Use Save to update it.`);
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+        inventory.push({ ...crystal, quantity: 1 });
+      } else {
+        errorMessage.html("Please select 'None' to add a new crystal or an available crystal.");
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
-      let name = nameInput.value().trim();
-      let desc = descInput.value().trim();
-      let stat = statSelect.value();
-      let amount = parseInt(amountInput.value()) || 0;
-      let reqStat = statReqSelect.value();
-      let reqAmount = parseInt(statReqInput.value()) || 0;
-      let abilities = abilitiesInput.value().split(",").map(a => a.trim()).filter(a => a);
-
-      if (!name || !desc) {
-        errorMessage.html("Please provide a name and description.");
-        errorMessage.style("display", "block");
-        return;
-      }
-
-      if (inventory.some(item => item.name === name && item.category === "Crystals")) {
-        errorMessage.html(`A crystal with the name "${name}" already exists. Please choose a different name.`);
-        errorMessage.style("display", "block");
-        return;
-      }
-
-      let crystal = {
-        name,
-        description: desc,
-        category: "Crystals",
-        stATGonuses: stat !== "None" ? { [stat]: amount } : {},
-        statRequirements: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
-        abilities: abilities.length > 0 ? abilities : [],
-        quantity: 1,
-        quality: "Common"
-      };
-
-      console.log("Adding new crystal:", crystal);
-      inventory.push(crystal);
       localStorage.setItem('inventory', JSON.stringify(inventory));
-      console.log("Updated inventory:", inventory);
       updateAvailableEquipment();
       createEquipmentUI();
       if (typeof createInventoryUI === "function") createInventoryUI();
       modalDiv.remove();
       errorMessage.style("display", "none");
+      successMessage.style("display", "none");
     });
 
   createButton("Save")
-    .parent(modalDiv)
+    .parent(buttonContainer)
     .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#2196F3")
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
     .mousePressed(() => {
       let idx = parseInt(crystalSelect.value());
       if (idx === -1) {
         errorMessage.html("Please select a crystal to edit.");
         errorMessage.style("display", "block");
-        return;
-      }
-      if (idx < 0 || idx >= crystals.length) {
-        errorMessage.html("Invalid crystal selected.");
-        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
-      let crystal = crystals[idx];
+      let crystals = inventory.filter(item => item.category === "Crystals");
+      let availableCrystals = availableItems["Crystals"] ? availableItems["Crystals"].filter(item => 
+        !inventory.some(i => i.name === item.name && i.category === "Crystals")
+      ) : [];
+
+      let crystal, originalName, inventoryIdx, availableItemIdx = -1;
+      let isFromAvailableItems = false;
+
+      if (idx < crystals.length) {
+        crystal = crystals[idx];
+        originalName = crystal.name;
+        inventoryIdx = inventory.indexOf(crystal);
+      } else {
+        let availableIdx = idx - crystals.length;
+        if (availableIdx < 0 || availableIdx >= availableCrystals.length) {
+          errorMessage.html("Invalid crystal selected.");
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+        crystal = availableCrystals[availableIdx];
+        originalName = crystal.name;
+        inventoryIdx = inventory.findIndex(i => i.name === crystal.name && i.category === "Crystals");
+        isFromAvailableItems = true;
+        availableItemIdx = availableItems["Crystals"].findIndex(i => i.name === originalName);
+      }
+
       let newName = nameInput.value().trim();
       let newDesc = descInput.value().trim();
       let stat = statSelect.value();
@@ -3484,16 +3579,24 @@ function showModifyCrystalsModal() {
       if (!newName || !newDesc) {
         errorMessage.html("Please provide a name and description.");
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
-      if (newName !== crystal.name && inventory.some(item => item.name === newName && item.category === "Crystals")) {
-        errorMessage.html(`A crystal with the name "${newName}" already exists. Please choose a different name.`);
+      if (newName !== crystal.name && inventory.some(item => item.name === newName && item.category === "Crystals" && item !== crystal)) {
+        errorMessage.html(`A crystal with the name "${newName}" already exists in inventory.`);
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
-      let inventoryIdx = inventory.indexOf(crystal);
+      if (newName !== crystal.name && availableItems["Crystals"] && availableItems["Crystals"].some(item => item.name === newName && item !== crystal)) {
+        errorMessage.html(`A crystal with the name "${newName}" already exists in available items.`);
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
+        return;
+      }
+
       let updatedCrystal = {
         name: newName,
         description: newDesc,
@@ -3505,40 +3608,61 @@ function showModifyCrystalsModal() {
         quality: crystal.quality || "Common"
       };
 
-      console.log("Updating crystal:", updatedCrystal);
-      inventory[inventoryIdx] = updatedCrystal;
-
-      // Sync equipped crystals
-      for (let slot in equippedItems) {
-        let item = equippedItems[slot];
-        if (item && item.equippedCrystals) {
-          item.equippedCrystals = item.equippedCrystals.map(c => (c && c.name === crystal.name ? updatedCrystal : c));
+      if (isFromAvailableItems && availableItemIdx !== -1) {
+        availableItems["Crystals"][availableItemIdx] = updatedCrystal;
+        if (inventoryIdx !== -1) inventory.splice(inventoryIdx, 1); // Remove duplicate if it exists
+      } else {
+        inventory[inventoryIdx] = updatedCrystal;
+        if (originalName && availableItems["Crystals"]) {
+          let availableIdx = availableItems["Crystals"].findIndex(i => i.name === originalName);
+          if (availableIdx !== -1) availableItems["Crystals"][availableIdx] = { ...updatedCrystal };
+        }
+        for (let slot in equippedItems) {
+          let item = equippedItems[slot];
+          if (item && item.equippedCrystals) {
+            item.equippedCrystals = item.equippedCrystals.map(c => (c && c.name === crystal.name ? updatedCrystal : c));
+          }
         }
       }
 
       localStorage.setItem('inventory', JSON.stringify(inventory));
-      console.log("Updated inventory:", inventory);
       updateStATGonusesDisplay();
       updateResourcesBasedOnStats();
       updateAbilities();
       createEquipmentUI();
-      modalDiv.remove();
+      if (typeof createInventoryUI === "function") createInventoryUI();
+
+      successMessage.html("Crystal Updated");
+      successMessage.style("display", "block");
       errorMessage.style("display", "none");
+      crystalSelect.value("-1");
+      updateCrystalOptions();
+      loadCrystalData();
     });
 
   createButton("Remove")
-    .parent(modalDiv)
+    .parent(buttonContainer)
     .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#f44336")
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
     .mousePressed(() => {
       let idx = parseInt(crystalSelect.value());
       if (idx === -1) {
         errorMessage.html("Please select a crystal to remove.");
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
+
+      let crystals = inventory.filter(item => item.category === "Crystals");
       if (idx < 0 || idx >= crystals.length) {
         errorMessage.html("Invalid crystal selected.");
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
@@ -3546,7 +3670,6 @@ function showModifyCrystalsModal() {
       showConfirmationModal(
         `Are you sure you want to remove "${crystal.name}"?`,
         () => {
-          // Unequip the crystal from all equipment
           for (let slot in equippedItems) {
             let item = equippedItems[slot];
             if (item && item.equippedCrystals) {
@@ -3555,23 +3678,31 @@ function showModifyCrystalsModal() {
           }
           inventory.splice(inventory.indexOf(crystal), 1);
           localStorage.setItem('inventory', JSON.stringify(inventory));
-          console.log("Removed crystal:", crystal.name, "Updated inventory:", inventory);
           updateStATGonusesDisplay();
           updateResourcesBasedOnStats();
           updateAbilities();
           createEquipmentUI();
+          if (typeof createInventoryUI === "function") createInventoryUI();
           modalDiv.remove();
           errorMessage.style("display", "none");
+          successMessage.style("display", "none");
         }
       );
     });
 
   createButton("Close")
-    .parent(modalDiv)
+    .parent(buttonContainer)
     .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#ccc")
+    .style("color", "black")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
     .mousePressed(() => {
       modalDiv.remove();
       errorMessage.style("display", "none");
+      successMessage.style("display", "none");
     });
 }
 function createEquipmentFromModal(
