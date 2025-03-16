@@ -76,9 +76,7 @@ function initializeInventory() {
     }
   } else {
     inventory = [];
-    Object.values(availableItems).forEach(category => {
-      category.forEach(item => inventory.push({ ...item }));
-    });
+    localStorage.setItem('inventory', JSON.stringify(inventory)); // Start with empty inventory
   }
 
   // Reclassify equipped items
@@ -272,6 +270,202 @@ function setup() {
       }
     }
   });
+}
+function updateTypeVisibility() {
+  if (typeof updating === 'undefined' || updating) return; // Prevent recursion
+  let selectedType = (modalDiv && select("#equipment-type-select").value()) || "";
+  if (!selectedType) return;
+  let penaltyDiv = modalDiv.elt.querySelector('div[style*="display: none"] ~ div');
+  let linkedStatDiv = modalDiv.elt.querySelector('div[style*="display: block"]:nth-of-type(2)');
+  let damageDiceDiv = modalDiv.elt.querySelector('div[style*="display: block"]:nth-of-type(3)');
+  let defenseDiv = modalDiv.elt.querySelector('div[style*="display: none"]:nth-of-type(2)');
+  let weaponCategoryDiv = modalDiv.elt.querySelector('div[style*="display: none"]:nth-of-type(1)');
+
+  if (!penaltyDiv || !linkedStatDiv || !damageDiceDiv || !defenseDiv || !weaponCategoryDiv) {
+    console.error("One or more visibility elements not found:", {
+      penaltyDiv, linkedStatDiv, damageDiceDiv, defenseDiv, weaponCategoryDiv
+    });
+    return;
+  }
+
+  if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
+    penaltyDiv.style.display = "block";
+    linkedStatDiv.style.display = "none";
+    damageDiceDiv.style.display = "none";
+    defenseDiv.style.display = "block";
+    weaponCategoryDiv.style.display = "none";
+  } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
+    penaltyDiv.style.display = "none";
+    linkedStatDiv.style.display = "block";
+    damageDiceDiv.style.display = "block";
+    defenseDiv.style.display = "none";
+    weaponCategoryDiv.style.display = "block";
+  } else if (selectedType === "Accessory") {
+    penaltyDiv.style.display = "none";
+    linkedStatDiv.style.display = "none";
+    damageDiceDiv.style.display = "none";
+    defenseDiv.style.display = "none";
+    weaponCategoryDiv.style.display = "none";
+  }
+}
+
+function updateEquipmentOptions() {
+  let selectedType = (modalDiv && select("#equipment-type-select").value()) || "";
+  if (!selectedType) return;
+  let equipmentSelect = modalDiv.elt.querySelector('#equipment-select');
+  if (!equipmentSelect) return;
+
+  let allEquipment = inventory.filter(item => 
+    item.category === "Equipment" && 
+    item.type === selectedType
+  );
+  let availableEquipment = availableItems["Equipment"].filter(item => 
+    item.type === selectedType && 
+    !inventory.some(i => i.name === item.name && i.category === "Equipment")
+  );
+
+  console.log("updateEquipmentOptions - Selected Type:", selectedType);
+  console.log("Inventory (allEquipment):", allEquipment);
+  console.log("Available Equipment:", availableEquipment);
+
+  equipmentSelect.innerHTML = "";
+  let option = document.createElement("option");
+  option.value = "-1";
+  option.text = "None";
+  equipmentSelect.appendChild(option);
+  allEquipment.forEach((item, idx) => {
+    let option = document.createElement("option");
+    option.value = idx.toString();
+    option.text = `[Inventory] ${item.name}`;
+    equipmentSelect.appendChild(option);
+  });
+  availableEquipment.forEach((item, idx) => {
+    let option = document.createElement("option");
+    option.value = (allEquipment.length + idx).toString();
+    option.text = `[Available] ${item.name}`;
+    equipmentSelect.appendChild(option);
+  });
+
+  loadEquipmentData();
+}
+
+function loadEquipmentData() {
+  let idx = parseInt((modalDiv && select("#equipment-select").value()) || "-1");
+  let selectedType = (modalDiv && select("#equipment-type-select").value()) || "";
+  if (!selectedType) return;
+
+  let allEquipment = inventory.filter(item => 
+    item.category === "Equipment" && 
+    item.type === selectedType
+  );
+  let availableEquipment = availableItems["Equipment"].filter(item => 
+    item.type === selectedType && 
+    !inventory.some(i => i.name === item.name && i.category === "Equipment")
+  );
+
+  // Use IDs to select elements
+  let nameInput = modalDiv.elt.querySelector('#equipment-name-input');
+  let qualitySelect = modalDiv.elt.querySelector('#equipment-quality-select');
+  let descriptionInput = modalDiv.elt.querySelector('#equipment-description-input');
+  let penaltySelect = modalDiv.elt.querySelector('#equipment-penalty-select');
+  let slotsSelect = modalDiv.elt.querySelector('#equipment-slots-select');
+  let linkedStatSelect = modalDiv.elt.querySelector('#equipment-linked-stat-select');
+  let stATGonusStatSelect = modalDiv.elt.querySelector('#equipment-statonus-stat-select');
+  let stATGonusAmountInput = modalDiv.elt.querySelector('#equipment-statonus-amount-input');
+  let statReq1Select = modalDiv.elt.querySelector('#equipment-statreq1-select');
+  let statReq1Input = modalDiv.elt.querySelector('#equipment-statreq1-input');
+  let statReq2Select = modalDiv.elt.querySelector('#equipment-statreq2-select');
+  let statReq2Input = modalDiv.elt.querySelector('#equipment-statreq2-input');
+  let damageDiceInput = modalDiv.elt.querySelector('#equipment-damage-dice-input');
+  let weaponModifierInput = modalDiv.elt.querySelector('#equipment-weapon-modifier-input');
+  let defenseInput = modalDiv.elt.querySelector('#equipment-defense-input');
+  let armorModifierInput = modalDiv.elt.querySelector('#equipment-armor-modifier-input');
+  let weaponCategorySelect = modalDiv.elt.querySelector('#weapon-category-select');
+
+  // Add null checks to prevent TypeError
+  if (!nameInput || !qualitySelect || !descriptionInput || !penaltySelect || !slotsSelect ||
+      !linkedStatSelect || !stATGonusStatSelect || !stATGonusAmountInput ||
+      !statReq1Select || !statReq1Input || !statReq2Select || !statReq2Input ||
+      !damageDiceInput || !weaponModifierInput || !defenseInput || !armorModifierInput ||
+      !weaponCategorySelect) {
+    console.error("One or more elements not found in loadEquipmentData:", {
+      nameInput, qualitySelect, descriptionInput, penaltySelect, slotsSelect,
+      linkedStatSelect, stATGonusStatSelect, stATGonusAmountInput,
+      statReq1Select, statReq1Input, statReq2Select, statReq2Input,
+      damageDiceInput, weaponModifierInput, defenseInput, armorModifierInput,
+      weaponCategorySelect
+    });
+    return;
+  }
+
+  if (idx === -1) {
+    nameInput.value = "";
+    qualitySelect.value = "Common";
+    descriptionInput.value = "";
+    penaltySelect.value = "0";
+    slotsSelect.value = "0";
+    linkedStatSelect.value = "STR";
+    stATGonusStatSelect.value = "None";
+    stATGonusAmountInput.value = "0";
+    statReq1Select.value = "None";
+    statReq1Input.value = "";
+    statReq2Select.value = "None";
+    statReq2Input.value = "";
+    damageDiceInput.value = "";
+    weaponModifierInput.value = "0";
+    defenseInput.value = "0";
+    armorModifierInput.value = "0";
+    weaponCategorySelect.value = "Melee - Heavy";
+  } else if (idx < allEquipment.length) {
+    // Existing inventory item
+    let item = allEquipment[idx];
+    nameInput.value = item.name || "";
+    qualitySelect.value = item.quality || "Common";
+    descriptionInput.value = item.description || "";
+    penaltySelect.value = item.movementPenalty || "0";
+    slotsSelect.value = item.crystalSlots || 0;
+    linkedStatSelect.value = item.linkedStat || "STR";
+    stATGonusStatSelect.value = item.stATGonuses ? Object.keys(item.stATGonuses)[0] : "None";
+    stATGonusAmountInput.value = item.stATGonuses && Object.keys(item.stATGonuses).length > 0 ? item.stATGonuses[Object.keys(item.stATGonuses)[0]] : 0;
+    let statReqs = item.statRequirements || {};
+    let stats = Object.keys(statReqs);
+    statReq1Select.value = stats[0] || "None";
+    statReq1Input.value = stats[0] ? statReqs[stats[0]] : "";
+    statReq2Select.value = stats[1] || "None";
+    statReq2Input.value = stats[1] ? statReqs[stats[1]] : "";
+    damageDiceInput.value = item.damageDice || "";
+    weaponModifierInput.value = item.modifier || 0;
+    defenseInput.value = item.defense || 0;
+    armorModifierInput.value = item.modifier || 0;
+    weaponCategorySelect.value = item.weaponCategory || "Melee - Heavy";
+  } else {
+    // Available item from availableItems
+    let availableIdx = idx - allEquipment.length;
+    if (availableIdx < 0 || availableIdx >= availableEquipment.length) {
+      console.error("Invalid available equipment index:", availableIdx, availableEquipment);
+      return;
+    }
+    let item = availableEquipment[availableIdx];
+    nameInput.value = item.name || "";
+    qualitySelect.value = item.quality || "Common";
+    descriptionInput.value = item.description || "";
+    penaltySelect.value = item.movementPenalty || "0";
+    slotsSelect.value = item.crystalSlots || 0;
+    linkedStatSelect.value = item.linkedStat || "STR";
+    stATGonusStatSelect.value = item.stATGonuses ? Object.keys(item.stATGonuses)[0] : "None";
+    stATGonusAmountInput.value = item.stATGonuses && Object.keys(item.stATGonuses).length > 0 ? item.stATGonuses[Object.keys(item.stATGonuses)[0]] : 0;
+    let statReqs = item.statRequirements || {};
+    let stats = Object.keys(statReqs);
+    statReq1Select.value = stats[0] || "None";
+    statReq1Input.value = stats[0] ? statReqs[stats[0]] : "";
+    statReq2Select.value = stats[1] || "None";
+    statReq2Input.value = stats[1] ? statReqs[stats[1]] : "";
+    damageDiceInput.value = item.damageDice || "";
+    weaponModifierInput.value = item.modifier || 0;
+    defenseInput.value = item.defense || 0;
+    armorModifierInput.value = item.modifier || 0;
+    weaponCategorySelect.value = item.weaponCategory || "Melee - Heavy";
+  }
 }
 function windowResized() {
   let resourceBarsContainer = select("#resource-bars");
@@ -1421,24 +1615,125 @@ function showEditInventoryModal() {
   updateItemOptions();
 
   createButton("Save")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => {
-      let selectedCategory = categorySelect.value();
-      let selectedName = itemSelect.value();
-      let itemIdx = inventory.findIndex(item => item.name === selectedName && item.category === selectedCategory);
-      if (itemIdx >= 0) {
-        inventory[itemIdx] = {
-          name: nameInput.value(),
-          description: descriptionInput.value(),
-          category: selectedCategory,
-          quantity: parseInt(quantityInput.value()) || 1,
-          quality: qualitySelect.value()
-        };
-        createInventoryUI();
-        modalDiv.remove();
+  .parent(buttonContainer)
+  .style("margin", "5px")
+  .style("padding", "5px 10px")
+  .style("background-color", "#2196F3")
+  .style("color", "white")
+  .style("border", "none")
+  .style("border-radius", "3px")
+  .style("cursor", "pointer")
+  .mousePressed(() => {
+    let idx = parseInt(equipmentSelect.value());
+    if (idx === -1) {
+      errorMessage.html("Please select an item to edit.");
+      errorMessage.style("display", "block");
+      successMessage.style("display", "none");
+      return;
+    }
+
+    let selectedType = typeSelect.value();
+    let allEquipment = inventory.filter(item => 
+      item.category === "Equipment" && 
+      item.type === selectedType
+    );
+    let availableEquipment = availableItems["Equipment"].filter(item => 
+      item.type === selectedType && 
+      !inventory.some(i => i.name === item.name && i.category === "Equipment")
+    );
+
+    let item;
+    let inventoryIdx;
+
+    if (idx < allEquipment.length) {
+      // Existing inventory item
+      item = allEquipment[idx];
+      inventoryIdx = inventory.indexOf(item);
+      console.log("Editing existing item:", item); // Debug
+    } else {
+      // Available item (not in inventory yet)
+      let availableIdx = idx - allEquipment.length;
+      if (availableIdx >= availableEquipment.length) {
+        errorMessage.html("Invalid item selected.");
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
+        return;
       }
-    });
+      item = availableEquipment[availableIdx];
+      inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === "Equipment");
+      console.log("Selected available item:", item); // Debug
+    }
+
+    let newName = nameInput.value().trim();
+    if (!newName) {
+      errorMessage.html("Please provide a name for the equipment.");
+      errorMessage.style("display", "block");
+      successMessage.style("display", "none");
+      return;
+    }
+
+    // Check for duplicate names (excluding the current item)
+    let existingItemWithNewName = inventory.find(i => 
+      i.name === newName && 
+      i.category === "Equipment" && 
+      i !== inventory[inventoryIdx]
+    );
+    if (existingItemWithNewName) {
+      errorMessage.html(`An equipment with the name "${newName}" already exists.`);
+      errorMessage.style("display", "block");
+      successMessage.style("display", "none");
+      return;
+    }
+
+    // Build updated equipment object (simplified for brevity)
+    let updatedEquipment = {
+      name: newName,
+      description: descriptionInput.value(),
+      type: selectedType,
+      category: "Equipment",
+      quality: qualitySelect.value(),
+      crystalSlots: parseInt(slotsSelect.value()) || 0,
+      quantity: item.quantity || 1
+    };
+
+    // Add type-specific properties (e.g., defense for Chest, damageDice for On-Hand)
+    if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
+      updatedEquipment.defense = parseInt(defenseInput.value()) || 0;
+      updatedEquipment.movementPenalty = parseInt(penaltySelect.value()) || 0;
+      updatedEquipment.modifier = parseInt(armorModifierInput.value()) || 0;
+    } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
+      updatedEquipment.linkedStat = linkedStatSelect.value();
+      updatedEquipment.damageDice = damageDiceInput.value().trim();
+      updatedEquipment.modifier = parseInt(weaponModifierInput.value()) || 0;
+      updatedEquipment.weaponCategory = weaponCategorySelect.value();
+    }
+
+    // Update or add the item
+    if (inventoryIdx !== -1) {
+      // Update existing item
+      inventory[inventoryIdx] = updatedEquipment;
+      console.log("Updated item in inventory:", updatedEquipment);
+    } else {
+      // Add new item
+      inventory.push(updatedEquipment);
+      console.log("Added new item to inventory:", updatedEquipment);
+    }
+
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+    updateAvailableEquipment();
+    updateAbilities();
+    createInventoryUI();
+    createEquipmentUI();
+
+    successMessage.html("Equipment Updated");
+    successMessage.style("display", "block");
+    errorMessage.style("display", "none");
+
+    modalDiv.elt.scrollTop = 0;
+    equipmentSelect.value("-1");
+    loadEquipmentData();
+    updateEquipmentOptions();
+  });
 
   createButton("Cancel")
     .parent(modalDiv)
@@ -1965,7 +2260,7 @@ function showAddEditEquipmentModal() {
   let idealTopPosition = (viewportHeight - estimatedModalHeight) / 2;
   const topPosition = Math.min(Math.max(minTopOffset, idealTopPosition), maxTopOffset);
 
-  // Apply positioning and styles
+  // Apply positioning and styles to the modal
   modalDiv
     .style("position", "fixed")
     .style("top", topPosition + "px")
@@ -1983,6 +2278,13 @@ function showAddEditEquipmentModal() {
 
   createElement("h3", "Modify Equipment").parent(modalDiv);
 
+  // Success message (initially hidden)
+  let successMessage = createP("")
+    .parent(modalDiv)
+    .style("color", "green")
+    .style("display", "none")
+    .style("margin-bottom", "10px");
+
   let errorMessage = createP("")
     .parent(modalDiv)
     .style("color", "red")
@@ -1996,7 +2298,8 @@ function showAddEditEquipmentModal() {
     .style("display", "block");
   let typeSelect = createSelect()
     .parent(typeDiv)
-    .style("width", "100%");
+    .style("width", "100%")
+    .id("equipment-type-select"); // Added ID for easier DOM access
   ["On-Hand", "Off-Hand", "Chest", "Helm", "Gloves", "Greaves", "Accessory"].forEach(type => typeSelect.option(type));
   createSpan("The slot where the equipment is equipped.")
     .parent(typeDiv)
@@ -2011,7 +2314,8 @@ function showAddEditEquipmentModal() {
     .style("display", "block");
   let weaponCategorySelect = createSelect()
     .parent(weaponCategoryDiv)
-    .style("width", "100%");
+    .style("width", "100%")
+    .id("weapon-category-select"); // Added ID for easier DOM access
   [
     "Melee - Heavy", "Melee - Balanced", "Melee - Light",
     "Ranged - Short", "Ranged - Long",
@@ -2027,12 +2331,25 @@ function showAddEditEquipmentModal() {
   // Equipment selection dropdown (filtered by type)
   let equipmentSelectDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
   createSpan("Equipment:").parent(equipmentSelectDiv).style("display", "block");
-  let equipmentSelect = createSelect().parent(equipmentSelectDiv).style("width", "100%");
-  createSpan("Select an item to edit or 'None' to add a new one.")
+  let equipmentSelect = createSelect()
+    .parent(equipmentSelectDiv)
+    .style("width", "100%")
+    .id("equipment-select"); // Added ID for easier DOM access
+  createSpan("Select an item to edit, add from available, or 'None' to create new.")
     .parent(equipmentSelectDiv)
     .style("font-size", "12px")
     .style("color", "#666")
     .style("display", "block");
+
+  // Populate with existing inventory items and available items
+  equipmentSelect.option("None", -1);
+  let allEquipment = inventory.filter(item => item.category === "Equipment");
+  allEquipment.forEach((item, idx) => equipmentSelect.option(`[Inventory] ${item.name}`, idx));
+  availableItems["Equipment"].forEach((item, idx) => {
+    if (!inventory.some(i => i.name === item.name && i.category === "Equipment")) {
+      equipmentSelect.option(`[Available] ${item.name}`, allEquipment.length + idx);
+    }
+  });
 
   let nameDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
   let nameLabel = createSpan("Name:")
@@ -2041,7 +2358,8 @@ function showAddEditEquipmentModal() {
   let nameInput = createInput("")
     .parent(nameDiv)
     .style("width", "100%")
-    .attribute("placeholder", "e.g., Iron Blade");
+    .attribute("placeholder", "e.g., Iron Blade")
+    .id("equipment-name-input"); // Added ID for easier DOM access
   createSpan("The equipment’s unique identifier.")
     .parent(nameDiv)
     .style("font-size", "12px")
@@ -2054,7 +2372,8 @@ function showAddEditEquipmentModal() {
     .style("display", "block");
   let qualitySelect = createSelect()
     .parent(qualityDiv)
-    .style("width", "100%");
+    .style("width", "100%")
+    .id("equipment-quality-select"); // Added ID for easier DOM access
   ["Common", "Uncommon", "Rare", "Epic", "Legendary"].forEach(quality => qualitySelect.option(quality));
   qualitySelect.value("Common");
   createSpan("The rarity or quality of the equipment.")
@@ -2071,7 +2390,8 @@ function showAddEditEquipmentModal() {
     .parent(descDiv)
     .style("width", "100%")
     .style("height", "60px")
-    .attribute("placeholder", "Describe the equipment...");
+    .attribute("placeholder", "Describe the equipment...")
+    .id("equipment-description-input"); // Added ID for easier DOM access
   createSpan("What the equipment does or its lore.")
     .parent(descDiv)
     .style("font-size", "12px")
@@ -2085,7 +2405,8 @@ function showAddEditEquipmentModal() {
   let penaltySelect = createSelect()
     .parent(penaltyDiv)
     .style("width", "100%")
-    .style("margin-bottom", "10px");
+    .style("margin-bottom", "10px")
+    .id("equipment-penalty-select"); // Added ID for easier DOM access
   ["0", "-5", "-10", "-15"].forEach(penalty => penaltySelect.option(penalty));
 
   let slotsDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
@@ -2094,7 +2415,8 @@ function showAddEditEquipmentModal() {
     .style("display", "block");
   let slotsSelect = createSelect()
     .parent(slotsDiv)
-    .style("width", "100%");
+    .style("width", "100%")
+    .id("equipment-slots-select"); // Added ID for easier DOM access
   [0, 1, 2, 3, 4].forEach(slot => slotsSelect.option(slot));
   createSpan("Number of slots for Essence Crystals.")
     .parent(slotsDiv)
@@ -2108,7 +2430,8 @@ function showAddEditEquipmentModal() {
     .style("display", "block");
   let linkedStatSelect = createSelect()
     .parent(linkedStatDiv)
-    .style("width", "100%");
+    .style("width", "100%")
+    .id("equipment-linked-stat-select"); // Added ID for easier DOM access
   linkedStatSelect.option("STR");
   linkedStatSelect.option("MAG");
   createSpan("Stat for weapon damage (STR or MAG).")
@@ -2124,11 +2447,13 @@ function showAddEditEquipmentModal() {
   let stATGonusAmountInput = createInput("0", "number")
     .parent(stATGonusDiv)
     .style("width", "50px")
-    .style("margin-right", "5px");
+    .style("margin-right", "5px")
+    .id("equipment-statonus-amount-input"); // Added ID for easier DOM access
   let stATGonusStatSelect = createSelect()
     .parent(stATGonusDiv)
     .style("width", "100px")
-    .style("margin-bottom", "10px");
+    .style("margin-bottom", "10px")
+    .id("equipment-statonus-stat-select"); // Added ID for easier DOM access
   ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => stATGonusStatSelect.option(stat));
   createSpan("Stat to boost and amount.")
     .parent(stATGonusDiv)
@@ -2146,12 +2471,14 @@ function showAddEditEquipmentModal() {
   let statReq1Select = createSelect()
     .parent(statReq1Div)
     .style("width", "80px")
-    .style("margin-right", "5px");
+    .style("margin-right", "5px")
+    .id("equipment-statreq1-select"); // Added ID for easier DOM access
   ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statReq1Select.option(stat));
   let statReq1Input = createInput("", "number")
     .parent(statReq1Div)
     .style("width", "50px")
-    .attribute("placeholder", "Value");
+    .attribute("placeholder", "Value")
+    .id("equipment-statreq1-input"); // Added ID for easier DOM access
 
   let statReq2Div = createDiv()
     .parent(statReqDiv)
@@ -2159,12 +2486,14 @@ function showAddEditEquipmentModal() {
   let statReq2Select = createSelect()
     .parent(statReq2Div)
     .style("width", "80px")
-    .style("margin-right", "5px");
+    .style("margin-right", "5px")
+    .id("equipment-statreq2-select"); // Added ID for easier DOM access
   ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statReq2Select.option(stat));
   let statReq2Input = createInput("", "number")
     .parent(statReq2Div)
     .style("width", "50px")
-    .attribute("placeholder", "Value");
+    .attribute("placeholder", "Value")
+    .id("equipment-statreq2-input"); // Added ID for easier DOM access
   createSpan("Minimum stats needed to equip (e.g., 5 STR).")
     .parent(statReqDiv)
     .style("font-size", "12px")
@@ -2179,12 +2508,14 @@ function showAddEditEquipmentModal() {
     .parent(damageDiceDiv)
     .style("width", "80px")
     .style("margin-right", "5px")
-    .attribute("placeholder", "e.g., 2d6");
+    .attribute("placeholder", "e.g., 2d6")
+    .id("equipment-damage-dice-input"); // Added ID for easier DOM access
   let weaponModifierInput = createInput("0", "number")
     .parent(damageDiceDiv)
     .style("width", "50px")
     .style("margin-bottom", "10px")
-    .attribute("placeholder", "Mod");
+    .attribute("placeholder", "Mod")
+    .id("equipment-weapon-modifier-input"); // Added ID for easier DOM access
 
   let defenseDiv = createDiv().parent(modalDiv).style("display", "none");
   let defenseLabel = createSpan("Defense + Modifier (Armor):")
@@ -2193,131 +2524,73 @@ function showAddEditEquipmentModal() {
   let defenseInput = createInput("0", "number")
     .parent(defenseDiv)
     .style("width", "50px")
-    .style("margin-right", "5px");
+    .style("margin-right", "5px")
+    .id("equipment-defense-input"); // Added ID for easier DOM access
   let armorModifierInput = createInput("0", "number")
     .parent(defenseDiv)
     .style("width", "50px")
     .style("margin-bottom", "10px")
-    .attribute("placeholder", "Mod");
+    .attribute("placeholder", "Mod")
+    .id("equipment-armor-modifier-input"); // Added ID for easier DOM access
 
-  let updating = false; // Flag to prevent recursive calls
+  // Create a sticky button container at the bottom
+  let buttonContainer = createDiv()
+    .parent(modalDiv)
+    .style("position", "sticky")
+    .style("bottom", "0")
+    .style("background", "#fff")
+    .style("padding", "10px 0")
+    .style("border-top", "1px solid #ccc")
+    .style("display", "flex")
+    .style("justify-content", "space-between")
+    .style("gap", "5px");
 
-  function updateTypeVisibility() {
-    if (updating) return; // Prevent recursion
-    let selectedType = typeSelect.value();
-    if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
-      penaltyDiv.style("display", "block");
-      linkedStatDiv.style("display", "none");
-      damageDiceDiv.style("display", "none");
-      defenseDiv.style("display", "block");
-      weaponCategoryDiv.style("display", "none");
-    } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
-      penaltyDiv.style("display", "none");
-      linkedStatDiv.style("display", "block");
-      damageDiceDiv.style("display", "block");
-      defenseDiv.style("display", "none");
-      weaponCategoryDiv.style("display", "block");
-    } else if (selectedType === "Accessory") {
-      penaltyDiv.style("display", "none");
-      linkedStatDiv.style("display", "none");
-      damageDiceDiv.style("display", "none");
-      defenseDiv.style("display", "none");
-      weaponCategoryDiv.style("display", "none");
-    }
-  }
-
-  function updateEquipmentOptions() {
-    let selectedType = typeSelect.value();
-    let allEquipment = inventory.filter(item => 
-      item.category === "Equipment" && 
-      (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType)
-    );
-    equipmentSelect.html("");
-    equipmentSelect.option("None", -1);
-    allEquipment.forEach((item, idx) => equipmentSelect.option(item.name, idx));
-    loadEquipmentData();
-  }
-
-  function loadEquipmentData() {
-    let idx = parseInt(equipmentSelect.value());
-    let selectedType = typeSelect.value();
-    let allEquipment = inventory.filter(item => 
-      item.category === "Equipment" && 
-      (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType)
-    );
-    if (idx === -1) {
-      nameInput.value("");
-      qualitySelect.value("Common");
-      descriptionInput.value("");
-      penaltySelect.value("0");
-      slotsSelect.value("0");
-      linkedStatSelect.value("STR");
-      stATGonusStatSelect.value("None");
-      stATGonusAmountInput.value("0");
-      statReq1Select.value("None");
-      statReq1Input.value("");
-      statReq2Select.value("None");
-      statReq2Input.value("");
-      damageDiceInput.value("");
-      weaponModifierInput.value("0");
-      defenseInput.value("0");
-      armorModifierInput.value("0");
-      weaponCategorySelect.value("Melee - Heavy");
-    } else if (idx >= 0 && idx < allEquipment.length) {
-      let item = allEquipment[idx];
-      nameInput.value(item.name || "");
-      qualitySelect.value(item.quality || "Common");
-      descriptionInput.value(item.description || "");
-      penaltySelect.value(item.movementPenalty || "0");
-      slotsSelect.value(item.crystalSlots || 0);
-      linkedStatSelect.value(item.linkedStat || "STR");
-      stATGonusStatSelect.value(item.stATGonuses ? Object.keys(item.stATGonuses)[0] : "None");
-      stATGonusAmountInput.value(item.stATGonuses && Object.keys(item.stATGonuses).length > 0 ? item.stATGonuses[Object.keys(item.stATGonuses)[0]] : 0);
-      let statReqs = item.statRequirements || {};
-      let stats = Object.keys(statReqs);
-      statReq1Select.value(stats[0] || "None");
-      statReq1Input.value(stats[0] ? statReqs[stats[0]] : "");
-      statReq2Select.value(stats[1] || "None");
-      statReq2Input.value(stats[1] ? statReqs[stats[1]] : "");
-      damageDiceInput.value(item.damageDice || "");
-      weaponModifierInput.value(item.modifier || 0);
-      defenseInput.value(item.defense || 0);
-      armorModifierInput.value(item.modifier || 0);
-      weaponCategorySelect.value(item.weaponCategory || "Melee - Heavy");
-    }
-  }
-
+  // Event listeners using globally defined functions
   typeSelect.changed(() => {
     updateTypeVisibility();
     updateEquipmentOptions();
   });
   equipmentSelect.changed(loadEquipmentData);
+
+  // Initial calls to populate the modal
   updateTypeVisibility();
   updateEquipmentOptions();
 
-  createButton("Add")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => {
-      let idx = parseInt(equipmentSelect.value());
-      if (idx !== -1) {
-        errorMessage.html("Please select 'None' to add a new item.");
-        errorMessage.style("display", "block");
-        return;
-      }
+  // Add button with improved styling
+createButton("Add")
+  .parent(buttonContainer)
+  .style("margin", "5px")
+  .style("padding", "5px 10px")
+  .style("background-color", "#4CAF50")
+  .style("color", "white")
+  .style("border", "none")
+  .style("border-radius", "3px")
+  .style("cursor", "pointer")
+  .mousePressed(() => {
+    let idx = parseInt(equipmentSelect.value());
+    let selectedType = typeSelect.value();
+    let allEquipment = inventory.filter(item => 
+      item.category === "Equipment" && 
+      item.type === selectedType
+    );
+    let availableEquipment = availableItems["Equipment"].filter(item => 
+      item.type === selectedType && 
+      !inventory.some(i => i.name === item.name && i.category === "Equipment")
+    );
 
-      let selectedType = typeSelect.value();
+    if (idx === -1) {
+      // Create new custom equipment (unchanged)
       let name = nameInput.value().trim();
-
       if (!name) {
         errorMessage.html("Please provide a name for the equipment.");
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
-
       if (inventory.some(item => item.name === name && item.category === "Equipment")) {
         errorMessage.html(`An equipment with the name "${name}" already exists. Please choose a different name.`);
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
@@ -2359,104 +2632,197 @@ function showAddEditEquipmentModal() {
 
       console.log("Adding new equipment:", newEquipment);
       inventory.push(newEquipment);
-      localStorage.setItem('inventory', JSON.stringify(inventory));
-      console.log("Updated inventory:", inventory);
-      updateAvailableEquipment();
-      createInventoryUI();
-      createEquipmentUI();
-      modalDiv.remove();
-      errorMessage.style("display", "none");
-    });
-
-  createButton("Save")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => {
-      let idx = parseInt(equipmentSelect.value());
-      if (idx === -1) {
-        errorMessage.html("Please select an item to edit.");
+    } else if (idx >= allEquipment.length) {
+      // Add from filtered availableEquipment
+      let availableIdx = idx - allEquipment.length;
+      if (availableIdx < 0 || availableIdx >= availableEquipment.length) {
+        errorMessage.html("Invalid available equipment selected.");
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
+      let item = availableEquipment[availableIdx];
+      let newEquipment = { ...item, quantity: 1 }; // Add with quantity 1
+      console.log("Adding available equipment:", newEquipment);
 
-      let selectedType = typeSelect.value();
-      let allEquipment = inventory.filter(item => 
-        item.category === "Equipment" && 
-        (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType)
-      );
-      if (idx < 0 || idx >= allEquipment.length) {
+      // Check if item already exists to avoid duplicates
+      let existingItem = inventory.find(i => i.name === item.name && i.category === "Equipment");
+      if (!existingItem) {
+        inventory.push(newEquipment);
+      } else {
+        errorMessage.html(`Item "${item.name}" already exists in inventory. Use Save to update it.`);
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
+        return;
+      }
+    } else {
+      errorMessage.html("Please select an available item or 'None' to add a new one.");
+      errorMessage.style("display", "block");
+      successMessage.style("display", "none");
+      return;
+    }
+
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+    console.log("Updated inventory:", inventory);
+    updateAvailableEquipment();
+    createInventoryUI();
+    createEquipmentUI();
+    modalDiv.remove();
+    errorMessage.style("display", "none");
+    successMessage.style("display", "none");
+  });
+
+  // Save button with improved styling and new behavior
+createButton("Save")
+  .parent(buttonContainer)
+  .style("margin", "5px")
+  .style("padding", "5px 10px")
+  .style("background-color", "#2196F3")
+  .style("color", "white")
+  .style("border", "none")
+  .style("border-radius", "3px")
+  .style("cursor", "pointer")
+  .mousePressed(() => {
+    let idx = parseInt(equipmentSelect.value());
+    if (idx === -1) {
+      errorMessage.html("Please select an item to edit.");
+      errorMessage.style("display", "block");
+      successMessage.style("display", "none");
+      return;
+    }
+
+    let selectedType = typeSelect.value();
+    let allEquipment = inventory.filter(item => 
+      item.category === "Equipment" && 
+      item.type === selectedType
+    );
+    let availableEquipment = availableItems["Equipment"].filter(item => 
+      item.type === selectedType && 
+      !inventory.some(i => i.name === item.name && i.category === "Equipment")
+    );
+
+    let item;
+    let inventoryIdx;
+    let isFromAvailableItems = false;
+    let availableItemIdx = -1;
+    let originalName = null;
+
+    if (idx < allEquipment.length) {
+      // Existing inventory item
+      item = allEquipment[idx];
+      inventoryIdx = inventory.indexOf(item);
+      originalName = item.name; // Store the original name before update
+    } else {
+      // Available item (not in inventory yet)
+      let availableIdx = idx - allEquipment.length;
+      if (availableIdx >= availableEquipment.length) {
         errorMessage.html("Invalid item selected.");
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
+      item = availableEquipment[availableIdx];
+      inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === "Equipment");
+      isFromAvailableItems = true;
+      availableItemIdx = availableItems["Equipment"].findIndex(i => i.name === item.name && i.category === "Equipment");
+    }
 
-      let item = allEquipment[idx];
-      let newName = nameInput.value().trim();
+    let newName = nameInput.value().trim();
+    if (!newName) {
+      errorMessage.html("Please provide a name for the equipment.");
+      errorMessage.style("display", "block");
+      successMessage.style("display", "none");
+      return;
+    }
 
-      if (!newName) {
-        errorMessage.html("Please provide a name for the equipment.");
-        errorMessage.style("display", "block");
-        return;
+    // Check for duplicate names, excluding the current item
+    let existingItemWithNewName = inventory.find(i => i.name === newName && i.category === "Equipment" && i !== item);
+    if (existingItemWithNewName) {
+      errorMessage.html(`An equipment with the name "${newName}" already exists in inventory. Please choose a different name.`);
+      errorMessage.style("display", "block");
+      successMessage.style("display", "none");
+      return;
+    }
+    let existingAvailableWithNewName = availableItems["Equipment"].find(i => i.name === newName && i.category === "Equipment" && i !== item);
+    if (existingAvailableWithNewName && !isFromAvailableItems) {
+      errorMessage.html(`An equipment with the name "${newName}" already exists in available items. Please choose a different name.`);
+      errorMessage.style("display", "block");
+      successMessage.style("display", "none");
+      return;
+    }
+
+    let stATGonusStat = stATGonusStatSelect.value();
+    let stATGonusAmount = parseInt(stATGonusAmountInput.value()) || 0;
+    let stATGonus = stATGonusStat !== "None" && stATGonusAmount !== 0 ? { [stATGonusStat]: stATGonusAmount } : null;
+
+    let statReq1 = statReq1Select.value();
+    let statReq1Value = parseInt(statReq1Input.value());
+    let statReq2 = statReq2Select.value();
+    let statReq2Value = parseInt(statReq2Input.value());
+    let statRequirements = {};
+    if (statReq1 !== "None" && statReq1Value) statRequirements[statReq1] = statReq1Value;
+    if (statReq2 !== "None" && statReq2Value) statRequirements[statReq2] = statReq2Value;
+
+    let updatedEquipment = {
+      name: newName,
+      description: descriptionInput.value(),
+      type: selectedType,
+      category: "Equipment",
+      quality: qualitySelect.value(),
+      crystalSlots: parseInt(slotsSelect.value()) || 0,
+      quantity: item.quantity || 1
+    };
+
+    if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
+      updatedEquipment.movementPenalty = parseInt(penaltySelect.value()) || 0;
+      updatedEquipment.defense = parseInt(defenseInput.value()) || 0;
+      updatedEquipment.modifier = parseInt(armorModifierInput.value()) || 0;
+      delete updatedEquipment.linkedStat;
+      delete updatedEquipment.damageDice;
+      delete updatedEquipment.weaponCategory;
+    } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
+      updatedEquipment.linkedStat = linkedStatSelect.value();
+      updatedEquipment.damageDice = damageDiceInput.value().trim();
+      updatedEquipment.modifier = parseInt(weaponModifierInput.value()) || 0;
+      updatedEquipment.weaponCategory = weaponCategorySelect.value();
+      delete updatedEquipment.movementPenalty;
+      delete updatedEquipment.defense;
+    } else if (selectedType === "Accessory") {
+      delete updatedEquipment.movementPenalty;
+      delete updatedEquipment.linkedStat;
+      delete updatedEquipment.damageDice;
+      delete updatedEquipment.defense;
+      delete updatedEquipment.modifier;
+      delete updatedEquipment.weaponCategory;
+    }
+
+    if (stATGonus) updatedEquipment.stATGonuses = stATGonus;
+    else delete updatedEquipment.stATGonuses;
+    if (Object.keys(statRequirements).length > 0) updatedEquipment.statRequirements = statRequirements;
+    else delete updatedEquipment.statRequirements;
+
+    if (isFromAvailableItems && availableItemIdx !== -1) {
+      // Update the original entry in availableItems["Equipment"]
+      console.log(`Updating availableItems["Equipment"] at index ${availableItemIdx} with:`, updatedEquipment);
+      availableItems["Equipment"][availableItemIdx] = updatedEquipment;
+
+      // If the item was already in inventory, remove it to avoid duplication
+      if (inventoryIdx !== -1) {
+        inventory.splice(inventoryIdx, 1);
+        console.log("Removed duplicate from inventory:", item.name);
       }
-
-      if (newName !== item.name && inventory.some(i => i.name === newName && i.category === "Equipment")) {
-        errorMessage.html(`An equipment with the name "${newName}" already exists. Please choose a different name.`);
-        errorMessage.style("display", "block");
-        return;
-      }
-
-      let stATGonusStat = stATGonusStatSelect.value();
-      let stATGonusAmount = parseInt(stATGonusAmountInput.value()) || 0;
-      let stATGonus = stATGonusStat !== "None" && stATGonusAmount !== 0 ? { [stATGonusStat]: stATGonusAmount } : null;
-
-      let statReq1 = statReq1Select.value();
-      let statReq1Value = parseInt(statReq1Input.value());
-      let statReq2 = statReq2Select.value();
-      let statReq2Value = parseInt(statReq2Input.value());
-      let statRequirements = {};
-      if (statReq1 !== "None" && statReq1Value) statRequirements[statReq1] = statReq1Value;
-      if (statReq2 !== "None" && statReq2Value) statRequirements[statReq2] = statReq2Value;
-
-      let updatedEquipment = {
-        name: newName,
-        description: descriptionInput.value(),
-        type: selectedType,
-        category: "Equipment",
-        quality: qualitySelect.value(),
-        crystalSlots: parseInt(slotsSelect.value()) || 0,
-        quantity: item.quantity || 1
-      };
-
-      if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
-        updatedEquipment.movementPenalty = parseInt(penaltySelect.value()) || 0;
-        updatedEquipment.defense = parseInt(defenseInput.value()) || 0;
-        updatedEquipment.modifier = parseInt(armorModifierInput.value()) || 0;
-        delete updatedEquipment.linkedStat;
-        delete updatedEquipment.damageDice;
-        delete updatedEquipment.weaponCategory;
-      } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
-        updatedEquipment.linkedStat = linkedStatSelect.value();
-        updatedEquipment.damageDice = damageDiceInput.value().trim();
-        updatedEquipment.modifier = parseInt(weaponModifierInput.value()) || 0;
-        updatedEquipment.weaponCategory = weaponCategorySelect.value();
-        delete updatedEquipment.movementPenalty;
-        delete updatedEquipment.defense;
-      } else if (selectedType === "Accessory") {
-        delete updatedEquipment.movementPenalty;
-        delete updatedEquipment.linkedStat;
-        delete updatedEquipment.damageDice;
-        delete updatedEquipment.defense;
-        delete updatedEquipment.modifier;
-        delete updatedEquipment.weaponCategory;
-      }
-
-      if (stATGonus) updatedEquipment.stATGonuses = stATGonus;
-      else delete updatedEquipment.stATGonuses;
-      if (Object.keys(statRequirements).length > 0) updatedEquipment.statRequirements = statRequirements;
-      else delete updatedEquipment.statRequirements;
-
-      let inventoryIdx = inventory.indexOf(item);
+    } else {
+      // Update the inventory entry
       inventory[inventoryIdx] = updatedEquipment;
+
+      // If the item exists in availableItems with the original name, update its name there too
+      if (originalName) {
+        let availableIdx = availableItems["Equipment"].findIndex(i => i.name === originalName && i.category === "Equipment");
+        if (availableIdx !== -1) {
+          console.log(`Syncing name change in availableItems["Equipment"] from ${originalName} to ${newName}`);
+          availableItems["Equipment"][availableIdx] = { ...updatedEquipment };
+        }
+      }
 
       // Sync equipped items
       for (let slot in equippedItems) {
@@ -2469,37 +2835,59 @@ function showAddEditEquipmentModal() {
           }
         }
       }
+    }
 
-      localStorage.setItem('inventory', JSON.stringify(inventory));
-      updateStATGonusesDisplay();
-      updateResourcesBasedOnStats();
-      updateAvailableEquipment();
-      updateAbilities();
-      createInventoryUI();
-      createEquipmentUI();
-      modalDiv.remove();
-      errorMessage.style("display", "none");
-    });
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+    updateStATGonusesDisplay();
+    updateResourcesBasedOnStats();
+    updateAvailableEquipment();
+    updateAbilities();
+    createInventoryUI();
+    createEquipmentUI();
 
+    // Show success message and reset modal state
+    successMessage.html("Equipment Updated");
+    successMessage.style("display", "block");
+    errorMessage.style("display", "none");
+
+    // Reset scroll position to the top
+    modalDiv.elt.scrollTop = 0;
+
+    // Explicitly clear and rebuild the dropdown to prevent duplicates
+    equipmentSelect.html(""); // Clear all options
+    updateEquipmentOptions(); // Rebuild options from scratch
+    equipmentSelect.value("-1"); // Reset to "None"
+    loadEquipmentData(); // Reload form data
+  });
+
+  // Remove button with improved styling
   createButton("Remove")
-    .parent(modalDiv)
+    .parent(buttonContainer)
     .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#f44336")
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
     .mousePressed(() => {
       let idx = parseInt(equipmentSelect.value());
       if (idx === -1) {
         errorMessage.html("Please select an item to remove.");
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
       let selectedType = typeSelect.value();
       let allEquipment = inventory.filter(item => 
         item.category === "Equipment" && 
-        (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType)
+        item.type === selectedType
       );
       if (idx < 0 || idx >= allEquipment.length) {
         errorMessage.html("Invalid item selected.");
         errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
@@ -2524,16 +2912,25 @@ function showAddEditEquipmentModal() {
           createEquipmentUI();
           modalDiv.remove();
           errorMessage.style("display", "none");
+          successMessage.style("display", "none");
         }
       );
     });
 
+  // Close button with improved styling
   createButton("Close")
-    .parent(modalDiv)
+    .parent(buttonContainer)
     .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#ccc")
+    .style("color", "black")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
     .mousePressed(() => {
       modalDiv.remove();
       errorMessage.style("display", "none");
+      successMessage.style("display", "none");
     });
 }
 // ### Stats UI ###
@@ -3513,78 +3910,149 @@ function showRemoveEditEquipmentModal() {
     .style("display", "block");
 
   function loadEquipmentData() {
-    let selectedType = typeSelect.value();
-    let selectedName = equipmentSelect.value();
-    let item = inventory.find(
-      (i) => i.name === selectedName && i.type === selectedType && 
-             (i.category === "Weapons" || i.category === "Armor" || i.category === "Accessories")
-    );
-    if (item) {
-      nameInput.value(item.name || "");
-      descriptionInput.value(item.description || "");
-      penaltySelect.value(item.movementPenalty !== undefined ? String(item.movementPenalty) : "0");
-      slotsSelect.value(item.crystalSlots !== undefined ? String(item.crystalSlots) : "0");
-      linkedStatSelect.value(item.linkedStat || "STR");
-      stATGonusStatSelect.value(item.stATGonus && item.stATGonus.stat ? item.stATGonus.stat : "None");
-      stATGonusAmountInput.value(item.stATGonus && item.stATGonus.amount ? item.stATGonus.amount : "0");
-      statReq1Select.value(item.statRequirements && Object.keys(item.statRequirements)[0] ? Object.keys(item.statRequirements)[0] : "None");
-      statReq1Input.value(item.statRequirements && Object.values(item.statRequirements)[0] ? Object.values(item.statRequirements)[0] : "");
-      statReq2Select.value(item.statRequirements && Object.keys(item.statRequirements)[1] ? Object.keys(item.statRequirements)[1] : "None");
-      statReq2Input.value(item.statRequirements && Object.values(item.statRequirements)[1] ? Object.values(item.statRequirements)[1] : "");
-      damageDiceInput.value(item.damageDice || "");
-      defenseInput.value(item.defense !== undefined ? item.defense : "0");
-      weaponModifierInput.value(item.modifier !== undefined ? item.modifier : "0");
-      armorModifierInput.value(item.modifier !== undefined ? item.modifier : "0");
+  let idx = parseInt((modalDiv && modalDiv.elt.querySelector('select[style*="width: 100%"]:nth-of-type(2)') || {}).value || "-1");
+  let selectedType = (modalDiv && modalDiv.elt.querySelector('select[style*="width: 100%"]:nth-of-type(1)') || {}).value;
+  if (!selectedType) return;
 
-      let isWeapon = ["On-Hand", "Off-Hand"].includes(selectedType);
-      let isArmor = ["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType);
-      penaltyDiv.style("display", isArmor ? "block" : "none");
-      linkedStatDiv.style("display", isWeapon ? "block" : "none");
-      damageDiceDiv.style("display", isWeapon ? "block" : "none");
-      defenseDiv.style("display", isArmor ? "block" : "none");
-    } else {
-      nameInput.value("");
-      descriptionInput.value("");
-      penaltySelect.value("0");
-      slotsSelect.value("0");
-      linkedStatSelect.value("STR");
-      stATGonusStatSelect.value("None");
-      stATGonusAmountInput.value("0");
-      statReq1Select.value("None");
-      statReq1Input.value("");
-      statReq2Select.value("None");
-      statReq2Input.value("");
-      damageDiceInput.value("");
-      defenseInput.value("0");
-      weaponModifierInput.value("0");
-      armorModifierInput.value("0");
-      penaltyDiv.style("display", "none");
-      linkedStatDiv.style("display", "none");
-      damageDiceDiv.style("display", "none");
-      defenseDiv.style("display", "none");
-    }
+  let allEquipment = inventory.filter(item => 
+    item.category === "Equipment" && 
+    item.type === selectedType
+  );
+  let availableEquipment = availableItems["Equipment"].filter(item => 
+    item.type === selectedType && 
+    !inventory.some(i => i.name === item.name && i.category === "Equipment")
+  );
+
+  let nameInput = modalDiv.elt.querySelector('input[placeholder="e.g., Iron Blade"]');
+  let qualitySelect = modalDiv.elt.querySelector('select:nth-of-type(2)');
+  let descriptionInput = modalDiv.elt.querySelector('textarea[placeholder="Describe the equipment..."]');
+  let penaltySelect = modalDiv.elt.querySelector('select:nth-of-type(3)');
+  let slotsSelect = modalDiv.elt.querySelector('select:nth-of-type(4)');
+  let linkedStatSelect = modalDiv.elt.querySelector('select:nth-of-type(5)');
+  let stATGonusStatSelect = modalDiv.elt.querySelector('select:nth-of-type(6)');
+  let stATGonusAmountInput = modalDiv.elt.querySelector('input[type="number"]:nth-of-type(1)');
+  let statReq1Select = modalDiv.elt.querySelector('select:nth-of-type(7)');
+  let statReq1Input = modalDiv.elt.querySelector('input[type="number"]:nth-of-type(2)');
+  let statReq2Select = modalDiv.elt.querySelector('select:nth-of-type(8)');
+  let statReq2Input = modalDiv.elt.querySelector('input[type="number"]:nth-of-type(3)');
+  let damageDiceInput = modalDiv.elt.querySelector('input[placeholder="e.g., 2d6"]');
+  let weaponModifierInput = modalDiv.elt.querySelector('input[type="number"]:nth-of-type(4)');
+  let defenseInput = modalDiv.elt.querySelector('input[type="number"]:nth-of-type(5)');
+  let armorModifierInput = modalDiv.elt.querySelector('input[type="number"]:nth-of-type(6)');
+  let weaponCategorySelect = modalDiv.elt.querySelector('select:nth-of-type(9)');
+
+  if (idx === -1) {
+    nameInput.value = "";
+    qualitySelect.value = "Common";
+    descriptionInput.value = "";
+    penaltySelect.value = "0";
+    slotsSelect.value = "0";
+    linkedStatSelect.value = "STR";
+    stATGonusStatSelect.value = "None";
+    stATGonusAmountInput.value = "0";
+    statReq1Select.value = "None";
+    statReq1Input.value = "";
+    statReq2Select.value = "None";
+    statReq2Input.value = "";
+    damageDiceInput.value = "";
+    weaponModifierInput.value = "0";
+    defenseInput.value = "0";
+    armorModifierInput.value = "0";
+    weaponCategorySelect.value = "Melee - Heavy";
+  } else if (idx < allEquipment.length) {
+    // Existing inventory item
+    let item = allEquipment[idx];
+    nameInput.value = item.name || "";
+    qualitySelect.value = item.quality || "Common";
+    descriptionInput.value = item.description || "";
+    penaltySelect.value = item.movementPenalty || "0";
+    slotsSelect.value = item.crystalSlots || 0;
+    linkedStatSelect.value = item.linkedStat || "STR";
+    stATGonusStatSelect.value = item.stATGonuses ? Object.keys(item.stATGonuses)[0] : "None";
+    stATGonusAmountInput.value = item.stATGonuses && Object.keys(item.stATGonuses).length > 0 ? item.stATGonuses[Object.keys(item.stATGonuses)[0]] : 0;
+    let statReqs = item.statRequirements || {};
+    let stats = Object.keys(statReqs);
+    statReq1Select.value = stats[0] || "None";
+    statReq1Input.value = stats[0] ? statReqs[stats[0]] : "";
+    statReq2Select.value = stats[1] || "None";
+    statReq2Input.value = stats[1] ? statReqs[stats[1]] : "";
+    damageDiceInput.value = item.damageDice || "";
+    weaponModifierInput.value = item.modifier || 0;
+    defenseInput.value = item.defense || 0;
+    armorModifierInput.value = item.modifier || 0;
+    weaponCategorySelect.value = item.weaponCategory || "Melee - Heavy";
+  } else {
+    // Available item from availableItems
+    let availableIdx = idx - allEquipment.length;
+    let item = availableEquipment[availableIdx];
+    nameInput.value = item.name || "";
+    qualitySelect.value = item.quality || "Common";
+    descriptionInput.value = item.description || "";
+    penaltySelect.value = item.movementPenalty || "0";
+    slotsSelect.value = item.crystalSlots || 0;
+    linkedStatSelect.value = item.linkedStat || "STR";
+    stATGonusStatSelect.value = item.stATGonuses ? Object.keys(item.stATGonuses)[0] : "None";
+    stATGonusAmountInput.value = item.stATGonuses && Object.keys(item.stATGonuses).length > 0 ? item.stATGonuses[Object.keys(item.stATGonuses)[0]] : 0;
+    let statReqs = item.statRequirements || {};
+    let stats = Object.keys(statReqs);
+    statReq1Select.value = stats[0] || "None";
+    statReq1Input.value = stats[0] ? statReqs[stats[0]] : "";
+    statReq2Select.value = stats[1] || "None";
+    statReq2Input.value = stats[1] ? statReqs[stats[1]] : "";
+    damageDiceInput.value = item.damageDice || "";
+    weaponModifierInput.value = item.modifier || 0;
+    defenseInput.value = item.defense || 0;
+    armorModifierInput.value = item.modifier || 0;
+    weaponCategorySelect.value = item.weaponCategory || "Melee - Heavy";
   }
+}
+function updateEquipmentOptions() {
+  let selectedType = (modalDiv && select("#equipment-type-select").value()) || "";
+  if (!selectedType) return;
+  let equipmentSelect = modalDiv.elt.querySelector('#equipment-select');
+  if (!equipmentSelect) return;
 
-  function updateEquipmentOptions() {
-    let selectedType = typeSelect.value();
-    equipmentSelect.html("");
-    let typeItems = inventory.filter(
-      (item) => item.type === selectedType && 
-                (item.category === "Weapons" || item.category === "Armor" || item.category === "Accessories")
-    );
-    if (typeItems.length > 0) {
-      typeItems.forEach((item) => equipmentSelect.option(item.name));
-      equipmentSelect.value(typeItems[0].name); // Default to first item
-      loadEquipmentData(); // Load data after setting options
-    } else {
-      equipmentSelect.option("No items available");
-    }
-  }
+  // Filter inventory items by selected type
+  let allEquipment = inventory.filter(item => 
+    item.category === "Equipment" && 
+    item.type === selectedType
+  );
+  
+  // Filter available items, excluding those already in inventory
+  let availableEquipment = availableItems["Equipment"].filter(item => 
+    item.type === selectedType && 
+    !inventory.some(i => i.name === item.name && i.category === "Equipment")
+  );
 
-  typeSelect.changed(updateEquipmentOptions);
-  equipmentSelect.changed(loadEquipmentData);
-  updateAvailableEquipment(); // Sync before initial load
-  updateEquipmentOptions(); // Initial population
+  console.log("updateEquipmentOptions - Selected Type:", selectedType);
+  console.log("Inventory Equipment:", allEquipment);
+  console.log("Available Equipment:", availableEquipment);
+
+  // Clear and repopulate the dropdown
+  equipmentSelect.innerHTML = "";
+  let noneOption = document.createElement("option");
+  noneOption.value = "-1";
+  noneOption.text = "None";
+  equipmentSelect.appendChild(noneOption);
+
+  // Add inventory items with [Inventory] prefix
+  allEquipment.forEach((item, idx) => {
+    let option = document.createElement("option");
+    option.value = idx.toString();
+    option.text = `[Inventory] ${item.name}`;
+    equipmentSelect.appendChild(option);
+  });
+
+  // Add available items with [Available] prefix, offset index by inventory length
+  availableEquipment.forEach((item, idx) => {
+    let option = document.createElement("option");
+    option.value = (allEquipment.length + idx).toString();
+    option.text = `[Available] ${item.name}`;
+    equipmentSelect.appendChild(option);
+  });
+
+  loadEquipmentData();
+}
 
   createButton("Edit")
     .parent(modalDiv)
@@ -4717,6 +5185,7 @@ function updateStATGonusesDisplay() {
   }
 }
 // Inventory UI Creation
+// Inventory UI Creation
 function createInventoryUI() {
   console.log("Creating Inventory UI, current inventory:", JSON.stringify(inventory, null, 2));
   let inventoryContainer = select("#inventory");
@@ -4799,7 +5268,6 @@ function createInventoryUI() {
 
   inventoryCategories.forEach(category => {
     let items = itemsByCategory[category];
-    // Remove the check that skips empty categories
     let categoryDiv = createDiv().parent(categoryContainer).style("margin-bottom", "10px");
     let categoryHeader = createElement("h3", `${category} (${items.length})`)
       .parent(categoryDiv)
@@ -4816,7 +5284,6 @@ function createInventoryUI() {
       const isVisible = contentDiv.style("display") === "block";
       categoryStates[category] = !isVisible;
       contentDiv.style("display", isVisible ? "none" : "block");
-      // Toggle expanded class using the DOM element
       if (isVisible) {
         categoryHeader.elt.classList.remove("expanded");
       } else {
@@ -4884,28 +5351,33 @@ function createInventoryUI() {
             });
             createElement("td", item.quality || "Common").parent(row);
             let actionCell = createElement("td").parent(row);
-            createButton("Delete")
-              .parent(actionCell)
-              .class("resource-button small-button")
-              .mousePressed(() => {
-                let inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === item.category);
-                if (inventoryIdx !== -1) {
-                  showConfirmationModal(`Are you sure you want to delete ${item.name}?`, () => {
-                    let isEquipped = Object.values(equippedItems).some(equipped => equipped && equipped.name === item.name);
-                    if (isEquipped) {
-                      showConfirmationModal(`${item.name} is currently equipped. Unequip it before deleting.`, () => {}, true);
-                      return;
-                    }
-                    inventory.splice(inventoryIdx, 1);
-                    localStorage.setItem('inventory', JSON.stringify(inventory));
-                    updateAvailableEquipment();
-                    createInventoryUI();
-                    createEquipmentUI();
-                  });
-                } else {
-                  console.error(`Item ${item.name} not found in inventory for deletion!`);
-                }
-              });
+createButton("Delete")
+  .parent(actionCell)
+  .class("resource-button small-button")
+  .mousePressed(() => {
+    let inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === item.category);
+    if (inventoryIdx !== -1) {
+      showConfirmationModal(`Are you sure you want to delete ${item.name}?`, () => {
+        let isEquipped = Object.values(equippedItems).some(equipped => 
+          equipped && equipped.name === item.name
+        );
+        if (isEquipped) {
+          showConfirmationModal(`${item.name} is currently equipped. Unequip it before deleting.`, () => {}, true);
+          return;
+        }
+        inventory.splice(inventoryIdx, 1);
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+        updateAvailableEquipment();
+        createInventoryUI();
+        createEquipmentUI();
+        if (modalDiv && modalDiv.elt && document.body.contains(modalDiv.elt)) {
+          updateEquipmentOptions();
+        }
+      });
+    } else {
+      console.error(`Item ${item.name} not found in inventory for deletion!`);
+    }
+  });
           });
         });
       }
@@ -4981,6 +5453,10 @@ function createInventoryUI() {
                   updateAvailableEquipment();
                   createInventoryUI();
                   createEquipmentUI();
+                  // If the Modify Equipment modal is open, refresh its dropdown
+                  if (modalDiv && modalDiv.elt && document.body.contains(modalDiv.elt)) {
+                    updateEquipmentOptions();
+                  }
                 });
               } else {
                 console.error(`Item ${item.name} not found in inventory for deletion!`);
