@@ -309,7 +309,6 @@ function updateTypeVisibility() {
   }
 }
 
-
 function updateEquipmentOptions() {
   // Check if modalDiv exists and is still in the DOM
   let selectedType = "";
@@ -2258,9 +2257,11 @@ function showAddEditEquipmentModal() {
 
   // Dynamic top position based on viewport height
   const viewportHeight = window.innerHeight;
-  const estimatedModalHeight = 500;
-  const minTopOffset = 20;
-  const maxTopOffset = Math.min(100, viewportHeight * 0.1);
+  const estimatedModalHeight = 500; // Adjust based on actual modal height (measure in browser)
+  const minTopOffset = 20; // Minimum distance from top (in pixels)
+  const maxTopOffset = Math.min(100, viewportHeight * 0.1); // Maximum distance from top (e.g., 100px or 10% of viewport height)
+
+  // Center the modal, but cap the top position
   let idealTopPosition = (viewportHeight - estimatedModalHeight) / 2;
   const topPosition = Math.min(Math.max(minTopOffset, idealTopPosition), maxTopOffset);
 
@@ -2275,20 +2276,17 @@ function showAddEditEquipmentModal() {
     .style("border", "2px solid #000")
     .style("z-index", "1000")
     .style("width", "300px")
-    .style("max-height", "80vh") // Initial max-height (will be overridden by JS)
-    .style("display", "flex")
-    .style("flex-direction", "column")
+    .style("max-height", "80vh")
+    .style("display", "flex") // Enable flexbox
+    .style("flex-direction", "column") // Stack children vertically
     .style("box-sizing", "border-box")
     .style("font-size", "14px");
-
-  // Add a class for CSS targeting
-  modalDiv.elt.classList.add('equipment-modal');
 
   // Create a scrollable content wrapper
   let contentWrapper = createDiv()
     .parent(modalDiv)
-    .style("flex", "1")
-    .style("overflow-y", "auto");
+    .style("flex", "1") // Take up available space
+    .style("overflow-y", "auto"); // Enable scrolling for content
 
   // Move all content into contentWrapper
   createElement("h3", "Modify Equipment").parent(contentWrapper);
@@ -2552,55 +2550,12 @@ function showAddEditEquipmentModal() {
     .style("justify-content", "space-between")
     .style("gap", "5px");
 
-  // JavaScript to dynamically adjust modal height
-  function adjustModalHeight() {
-    const modal = modalDiv.elt;
-    const viewportHeight = window.innerHeight;
-    const topBarHeight = document.querySelector('header')?.offsetHeight || 50; // Measure the actual header height
-    const availableHeight = viewportHeight * 0.95 - topBarHeight; // Use 95% of viewport height, minus top bar
-    
-    // Calculate total content height, including buttons
-    const contentHeight = contentWrapper.elt.scrollHeight + buttonContainer.elt.offsetHeight + 40; // 40px for modal padding
-    
-    // Set the modal height to fit the content, capped at available height
-    const maxModalHeight = Math.min(contentHeight, availableHeight);
-    modal.style.height = `${maxModalHeight}px`;
-    modal.style.maxHeight = 'none'; // Override CSS max-height
-    modal.style.overflowY = contentHeight > availableHeight ? 'auto' : 'hidden'; // Scroll only if content exceeds available height
-
-    // Debugging: Log heights to console
-    console.log("Viewport Height:", viewportHeight);
-    console.log("Top Bar Height:", topBarHeight);
-    console.log("Available Height:", availableHeight);
-    console.log("Content Height:", contentHeight);
-    console.log("Modal Height Set To:", maxModalHeight);
-  }
-
-  // Run the adjustment when the modal opens
-  adjustModalHeight();
-
-  // Add a resize event listener to adjust the height when the window is resized
-  const resizeHandler = () => adjustModalHeight();
-  window.addEventListener('resize', resizeHandler);
-
-  // Clean up the resize event listener when the modal is closed
-  const originalCloseButtonMousePressed = () => {
-    modalDiv.remove();
-    errorMessage.style("display", "none");
-    successMessage.style("display", "none");
-    window.removeEventListener('resize', resizeHandler); // Clean up listener
-  };
-
   // Event listeners
   typeSelect.changed(() => {
     updateTypeVisibility();
     updateEquipmentOptions();
-    adjustModalHeight(); // Re-adjust height after content changes
   });
-  equipmentSelect.changed(() => {
-    loadEquipmentData();
-    adjustModalHeight(); // Re-adjust height after content changes
-  });
+  equipmentSelect.changed(loadEquipmentData);
 
   // Initial calls
   updateTypeVisibility();
@@ -2942,7 +2897,6 @@ function showAddEditEquipmentModal() {
           modalDiv.remove();
           errorMessage.style("display", "none");
           successMessage.style("display", "none");
-          window.removeEventListener('resize', resizeHandler);
         }
       );
     });
@@ -2956,7 +2910,11 @@ function showAddEditEquipmentModal() {
     .style("border", "none")
     .style("border-radius", "3px")
     .style("cursor", "pointer")
-    .mousePressed(originalCloseButtonMousePressed);
+    .mousePressed(() => {
+      modalDiv.remove();
+      errorMessage.style("display", "none");
+      successMessage.style("display", "none");
+    });
 }
 // ### Stats UI ###
 
