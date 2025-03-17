@@ -4,6 +4,7 @@ body {
   margin: 0;
   padding: 20px;
   box-sizing: border-box;
+  background-color: white; /* Ensure body background is white */
 }
 
 /* Header styling */
@@ -192,79 +193,86 @@ header button {
 /* Modal styling */
 .modal {
   position: fixed;
-  top: 50%;
+  top: 20px;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   background: white;
   padding: 15px;
   border: 2px solid #000;
   z-index: 1000;
-  max-height: 80vh;
+  max-height: 90vh;
   max-width: 90vw;
-  width: auto;
-  overflow-y: auto;
-  overflow-x: hidden;
+  width: 300px;
+  overflow-y: visible;
   box-sizing: border-box;
   font-size: 14px;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Responsive adjustments */
-@media (max-width: 600px) {
-  header {
-    flex-direction: column;
-    gap: 10px;
-  }
+.modal-content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden; /* Prevent horizontal scrollbar */
+  max-height: calc(90vh - 80px);
+  padding-right: 5px;
+  word-wrap: break-word; /* Ensure text wraps */
+}
 
-  .tabs {
-    justify-content: flex-start;
-  }
+/* Layout for rows with multiple children */
+.modal-content .resource-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+  width: 100%;
+}
 
-  .resource-input {
-    flex: 0 0 50px;
-    width: 50px;
-    font-size: 12px;
-  }
-
-  .resource-button {
-    min-width: 50px;
-    font-size: 12px;
-  }
-
-  .resource-button.small-button {
-    min-width: 20px;
-    font-size: 10px;
-  }
-
-  #resource-bars canvas {
-    width: 100% !important;
-    max-width: 100%;
-    height: 200px;
-  }
-
-/* Modal styling */
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-  padding: 15px;
-  border: 2px solid #000;
-  z-index: 1000;
-  max-width: 90vw;
-  width: auto;
-  overflow-x: hidden;
+.modal-content .resource-row > * {
+  flex: 1 1 auto;
+  min-width: 0; /* Allow shrinking */
   box-sizing: border-box;
-  font-size: 14px;
-  min-height: 300px; /* Prevents modal from shrinking too much */
-  max-height: 80vh;  /* Default for smaller screens */
-  overflow-y: auto;  /* Scrollbar only if content exceeds max-height */
+}
+
+.modal-content select,
+.modal-content input,
+.modal-content textarea {
+  width: 100%;
+  max-width: 100%; /* Prevent exceeding parent width */
+  box-sizing: border-box;
+}
+
+.modal-content span {
+  flex: 1 1 100px; /* Default width for labels, allowing wrapping */
+  word-break: break-word; /* Ensure long labels break */
+}
+
+.modal-buttons {
+  flex: 0 0 auto;
+  padding-top: 10px;
+  border-top: 1px solid #ccc;
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+}
+
+/* Adjust modal width for larger screens (e.g., fullscreen) */
+@media (min-width: 1200px) {
+  .modal {
+    width: 400px; /* Wider modal for larger screens */
+  }
+  .modal-content {
+    max-height: calc(90vh - 80px);
+  }
 }
 
 /* Adjust max-height for taller screens */
 @media (min-height: 800px) {
   .modal {
-    max-height: 85vh;
+    max-height: 90vh;
+  }
+  .modal-content {
+    max-height: calc(90vh - 80px);
   }
 }
 
@@ -272,15 +280,7 @@ header button {
   .modal {
     max-height: 90vh;
   }
-}
-
-/* Responsive adjustments for smaller screens (unchanged from your original) */
-@media (max-width: 600px) {
-  .modal {
-    width: 80vw;
-    max-height: 60vh;
-    padding: 10px;
-    font-size: 12px;
-    overflow-y: auto;
+  .modal-content {
+    max-height: calc(90vh - 80px);
   }
 }
