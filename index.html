@@ -7,145 +7,148 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <header>
-      <div>
-        <input type="text" placeholder="Enter Character Name" id="characterName" />
-      </div>
-      <div>
-        <button id="saveBtn">Save</button>
-        <button id="loadBtn">Load</button>
-      </div>
-    </header>
-    <div class="container">
-      <div class="tabs">
-        <button class="tablink active" data-tab="resources">Resources</button>
-        <button class="tablink" data-tab="talents">Talents</button>
-        <button class="tablink" data-tab="traits">Traits</button>
-        <button class="tablink" data-tab="stats">Stats</button>
-        <button class="tablink" data-tab="abilities">Abilities</button>
-        <button class="tablink" data-tab="equipment">Equipment</button>
-        <button class="tablink" data-tab="inventory">Inventory</button>
-      </div>
-      <div class="content">
-        <div id="resources" class="tabcontent active">
-          <h2>Resource Manager</h2>
-          <div id="resource-bars"></div>
-          <div id="resource-controls"></div>
-          <!-- Stamina Rules -->
-          <div id="stamina-rules">
-            <h3>Stamina Rules</h3>
-            <table class="rules-table">
-              <thead>
-                <tr>
-                  <th>Action</th>
-                  <th>Stamina Cost</th>
-                  <th>Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Basic Attack (Melee/Ranged)</td>
-                  <td>25 STA</td>
-                  <td>Standard attack action. Can be used for Synergy Attack*.</td>
-                </tr>
-                <tr>
-                  <td>Charge (Convert Stamina to ATG)</td>
-                  <td>Variable</td>
-                  <td>Transfer any amount of stamina to ATG (cannot transfer to an ally).</td>
-                </tr>
-                <tr>
-                  <td>Block (Self)</td>
-                  <td>25 STA</td>
-                  <td>Roll 1d12 + DEF to reduce incoming damage.</td>
-                </tr>
-                <tr>
-                  <td>Block (Ally, within 5ft)</td>
-                  <td>25 STA</td>
-                  <td>Protect a nearby ally by taking the hit instead.</td>
-                </tr>
-                <tr>
-                  <td>Dodge</td>
-                  <td>25 STA</td>
-                  <td>Roll 1d12 + DEX or SPR to evade an attack.</td>
-                </tr>
-                <tr>
-                  <td>Additional Movement</td>
-                  <td>5 STA per 5 ft</td>
-                  <td>Move beyond base movement range (Refer to Movement Section for Jumping & Climbing).</td>
-                </tr>
-                <tr>
-                  <td>Shove / Grapple Attempt</td>
-                  <td>25 STA</td>
-                  <td>Attempt to move, knock down, or restrain a target (STR vs STR check).</td>
-                </tr>
-                <tr>
-                  <td>Get Up from Prone</td>
-                  <td>10 STA or 10 ft movement</td>
-                  <td>Stand up after being knocked down.</td>
-                </tr>
-                <tr>
-                  <td>Assist Ally (within 5ft)</td>
-                  <td>10 STA</td>
-                  <td>Grants Advantage on their next roll.</td>
-                </tr>
-                <tr>
-                  <td>Other Actions</td>
-                  <td>GM Discretion</td>
-                  <td>Any action not listed is determined by the GM.</td>
-                </tr>
-              </tbody>
-            </table>
-            <p><em>*Synergy Attack - Transfer ATG generation from Basic Attack to an Ally within 50 ft and in view.</em></p>
+    <div id="app-wrapper">
+      <header>
+        <div>
+          <input type="text" placeholder="Enter Character Name" id="characterName" />
+        </div>
+        <div>
+          <button id="saveBtn">Save</button>
+          <button id="loadBtn">Load</button>
+          <button id="fullscreenBtn">Full Screen</button>
+        </div>
+      </header>
+      <div class="container">
+        <div class="tabs">
+          <button class="tablink active" data-tab="resources">Resources</button>
+          <button class="tablink" data-tab="talents">Talents</button>
+          <button class="tablink" data-tab="traits">Traits</button>
+          <button class="tablink" data-tab="stats">Stats</button>
+          <button class="tablink" data-tab="abilities">Abilities</button>
+          <button class="tablink" data-tab="equipment">Equipment</button>
+          <button class="tablink" data-tab="inventory">Inventory</button>
+        </div>
+        <div class="content">
+          <div id="resources" class="tabcontent active">
+            <h2>Resource Manager</h2>
+            <div id="resource-bars"></div>
+            <div id="resource-controls"></div>
+            <!-- Stamina Rules -->
+            <div id="stamina-rules">
+              <h3>Stamina Rules</h3>
+              <table class="rules-table">
+                <thead>
+                  <tr>
+                    <th>Action</th>
+                    <th>Stamina Cost</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Basic Attack (Melee/Ranged)</td>
+                    <td>25 STA</td>
+                    <td>Standard attack action. Can be used for Synergy Attack*.</td>
+                  </tr>
+                  <tr>
+                    <td>Charge (Convert Stamina to ATG)</td>
+                    <td>Variable</td>
+                    <td>Transfer any amount of stamina to ATG (cannot transfer to an ally).</td>
+                  </tr>
+                  <tr>
+                    <td>Block (Self)</td>
+                    <td>25 STA</td>
+                    <td>Roll 1d12 + DEF to reduce incoming damage.</td>
+                  </tr>
+                  <tr>
+                    <td>Block (Ally, within 5ft)</td>
+                    <td>25 STA</td>
+                    <td>Protect a nearby ally by taking the hit instead.</td>
+                  </tr>
+                  <tr>
+                    <td>Dodge</td>
+                    <td>25 STA</td>
+                    <td>Roll 1d12 + DEX or SPR to evade an attack.</td>
+                  </tr>
+                  <tr>
+                    <td>Additional Movement</td>
+                    <td>5 STA per 5 ft</td>
+                    <td>Move beyond base movement range (Refer to Movement Section for Jumping & Climbing).</td>
+                  </tr>
+                  <tr>
+                    <td>Shove / Grapple Attempt</td>
+                    <td>25 STA</td>
+                    <td>Attempt to move, knock down, or restrain a target (STR vs STR check).</td>
+                  </tr>
+                  <tr>
+                    <td>Get Up from Prone</td>
+                    <td>10 STA or 10 ft movement</td>
+                    <td>Stand up after being knocked down.</td>
+                  </tr>
+                  <tr>
+                    <td>Assist Ally (within 5ft)</td>
+                    <td>10 STA</td>
+                    <td>Grants Advantage on their next roll.</td>
+                  </tr>
+                  <tr>
+                    <td>Other Actions</td>
+                    <td>GM Discretion</td>
+                    <td>Any action not listed is determined by the GM.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p><em>*Synergy Attack - Transfer ATG generation from Basic Attack to an Ally within 50 ft and in view.</em></p>
 
-            <h4>Advanced Stamina Interactions</h4>
-            <p><strong>Reactive Defense (Stamina Use Outside Your Turn)</strong></p>
-            <p>If targeted by an attack, you may:</p>
-            <ul>
-              <li><strong>Block (25 STA)</strong> → Roll 1d12 + DEF to reduce damage.</li>
-              <li><strong>Dodge (25 STA)</strong> → Roll 1d12 + DEX to evade.</li>
-              <li><strong>Protect Ally (5 ft) (25 STA)</strong> → Block an attack for a nearby ally.</li>
-            </ul>
+              <h4>Advanced Stamina Interactions</h4>
+              <p><strong>Reactive Defense (Stamina Use Outside Your Turn)</strong></p>
+              <p>If targeted by an attack, you may:</p>
+              <ul>
+                <li><strong>Block (25 STA)</strong> → Roll 1d12 + DEF to reduce damage.</li>
+                <li><strong>Dodge (25 STA)</strong> → Roll 1d12 + DEX to evade.</li>
+                <li><strong>Protect Ally (5 ft) (25 STA)</strong> → Block an attack for a nearby ally.</li>
+              </ul>
 
-            <p><strong>Team-Based Defensive Actions</strong></p>
-            <ul>
-              <li><strong>Synergized Defense:</strong> If two allies both block an incoming attack, the higher roll is used for damage reduction.</li>
-              <li><strong>Brace Together (Placeholder Name):</strong> If two allies both dodge, they roll with advantage (higher roll is taken).</li>
-            </ul>
+              <p><strong>Team-Based Defensive Actions</strong></p>
+              <ul>
+                <li><strong>Synergized Defense:</strong> If two allies both block an incoming attack, the higher roll is used for damage reduction.</li>
+                <li><strong>Brace Together (Placeholder Name):</strong> If two allies both dodge, they roll with advantage (higher roll is taken).</li>
+              </ul>
 
-            <h4>Exhaustion & Stamina Recovery</h4>
-            <p><strong>1. Stamina Regeneration</strong></p>
-            <p>At the start of your turn, you recover 25 Stamina. If your Stamina drops below 0, you must recover above 0 Stamina before taking actions again (except for ATG moves).</p>
+              <h4>Exhaustion & Stamina Recovery</h4>
+              <p><strong>1. Stamina Regeneration</strong></p>
+              <p>At the start of your turn, you recover 25 Stamina. If your Stamina drops below 0, you must recover above 0 Stamina before taking actions again (except for ATG moves).</p>
 
-            <p><strong>2. Overexertion & Exhaustion</strong></p>
-            <p>You can drop to -25 Stamina, but while in this state:</p>
-            <ul>
-              <li>You cannot act (except for ATG abilities).</li>
-              <li>You regain +25 Stamina at the start of your turn as normal.</li>
-              <li>Once your Stamina is above 0, you can act again.</li>
-            </ul>
+              <p><strong>2. Overexertion & Exhaustion</strong></p>
+              <p>You can drop to -25 Stamina, but while in this state:</p>
+              <ul>
+                <li>You cannot act (except for ATG abilities).</li>
+                <li>You regain +25 Stamina at the start of your turn as normal.</li>
+                <li>Once your Stamina is above 0, you can act again.</li>
+              </ul>
+            </div>
           </div>
-        </div>
-        <div id="talents" class="tabcontent">
-          <h2>Talents</h2>
-        </div>
-        <div id="traits" class="tabcontent">
-          <h2>Traits</h2>
-        </div>
-        <div id="stats" class="tabcontent">
-          <h2>Stats</h2>
-        </div>
-        <div id="abilities" class="tabcontent">
-          <h2>Abilities</h2>
-        </div>
-        <div id="equipment" class="tabcontent">
-          <h2>Equipment</h2>
-        </div>
-        <div id="inventory" class="tabcontent">
-          <h2>Inventory</h2>
+          <div id="talents" class="tabcontent">
+            <h2>Talents</h2>
+          </div>
+          <div id="traits" class="tabcontent">
+            <h2>Traits</h2>
+          </div>
+          <div id="stats" class="tabcontent">
+            <h2>Stats</h2>
+          </div>
+          <div id="abilities" class="tabcontent">
+            <h2>Abilities</h2>
+          </div>
+          <div id="equipment" class="tabcontent">
+            <h2>Equipment</h2>
+          </div>
+          <div id="inventory" class="tabcontent">
+            <h2>Inventory</h2>
+          </div>
         </div>
       </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
-    <script src="sketch.js"></script>
+    <script src="sketch.js" defer></script>
   </body>
 </html>
