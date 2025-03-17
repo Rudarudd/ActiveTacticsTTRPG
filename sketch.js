@@ -270,6 +270,36 @@ function setup() {
       }
     }
   });
+  // Simplified fullscreen button functionality using p5.js fullscreen()
+  const fullscreenBtn = document.getElementById("fullscreenBtn");
+  const appWrapper = document.getElementById("app-wrapper");
+  fullscreenBtn.addEventListener("click", () => {
+    let fs = fullscreen(); // Check current fullscreen state
+    fullscreen(!fs); // Toggle fullscreen mode
+    fullscreenBtn.textContent = fs ? "Full Screen" : "Exit Full Screen"; // Update button text
+    resizeCanvasForFullscreen(); // Resize canvas after toggling
+  });
+
+  // Handle fullscreen change events (e.g., Esc key or browser exit)
+  document.addEventListener("fullscreenchange", () => {
+    let fs = fullscreen();
+    fullscreenBtn.textContent = fs ? "Exit Full Screen" : "Full Screen";
+    resizeCanvasForFullscreen();
+  });
+}
+
+// Resize canvas when entering/exiting fullscreen
+function resizeCanvasForFullscreen() {
+  let resourceBarsContainer = select("#resource-bars");
+  let containerWidth = resourceBarsContainer.elt.clientWidth;
+  let canvasWidth = min(containerWidth, windowWidth > 800 ? 600 : windowWidth - 40); // Adjust for padding
+  resizeCanvas(canvasWidth, 200);
+  redraw(); // Force redraw to update bars
+}
+
+// Update windowResized to handle general resizing
+function windowResized() {
+  resizeCanvasForFullscreen();
 }
 function updateTypeVisibility() {
   if (typeof updating === 'undefined' || updating) return; // Prevent recursion
@@ -2252,17 +2282,18 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
     .mousePressed(() => modalDiv.remove());
 }
 function showAddEditEquipmentModal() {
+  const appWrapper = select("#app-wrapper"); // Parent to #app-wrapper for fullscreen compatibility
   if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv();
+  modalDiv = createDiv().parent(appWrapper);
+  modalDiv.class("modal"); // Use CSS class for consistent styling
 
   // Dynamic positioning
   const viewportHeight = window.innerHeight;
   const minTopOffset = 20; // Minimum distance from top
-  const maxHeightPercentage = 0.8; // Max 80% of viewport height
+  const maxHeightPercentage = 0.9; // Increased to 90% to allow more content before scrolling
 
   // Style the modal
   modalDiv
-    .style("position", "fixed")
     .style("top", `${minTopOffset}px`) // Start near top, let content push it
     .style("left", "50%")
     .style("transform", "translateX(-50%)")
@@ -2271,22 +2302,21 @@ function showAddEditEquipmentModal() {
     .style("border", "2px solid #000")
     .style("z-index", "1000")
     .style("width", "300px")
-    .style("max-height", `${viewportHeight * maxHeightPercentage}px`) // Cap at 80vh
-    .style("display", "flex")
-    .style("flex-direction", "column")
     .style("box-sizing", "border-box")
     .style("font-size", "14px");
 
   // Scrollable content wrapper
   let contentWrapper = createDiv()
     .parent(modalDiv)
+    .class("modal-content") // Use class for consistent styling
     .style("flex", "1 1 auto") // Grow/shrink as needed, but allow overflow
     .style("overflow-y", "auto") // Scroll only if content overflows
-    .style("max-height", `calc(${viewportHeight * maxHeightPercentage}px - 100px)`); // Account for header/buttons
+    .style("max-height", `calc(${viewportHeight * maxHeightPercentage}px - 80px)`); // Adjusted for header and buttons
 
   // Non-scrollable button container
   let buttonContainer = createDiv()
     .parent(modalDiv)
+    .class("modal-buttons") // Use class for consistent styling
     .style("flex", "0 0 auto") // Fixed height, no shrinking
     .style("padding-top", "10px")
     .style("border-top", "1px solid #ccc")
