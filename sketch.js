@@ -1,3 +1,6 @@
+// Clear localStorage at startup (remove after testing)
+localStorage.removeItem('inventory');
+localStorage.removeItem('equippedItems');
 // Global resource variables – starting with 25 HP and 10 MP
 let max_hp = 25,
   current_hp = 25;
