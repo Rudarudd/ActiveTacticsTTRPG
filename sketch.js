@@ -2583,10 +2583,11 @@ function showAddEditEquipmentModal() {
     let selectedWeaponCategory = weaponCategorySelect.value();
     let isWeapon = ["On-Hand", "Off-Hand"].includes(selectedType);
 
-    let allEquipment = inventory.filter(item => 
-      item.category === "Equipment" && 
-      (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType)
-    );
+let allEquipment = inventory.filter(item => 
+  item.category === "Equipment" &&
+  (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType) &&
+  (!isWeapon || (item.weaponCategory === selectedWeaponCategory))
+);
     let availableEquipment = (availableItems["Equipment"] || []).filter(item => 
       item.type === selectedType && 
       (!isWeapon || (item.weaponCategory === selectedWeaponCategory)) && 
