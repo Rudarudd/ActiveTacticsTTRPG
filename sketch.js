@@ -2356,6 +2356,12 @@ function showAddEditEquipmentModal() {
     .style("display", "none")
     .style("margin-bottom", "10px");
 
+  // Track the original name from selection
+  // If user picks "Add New", originalName will be null
+  let originalName = null;
+
+  // -- UI Fields --
+
   let typeDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Equipment Type:").parent(typeDiv).style("display", "block");
   let typeSelect = createSelect()
@@ -2375,8 +2381,17 @@ function showAddEditEquipmentModal() {
     .parent(weaponCategoryDiv)
     .style("width", "100%")
     .id("weapon-category-select");
-  ["Melee - Heavy", "Melee - Balanced", "Melee - Light", "Ranged - Short", "Ranged - Long",
-   "Magical - Offensive", "Magical - Support", "Shields", "Hybrid"].forEach(category => weaponCategorySelect.option(category));
+  [
+    "Melee - Heavy",
+    "Melee - Balanced",
+    "Melee - Light",
+    "Ranged - Short",
+    "Ranged - Long",
+    "Magical - Offensive",
+    "Magical - Support",
+    "Shields",
+    "Hybrid",
+  ].forEach(cat => weaponCategorySelect.option(cat));
   createSpan("The category determining available abilities.")
     .parent(weaponCategoryDiv)
     .style("font-size", "12px")
@@ -2389,7 +2404,7 @@ function showAddEditEquipmentModal() {
     .parent(equipmentSelectDiv)
     .style("width", "100%")
     .id("equipment-select");
-  createSpan("Select an item to edit, add from available, or 'None' to create new.")
+  createSpan("Select an item to edit or 'Add New' to create one.")
     .parent(equipmentSelectDiv)
     .style("font-size", "12px")
     .style("color", "#666")
@@ -2414,7 +2429,7 @@ function showAddEditEquipmentModal() {
     .parent(qualityDiv)
     .style("width", "100%")
     .id("equipment-quality-select");
-  ["Common", "Uncommon", "Rare", "Epic", "Legendary"].forEach(quality => qualitySelect.option(quality));
+  ["Common", "Uncommon", "Rare", "Epic", "Legendary"].forEach(q => qualitySelect.option(q));
   qualitySelect.value("Common");
   createSpan("The rarity or quality of the equipment.")
     .parent(qualityDiv)
@@ -2443,7 +2458,7 @@ function showAddEditEquipmentModal() {
     .style("width", "100%")
     .style("margin-bottom", "10px")
     .id("equipment-penalty-select");
-  ["0", "-5", "-10", "-15"].forEach(penalty => penaltySelect.option(penalty));
+  ["0", "-5", "-10", "-15"].forEach(p => penaltySelect.option(p));
 
   let slotsDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Essence Crystal Slots:").parent(slotsDiv).style("display", "block");
@@ -2451,7 +2466,7 @@ function showAddEditEquipmentModal() {
     .parent(slotsDiv)
     .style("width", "100%")
     .id("equipment-slots-select");
-  [0, 1, 2, 3, 4].forEach(slot => slotsSelect.option(slot));
+  [0, 1, 2, 3, 4].forEach(s => slotsSelect.option(s));
   createSpan("Number of slots for Essence Crystals.")
     .parent(slotsDiv)
     .style("font-size", "12px")
@@ -2553,7 +2568,7 @@ function showAddEditEquipmentModal() {
     .attribute("placeholder", "Mod")
     .id("equipment-armor-modifier-input");
 
-  // Function to update visibility of fields based on equipment type
+  // --- Show/hide fields by type
   function updateTypeVisibility() {
     let selectedType = typeSelect.value();
     if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
@@ -2577,61 +2592,57 @@ function showAddEditEquipmentModal() {
     }
   }
 
-  // Function to update equipment options based on type and weapon category
+  // --- Populate the dropdown
   function updateEquipmentOptions() {
     let selectedType = typeSelect.value();
     let selectedWeaponCategory = weaponCategorySelect.value();
     let isWeapon = ["On-Hand", "Off-Hand"].includes(selectedType);
 
-let allEquipment = inventory.filter(item => 
-  item.category === "Equipment" &&
-  (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType) &&
-  (!isWeapon || (item.weaponCategory === selectedWeaponCategory))
-);
-    let availableEquipment = (availableItems["Equipment"] || []).filter(item => 
-      item.type === selectedType && 
-      (!isWeapon || (item.weaponCategory === selectedWeaponCategory)) && 
+    let filteredInventory = inventory.filter(item =>
+      item.category === "Equipment" &&
+      (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType) &&
+      (!isWeapon || item.weaponCategory === selectedWeaponCategory)
+    );
+    let filteredAvailable = (availableItems["Equipment"] || []).filter(item =>
+      item.type === selectedType &&
+      (!isWeapon || item.weaponCategory === selectedWeaponCategory) &&
       !inventory.some(i => i.name === item.name && i.category === "Equipment")
     );
 
-    console.log("Selected Weapon Category:", selectedWeaponCategory);
-    console.log("Available Equipment:", availableEquipment);
-
     equipmentSelect.html("");
-    equipmentSelect.option("None", -1);
-    allEquipment.forEach((item, idx) => {
-      equipmentSelect.option(`[Inventory] ${item.name}`, idx);
+    equipmentSelect.option("Add New", -1);
+
+    filteredInventory.forEach((itm, idx) => {
+      equipmentSelect.option(`[Inventory] ${itm.name}`, idx);
     });
-    availableEquipment.forEach((item, idx) => {
-      equipmentSelect.option(`[Available] ${item.name}`, allEquipment.length + idx);
+    filteredAvailable.forEach((itm, idx) => {
+      equipmentSelect.option(`[Available] ${itm.name}`, filteredInventory.length + idx);
     });
 
     loadEquipmentData();
   }
 
-  // Function to load equipment data into form fields
+  // --- Load from selected
   function loadEquipmentData() {
     let idx = parseInt(equipmentSelect.value());
     let selectedType = typeSelect.value();
     let selectedWeaponCategory = weaponCategorySelect.value();
     let isWeapon = ["On-Hand", "Off-Hand"].includes(selectedType);
 
-    let allEquipment = inventory.filter(item => 
-      item.category === "Equipment" && 
-      (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType)
+    let filteredInventory = inventory.filter(item =>
+      item.category === "Equipment" &&
+      (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType) &&
+      (!isWeapon || item.weaponCategory === selectedWeaponCategory)
     );
-    let availableEquipment = (availableItems["Equipment"] || []).filter(item => 
-      item.type === selectedType && 
-      (!isWeapon || (item.weaponCategory === selectedWeaponCategory)) && 
+    let filteredAvailable = (availableItems["Equipment"] || []).filter(item =>
+      item.type === selectedType &&
+      (!isWeapon || item.weaponCategory === selectedWeaponCategory) &&
       !inventory.some(i => i.name === item.name && i.category === "Equipment")
     );
 
-    console.log("loadEquipmentData - Selected idx:", idx);
-    console.log("equipmentSelect.value():", equipmentSelect.value());
-    console.log("Current Weapon Category:", selectedWeaponCategory);
-    console.log("Available Equipment in load:", availableEquipment);
-
     if (idx === -1) {
+      // "Add New"
+      originalName = null;
       nameInput.value("");
       descriptionInput.value("");
       qualitySelect.value("Common");
@@ -2648,69 +2659,71 @@ let allEquipment = inventory.filter(item =>
       statReq1Input.value("");
       statReq2Select.value("None");
       statReq2Input.value("");
+      return;
+    }
+
+    let item;
+    if (idx < filteredInventory.length) {
+      item = filteredInventory[idx];
     } else {
-      let item;
-      if (idx < allEquipment.length) {
-        item = allEquipment[idx];
+      let availableIdx = idx - filteredInventory.length;
+      if (availableIdx >= 0 && availableIdx < filteredAvailable.length) {
+        item = filteredAvailable[availableIdx];
       } else {
-        let availableIdx = idx - allEquipment.length;
-        if (availableIdx >= 0 && availableIdx < availableEquipment.length) {
-          item = availableEquipment[availableIdx];
-        } else {
-          console.log("Invalid index:", idx, "allEquipment length:", allEquipment.length, "availableEquipment length:", availableEquipment.length);
-          return;
-        }
+        console.log("Invalid index:", idx);
+        return;
       }
+    }
 
-      console.log("Selected item:", item);
+    // Keep track of the original name
+    originalName = item.name || null;
 
-      nameInput.value(item.name || "");
-      descriptionInput.value(item.description || "");
-      qualitySelect.value(item.quality || "Common");
-      slotsSelect.value(item.crystalSlots || "0");
+    // Populate form
+    nameInput.value(item.name || "");
+    descriptionInput.value(item.description || "");
+    qualitySelect.value(item.quality || "Common");
+    slotsSelect.value(item.crystalSlots || "0");
 
-      if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
-        penaltySelect.value(item.movementPenalty || "0");
-        defenseInput.value(item.defense || "0");
-        armorModifierInput.value(item.modifier || "0");
-      } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
-        linkedStatSelect.value(item.linkedStat || "STR");
-        damageDiceInput.value(item.damageDice || "");
-        weaponModifierInput.value(item.modifier || "0");
-        weaponCategorySelect.value(item.weaponCategory || "Melee - Heavy");
-      }
+    if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
+      penaltySelect.value(item.movementPenalty || "0");
+      defenseInput.value(item.defense || "0");
+      armorModifierInput.value(item.modifier || "0");
+    } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
+      linkedStatSelect.value(item.linkedStat || "STR");
+      damageDiceInput.value(item.damageDice || "");
+      weaponModifierInput.value(item.modifier || "0");
+      weaponCategorySelect.value(item.weaponCategory || "Melee - Heavy");
+    }
 
-      if (item.stATGonuses) {
-        let stat = Object.keys(item.stATGonuses)[0];
-        stATGonusStatSelect.value(stat || "None");
-        stATGonusAmountInput.value(item.stATGonuses[stat] || "0");
-      } else {
-        stATGonusStatSelect.value("None");
-        stATGonusAmountInput.value("0");
-      }
+    if (item.stATGonuses) {
+      let st = Object.keys(item.stATGonuses)[0];
+      stATGonusStatSelect.value(st || "None");
+      stATGonusAmountInput.value(item.stATGonuses[st] || "0");
+    } else {
+      stATGonusStatSelect.value("None");
+      stATGonusAmountInput.value("0");
+    }
 
-      if (item.statRequirements) {
-        let reqKeys = Object.keys(item.statRequirements);
-        statReq1Select.value(reqKeys[0] || "None");
-        statReq1Input.value(reqKeys[0] ? item.statRequirements[reqKeys[0]] : "");
-        statReq2Select.value(reqKeys[1] || "None");
-        statReq2Input.value(reqKeys[1] ? item.statRequirements[reqKeys[1]] : "");
-      } else {
-        statReq1Select.value("None");
-        statReq1Input.value("");
-        statReq2Select.value("None");
-        statReq2Input.value("");
-      }
+    if (item.statRequirements) {
+      let reqKeys = Object.keys(item.statRequirements);
+      statReq1Select.value(reqKeys[0] || "None");
+      statReq1Input.value(reqKeys[0] ? item.statRequirements[reqKeys[0]] : "");
+      statReq2Select.value(reqKeys[1] || "None");
+      statReq2Input.value(reqKeys[1] ? item.statRequirements[reqKeys[1]] : "");
+    } else {
+      statReq1Select.value("None");
+      statReq1Input.value("");
+      statReq2Select.value("None");
+      statReq2Input.value("");
     }
   }
 
-  // Event listeners
+  // --- Event Listeners
   typeSelect.changed(() => {
     updateTypeVisibility();
     updateEquipmentOptions();
   });
   weaponCategorySelect.changed(() => {
-    console.log("Weapon category changed to:", weaponCategorySelect.value());
     updateEquipmentOptions();
     loop();
     redraw();
@@ -2719,13 +2732,73 @@ let allEquipment = inventory.filter(item =>
   });
   equipmentSelect.changed(loadEquipmentData);
 
-  // Initial setup
+  // Initial
   typeSelect.value("On-Hand");
   weaponCategorySelect.value("Melee - Heavy");
   updateTypeVisibility();
   updateEquipmentOptions();
 
-  // Buttons
+  // --- Helper to build eq object from form
+  function buildEquipmentObject() {
+    let selectedType = typeSelect.value();
+    let newName = nameInput.value().trim();
+
+    let stATGonusStat = stATGonusStatSelect.value();
+    let stATGonusAmount = parseInt(stATGonusAmountInput.value()) || 0;
+    let stATGonus = stATGonusStat !== "None" ? { stat: stATGonusStat, amount: stATGonusAmount } : null;
+
+    let req1 = statReq1Select.value();
+    let req1Val = parseInt(statReq1Input.value());
+    let req2 = statReq2Select.value();
+    let req2Val = parseInt(statReq2Input.value());
+    let statRequirements = {};
+    if (req1 !== "None" && req1Val) statRequirements[req1] = req1Val;
+    if (req2 !== "None" && req2Val) statRequirements[req2] = req2Val;
+
+    let eqObj = {
+      name: newName,
+      description: descriptionInput.value(),
+      type: selectedType,
+      category: "Equipment",
+      quality: qualitySelect.value(),
+      crystalSlots: parseInt(slotsSelect.value()) || 0,
+      statRequirements: statRequirements,
+      quantity: 1,
+    };
+
+    if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
+      eqObj.movementPenalty = parseInt(penaltySelect.value()) || 0;
+      eqObj.defense = parseInt(defenseInput.value()) || 0;
+      eqObj.modifier = parseInt(armorModifierInput.value()) || 0;
+    } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
+      eqObj.linkedStat = linkedStatSelect.value();
+      eqObj.damageDice = damageDiceInput.value().trim();
+      eqObj.modifier = parseInt(weaponModifierInput.value()) || 0;
+      eqObj.weaponCategory = weaponCategorySelect.value();
+    }
+    if (stATGonus) eqObj.stATGonus = stATGonus;
+
+    return eqObj;
+  }
+
+  // --- Duplicate check in master list & inventory
+  // If we find an item with eqObj.name that isn't the "same item" as originalName, we throw error
+  function isNameDuplicate(newName, originalName) {
+    // If newName === originalName, no duplication
+    if (newName === originalName) return false;
+
+    // Check master list
+    let dupInMaster = availableItems["Equipment"].some(e => e.name === newName && e.name !== originalName);
+    if (dupInMaster) return true;
+
+    // Check inventory
+    let dupInInv = inventory.some(i => i.category === "Equipment" && i.name === newName && i.name !== originalName);
+    if (dupInInv) return true;
+
+    return false;
+  }
+
+  // --- "Add" => Always updates master list + always add/update inventory
   createButton("Add")
     .parent(buttonContainer)
     .style("margin", "5px")
@@ -2736,113 +2809,71 @@ let allEquipment = inventory.filter(item =>
     .style("border-radius", "3px")
     .style("cursor", "pointer")
     .mousePressed(() => {
-      let idx = parseInt(equipmentSelect.value());
-      let selectedType = typeSelect.value();
-      let allEquipment = inventory.filter(item => 
-        item.category === "Equipment" && 
-        (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType)
-      );
-      let availableEquipment = (availableItems["Equipment"] || []).filter(item => 
-        item.type === selectedType && 
-        !inventory.some(i => i.name === item.name && i.category === "Equipment")
-      );
+      successMessage.html("");
+      successMessage.style("display", "none");
+      errorMessage.html("");
+      errorMessage.style("display", "none");
 
-      if (idx === -1) {
-        // Create a brand-new item
-        let name = nameInput.value().trim();
-        if (!name) {
-          errorMessage.html("Please provide a name for the equipment.");
-          errorMessage.style("display", "block");
-          successMessage.style("display", "none");
-          return;
-        }
-        if (inventory.some(item => item.name === name && item.category === "Equipment")) {
-          errorMessage.html(`An equipment with the name "${name}" already exists. Please choose a different name.`);
-          errorMessage.style("display", "block");
-          successMessage.style("display", "none");
-          return;
-        }
-
-        let stATGonusStat = stATGonusStatSelect.value();
-        let stATGonusAmount = parseInt(stATGonusAmountInput.value()) || 0;
-        let stATGonus = stATGonusStat !== "None" ? { stat: stATGonusStat, amount: stATGonusAmount } : null;
-
-        let statReq1 = statReq1Select.value();
-        let statReq1Value = parseInt(statReq1Input.value());
-        let statReq2 = statReq2Select.value();
-        let statReq2Value = parseInt(statReq2Input.value());
-        let statRequirements = {};
-        if (statReq1 !== "None" && statReq1Value) statRequirements[statReq1] = statReq1Value;
-        if (statReq2 !== "None" && statReq2Value) statRequirements[statReq2] = statReq2Value;
-
-        let newEquipment = {
-          name: name,
-          description: descriptionInput.value(),
-          type: selectedType,
-          category: "Equipment",
-          quality: qualitySelect.value(),
-          crystalSlots: parseInt(slotsSelect.value()) || 0,
-          quantity: 1
-        };
-
-        if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
-          newEquipment.movementPenalty = parseInt(penaltySelect.value()) || 0;
-          newEquipment.defense = parseInt(defenseInput.value()) || 0;
-          newEquipment.modifier = parseInt(armorModifierInput.value()) || 0;
-        } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
-          newEquipment.linkedStat = linkedStatSelect.value();
-          newEquipment.damageDice = damageDiceInput.value().trim();
-          newEquipment.modifier = parseInt(weaponModifierInput.value()) || 0;
-          newEquipment.weaponCategory = weaponCategorySelect.value();
-        }
-
-        if (stATGonus) newEquipment.stATGonus = stATGonus;
-        if (Object.keys(statRequirements).length > 0) newEquipment.statRequirements = statRequirements;
-        else newEquipment.statRequirements = {}; // Ensure statRequirements is always defined
-
-        console.log("Adding new equipment:", newEquipment);
-        inventory.push(newEquipment);
-        availableItems["Equipment"].push({ ...newEquipment }); // Add to master list
-      } else if (idx >= allEquipment.length) {
-        // Add an existing "Available" item to inventory
-        let availableIdx = idx - allEquipment.length;
-        if (availableIdx >= 0 && availableIdx < availableEquipment.length) {
-          let selectedItem = availableEquipment[availableIdx];
-          let newItem = { ...selectedItem, quantity: 1 }; // Ensure quantity is set
-          if (!newItem.statRequirements) newItem.statRequirements = {}; // Ensure statRequirements is defined
-          if (inventory.some(i => i.name === newItem.name && i.category === "Equipment")) {
-            errorMessage.html(`"${newItem.name}" is already in your inventory. Use Save to edit it.`);
-            errorMessage.style("display", "block");
-            successMessage.style("display", "none");
-            return;
-          }
-          inventory.push(newItem);
-          console.log("Added to inventory:", newItem);
-        } else {
-          errorMessage.html("Invalid selection from available items.");
-          errorMessage.style("display", "block");
-          successMessage.style("display", "none");
-          return;
-        }
-      } else {
-        // Item is already in inventory
-        errorMessage.html("That item is already in your inventory. Use Save to edit it.");
+      let eqObj = buildEquipmentObject();
+      if (!eqObj.name) {
+        errorMessage.html("Please provide a name for the equipment.");
         errorMessage.style("display", "block");
-        successMessage.style("display", "none");
+        return;
+      }
+      // Check duplicates
+      if (isNameDuplicate(eqObj.name, originalName)) {
+        errorMessage.html(`An equipment named "${eqObj.name}" already exists. Choose a different name.`);
+        errorMessage.style("display", "block");
         return;
       }
 
+      // 1) Update or rename in master list
+      //    If originalName is not null, find by originalName. Otherwise it's brand new
+      if (originalName) {
+        // find the old entry in master list
+        let oldMasterIdx = availableItems["Equipment"].findIndex(e => e.name === originalName);
+        if (oldMasterIdx !== -1) {
+          // Overwrite existing
+          availableItems["Equipment"][oldMasterIdx] = eqObj;
+        } else {
+          // Not found, push new
+          availableItems["Equipment"].push(eqObj);
+        }
+      } else {
+        // brand new
+        availableItems["Equipment"].push(eqObj);
+      }
+
+      // 2) Always add or update inventory
+      let oldInvIdx = inventory.findIndex(i => i.name === originalName && i.category === "Equipment");
+      if (oldInvIdx !== -1) {
+        // rename or overwrite
+        inventory[oldInvIdx] = eqObj;
+      } else {
+        // Maybe there's an item with the same originalName? 
+        // If we can't find it, let's see if there's an item with eqObj.name
+        let eqNameIdx = inventory.findIndex(i => i.name === eqObj.name && i.category === "Equipment");
+        if (eqNameIdx !== -1) {
+          // Overwrite that
+          inventory[eqNameIdx] = eqObj;
+        } else {
+          // brand new
+          inventory.push(eqObj);
+        }
+      }
+
+      // Save
       localStorage.setItem('inventory', JSON.stringify(inventory));
-      console.log("Updated inventory:", inventory);
       updateAvailableEquipment();
-      updateEquipmentOptions(); // Refresh dropdown
+      updateEquipmentOptions();
       createInventoryUI();
       createEquipmentUI();
-      modalDiv.remove();
-      errorMessage.style("display", "none");
-      successMessage.style("display", "none");
+
+      successMessage.html("Equipment Added to Inventory");
+      successMessage.style("display", "block");
     });
 
+  // --- "Save" => Always updates master list, only updates inventory if old item is in inventory
   createButton("Save")
     .parent(buttonContainer)
     .style("margin", "5px")
@@ -2853,123 +2884,59 @@ let allEquipment = inventory.filter(item =>
     .style("border-radius", "3px")
     .style("cursor", "pointer")
     .mousePressed(() => {
-      let idx = parseInt(equipmentSelect.value());
-      if (idx === -1) {
-        errorMessage.html("Please select an item to edit.");
-        errorMessage.style("display", "block");
-        successMessage.style("display", "none");
-        return;
-      }
+      successMessage.html("");
+      successMessage.style("display", "none");
+      errorMessage.html("");
+      errorMessage.style("display", "none");
 
-      let selectedType = typeSelect.value();
-      let allEquipment = inventory.filter(item => 
-        item.category === "Equipment" && 
-        (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType)
-      );
-      let availableEquipment = (availableItems["Equipment"] || []).filter(item => 
-        item.type === selectedType && 
-        !inventory.some(i => i.name === item.name && i.category === "Equipment")
-      );
-
-      let item;
-      let isFromInventory = false;
-      let inventoryIdx = -1;
-      let availableIdx = -1;
-      if (idx >= 0 && idx < allEquipment.length) {
-        item = allEquipment[idx];
-        inventoryIdx = inventory.indexOf(item);
-        isFromInventory = true;
-      } else {
-        let availableIdxOffset = idx - allEquipment.length;
-        if (availableIdxOffset >= 0 && availableIdxOffset < availableEquipment.length) {
-          item = availableEquipment[availableIdxOffset];
-          availableIdx = availableItems["Equipment"].findIndex(i => i.name === item.name);
-        } else {
-          errorMessage.html("Invalid item selected.");
-          errorMessage.style("display", "block");
-          successMessage.style("display", "none");
-          return;
-        }
-      }
-
-      let newName = nameInput.value().trim();
-      if (!newName) {
+      let eqObj = buildEquipmentObject();
+      if (!eqObj.name) {
         errorMessage.html("Please provide a name for the equipment.");
         errorMessage.style("display", "block");
-        successMessage.style("display", "none");
         return;
       }
-      if (inventory.some(i => i.name === newName && i.category === "Equipment" && i !== item)) {
-        errorMessage.html(`An equipment with the name "${newName}" already exists in inventory.`);
+      // Duplicate check
+      if (isNameDuplicate(eqObj.name, originalName)) {
+        errorMessage.html(`An equipment named "${eqObj.name}" already exists. Choose a different name.`);
         errorMessage.style("display", "block");
-        successMessage.style("display", "none");
         return;
       }
 
-      let stATGonusStat = stATGonusStatSelect.value();
-      let stATGonusAmount = parseInt(stATGonusAmountInput.value()) || 0;
-      let stATGonus = stATGonusStat !== "None" ? { stat: stATGonusStat, amount: stATGonusAmount } : null;
-
-      let statReq1 = statReq1Select.value();
-      let statReq1Value = parseInt(statReq1Input.value());
-      let statReq2 = statReq2Select.value();
-      let statReq2Value = parseInt(statReq2Input.value());
-      let statRequirements = {};
-      if (statReq1 !== "None" && statReq1Value) statRequirements[statReq1] = statReq1Value;
-      if (statReq2 !== "None" && statReq2Value) statRequirements[statReq2] = statReq2Value;
-
-      let updatedEquipment = {
-        name: newName,
-        description: descriptionInput.value(),
-        type: selectedType,
-        category: "Equipment",
-        quality: qualitySelect.value(),
-        crystalSlots: parseInt(slotsSelect.value()) || 0,
-        quantity: item.quantity || 1
-      };
-
-      if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
-        updatedEquipment.movementPenalty = parseInt(penaltySelect.value()) || 0;
-        updatedEquipment.defense = parseInt(defenseInput.value()) || 0;
-        updatedEquipment.modifier = parseInt(armorModifierInput.value()) || 0;
-      } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
-        updatedEquipment.linkedStat = linkedStatSelect.value();
-        updatedEquipment.damageDice = damageDiceInput.value().trim();
-        updatedEquipment.modifier = parseInt(weaponModifierInput.value()) || 0;
-        updatedEquipment.weaponCategory = weaponCategorySelect.value();
-      }
-
-      if (stATGonus) updatedEquipment.stATGonus = stATGonus;
-      updatedEquipment.statRequirements = Object.keys(statRequirements).length > 0 ? statRequirements : {}; // Ensure statRequirements is defined
-
-      // Always remove the old entry from inventory if it exists
-      let oldInvIdx = inventory.findIndex(i => i.name === item.name && i.category === "Equipment");
-      if (oldInvIdx !== -1) {
-        inventory.splice(oldInvIdx, 1);
-      }
-
-      // Update availableItems in place
-      let masterIdx = availableItems["Equipment"].findIndex(e => e.name === item.name);
-      if (masterIdx !== -1) {
-        availableItems["Equipment"][masterIdx] = updatedEquipment;
+      // 1) Update or rename in master list
+      if (originalName) {
+        let oldMasterIdx = availableItems["Equipment"].findIndex(e => e.name === originalName);
+        if (oldMasterIdx !== -1) {
+          availableItems["Equipment"][oldMasterIdx] = eqObj;
+        } else {
+          // If not found, we push new
+          availableItems["Equipment"].push(eqObj);
+        }
       } else {
-        availableItems["Equipment"].push(updatedEquipment);
+        // If originalName is null => "Add New"
+        // "Save" still modifies the master list, but won't add to inventory unless it was already there
+        availableItems["Equipment"].push(eqObj);
       }
 
-      // Push updated item to inventory
-      inventory.push(updatedEquipment);
+      // 2) If the old item was in inventory, rename/update it
+      if (originalName) {
+        let oldInvIdx = inventory.findIndex(i => i.name === originalName && i.category === "Equipment");
+        if (oldInvIdx !== -1) {
+          inventory[oldInvIdx] = eqObj;
+        }
+      }
+      // If there's no originalName or the item wasn't in inventory, do nothing else
 
       localStorage.setItem('inventory', JSON.stringify(inventory));
       updateAvailableEquipment();
-      updateEquipmentOptions(); // Refresh dropdown to reflect changes
+      updateEquipmentOptions();
       createInventoryUI();
       createEquipmentUI();
 
-      successMessage.html("Equipment Updated");
+      successMessage.html("Equipment Updated in Master List");
       successMessage.style("display", "block");
-      errorMessage.style("display", "none");
     });
 
+  // --- Remove => removes from inventory & equipped, then closes
   createButton("Remove")
     .parent(buttonContainer)
     .style("margin", "5px")
@@ -2980,30 +2947,40 @@ let allEquipment = inventory.filter(item =>
     .style("border-radius", "3px")
     .style("cursor", "pointer")
     .mousePressed(() => {
+      successMessage.html("");
+      successMessage.style("display", "none");
+      errorMessage.html("");
+      errorMessage.style("display", "none");
+
       let idx = parseInt(equipmentSelect.value());
       if (idx === -1) {
         errorMessage.html("Please select an item to remove.");
         errorMessage.style("display", "block");
-        successMessage.style("display", "none");
         return;
       }
 
       let selectedType = typeSelect.value();
-      let allEquipment = inventory.filter(item => 
-        item.category === "Equipment" && 
-        (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType)
+      let isWeapon = ["On-Hand", "Off-Hand"].includes(selectedType);
+
+      let filteredInventory = inventory.filter(item =>
+        item.category === "Equipment" &&
+        (selectedType === "Accessory" ? item.type === "Accessory" : item.type === selectedType) &&
+        (!isWeapon || item.weaponCategory === weaponCategorySelect.value())
       );
-      if (idx >= 0 && idx < allEquipment.length) {
-        let item = allEquipment[idx];
+
+      if (idx >= 0 && idx < filteredInventory.length) {
+        let item = filteredInventory[idx];
         showConfirmationModal(
           `Are you sure you want to remove "${item.name}"?`,
           () => {
+            // If equipped, unequip
             if (equippedItems["Accessory 1"] && equippedItems["Accessory 1"].name === item.name) {
               equippedItems["Accessory 1"] = null;
             }
             if (equippedItems["Accessory 2"] && equippedItems["Accessory 2"].name === item.name) {
               equippedItems["Accessory 2"] = null;
             }
+            // Remove from inventory
             inventory.splice(inventory.indexOf(item), 1);
             localStorage.setItem('inventory', JSON.stringify(inventory));
             updateStATGonusesDisplay();
@@ -3015,9 +2992,13 @@ let allEquipment = inventory.filter(item =>
             modalDiv.remove();
           }
         );
+      } else {
+        errorMessage.html("Invalid item selected for removal.");
+        errorMessage.style("display", "block");
       }
     });
 
+  // --- Close
   createButton("Close")
     .parent(buttonContainer)
     .style("margin", "5px")
