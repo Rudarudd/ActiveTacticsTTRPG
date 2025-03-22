@@ -24,7 +24,7 @@ let stat_str = 1,
 let level = 1,
   exp = 1,
   movement = 65; // Base movement starts at 65 ft
-let stATGonusElements = {};
+let statbonusElements = {};
 
 //Talent Point Pool
 let totalTalentPoints = 0; // Total Talent Points based on level
@@ -51,8 +51,8 @@ let availableItems = {
   ],
   "Crystals": [
     { name: "Green Crystal", description: "Casts Cure.", category: "Crystals", quantity: 1, quality: "Uncommon" },
-    { name: "Fire Crystal", description: "Grants the ability to cast Fire.", category: "Crystals", stATGonuses: { MAG: 2 }, abilities: ["Fire"], statRequirements: { MAG: 5 }, quantity: 1, quality: "Rare" },
-    { name: "Heal Crystal", description: "Grants the ability to cast Cure.", category: "Crystals", stATGonuses: { WIL: 1 }, abilities: ["Cure"], statRequirements: { WIL: 3 }, quantity: 1, quality: "Rare" }
+    { name: "Fire Crystal", description: "Grants the ability to cast Fire.", category: "Crystals", statbonuses: { MAG: 2 }, abilities: ["Fire"], statRequirements: { MAG: 5 }, quantity: 1, quality: "Rare" },
+    { name: "Heal Crystal", description: "Grants the ability to cast Cure.", category: "Crystals", statbonuses: { WIL: 1 }, abilities: ["Cure"], statRequirements: { WIL: 3 }, quantity: 1, quality: "Rare" }
   ],
   "Miscellaneous": [
     { name: "Old Key", description: "Rusty but functional.", category: "Miscellaneous", quantity: 1, quality: "Poor" }
@@ -1577,7 +1577,7 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
       }
       addDetail("Weapon Category", item.weaponCategory);
       addDetail("Movement Penalty", item.movementPenalty !== undefined ? `${item.movementPenalty} ft` : undefined);
-      addDetail("Stat Bonus", item.stATGonuses ? `${item.stATGonuses.stat} ${item.stATGonuses.amount > 0 ? "+" : ""}${item.stATGonuses.amount}` : undefined);
+      addDetail("Stat Bonus", item.statbonuses ? `${item.statbonuses.stat} ${item.statbonuses.amount > 0 ? "+" : ""}${item.statbonuses.amount}` : undefined);
     } else {
       createP("No description available.").parent(modalDiv);
     }
@@ -1603,8 +1603,8 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
           if (crystal) {
             let desc = `Slot ${idx + 1}: ${crystal.name}<br>`;
             desc += `${crystal.description || "No description provided."}<br>`;
-            if (crystal.stATGonuses && Object.keys(crystal.stATGonuses).length > 0) {
-              let bonuses = Object.entries(crystal.stATGonuses)
+            if (crystal.statbonuses && Object.keys(crystal.statbonuses).length > 0) {
+              let bonuses = Object.entries(crystal.statbonuses)
                 .map(([stat, value]) => `${value > 0 ? "+" : ""}${value} ${stat}`)
                 .join(", ");
               desc += `Bonuses: ${bonuses}<br>`;
@@ -1726,7 +1726,7 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
 
           updateCrystalDescriptions();
           errorMessage.style("display", "none");
-          updateStATGonusesDisplay();
+          updatestatbonusesDisplay();
           updateResourcesBasedOnStats();
           updateAbilities();
           createEquipmentUI();
@@ -1772,8 +1772,8 @@ function loadEquipmentData() {
   let penaltySelect = modalDiv.elt.querySelector('#equipment-penalty-select');
   let slotsSelect = modalDiv.elt.querySelector('#equipment-slots-select');
   let linkedStatSelect = modalDiv.elt.querySelector('#equipment-linked-stat-select');
-  let stATGonusStatSelect = modalDiv.elt.querySelector('#equipment-statonus-stat-select');
-  let stATGonusAmountInput = modalDiv.elt.querySelector('#equipment-statonus-amount-input');
+  let statbonusStatSelect = modalDiv.elt.querySelector('#equipment-statonus-stat-select');
+  let statbonusAmountInput = modalDiv.elt.querySelector('#equipment-statonus-amount-input');
   let statReq1Select = modalDiv.elt.querySelector('#equipment-statreq1-select');
   let statReq1Input = modalDiv.elt.querySelector('#equipment-statreq1-input');
   let statReq2Select = modalDiv.elt.querySelector('#equipment-statreq2-select');
@@ -1786,13 +1786,13 @@ function loadEquipmentData() {
 
   // Add null checks to prevent TypeError
   if (!nameInput || !qualitySelect || !descriptionInput || !penaltySelect || !slotsSelect ||
-      !linkedStatSelect || !stATGonusStatSelect || !stATGonusAmountInput ||
+      !linkedStatSelect || !statbonusStatSelect || !statbonusAmountInput ||
       !statReq1Select || !statReq1Input || !statReq2Select || !statReq2Input ||
       !damageDiceInput || !weaponModifierInput || !defenseInput || !armorModifierInput ||
       !weaponCategorySelect) {
     console.error("One or more elements not found in loadEquipmentData:", {
       nameInput, qualitySelect, descriptionInput, penaltySelect, slotsSelect,
-      linkedStatSelect, stATGonusStatSelect, stATGonusAmountInput,
+      linkedStatSelect, statbonusStatSelect, statbonusAmountInput,
       statReq1Select, statReq1Input, statReq2Select, statReq2Input,
       damageDiceInput, weaponModifierInput, defenseInput, armorModifierInput,
       weaponCategorySelect
@@ -1807,8 +1807,8 @@ function loadEquipmentData() {
     penaltySelect.value = "0";
     slotsSelect.value = "0";
     linkedStatSelect.value = "STR";
-    stATGonusStatSelect.value = "None";
-    stATGonusAmountInput.value = "0";
+    statbonusStatSelect.value = "None";
+    statbonusAmountInput.value = "0";
     statReq1Select.value = "None";
     statReq1Input.value = "";
     statReq2Select.value = "None";
@@ -1827,8 +1827,8 @@ function loadEquipmentData() {
     penaltySelect.value = item.movementPenalty || "0";
     slotsSelect.value = item.crystalSlots || 0;
     linkedStatSelect.value = item.linkedStat || "STR";
-    stATGonusStatSelect.value = item.stATGonuses ? Object.keys(item.stATGonuses)[0] : "None";
-    stATGonusAmountInput.value = item.stATGonuses && Object.keys(item.stATGonuses).length > 0 ? item.stATGonuses[Object.keys(item.stATGonuses)[0]] : 0;
+    statbonusStatSelect.value = item.statbonuses ? Object.keys(item.statbonuses)[0] : "None";
+    statbonusAmountInput.value = item.statbonuses && Object.keys(item.statbonuses).length > 0 ? item.statbonuses[Object.keys(item.statbonuses)[0]] : 0;
     let statReqs = item.statRequirements || {};
     let stats = Object.keys(statReqs);
     statReq1Select.value = stats[0] || "None";
@@ -1854,8 +1854,8 @@ function loadEquipmentData() {
     penaltySelect.value = item.movementPenalty || "0";
     slotsSelect.value = item.crystalSlots || 0;
     linkedStatSelect.value = item.linkedStat || "STR";
-    stATGonusStatSelect.value = item.stATGonuses ? Object.keys(item.stATGonuses)[0] : "None";
-    stATGonusAmountInput.value = item.stATGonuses && Object.keys(item.stATGonuses).length > 0 ? item.stATGonuses[Object.keys(item.stATGonuses)[0]] : 0;
+    statbonusStatSelect.value = item.statbonuses ? Object.keys(item.statbonuses)[0] : "None";
+    statbonusAmountInput.value = item.statbonuses && Object.keys(item.statbonuses).length > 0 ? item.statbonuses[Object.keys(item.statbonuses)[0]] : 0;
     let statReqs = item.statRequirements || {};
     let stats = Object.keys(statReqs);
     statReq1Select.value = stats[0] || "None";
@@ -2077,21 +2077,21 @@ function showAddEditEquipmentModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  let stATGonusDiv = createDiv().parent(contentWrapper);
-  createSpan("Stat Bonus:").parent(stATGonusDiv).style("display", "block");
-  let stATGonusAmountInput = createInput("0", "number")
-    .parent(stATGonusDiv)
+  let statbonusDiv = createDiv().parent(contentWrapper);
+  createSpan("Stat Bonus:").parent(statbonusDiv).style("display", "block");
+  let statbonusAmountInput = createInput("0", "number")
+    .parent(statbonusDiv)
     .style("width", "50px")
     .style("margin-right", "5px")
     .id("equipment-statonus-amount-input");
-  let stATGonusStatSelect = createSelect()
-    .parent(stATGonusDiv)
+  let statbonusStatSelect = createSelect()
+    .parent(statbonusDiv)
     .style("width", "100px")
     .style("margin-bottom", "10px")
     .id("equipment-statonus-stat-select");
-  ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => stATGonusStatSelect.option(stat));
+  ["None", "STR", "DEX", "VIT", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statbonusStatSelect.option(stat));
   createSpan("Stat to boost and amount.")
-    .parent(stATGonusDiv)
+    .parent(statbonusDiv)
     .style("font-size", "12px")
     .style("color", "#666")
     .style("display", "block");
@@ -2311,12 +2311,12 @@ function showAddEditEquipmentModal() {
       }
     }
 
-    if (item.stATGonuses) {
-      stATGonusStatSelect.value(item.stATGonuses.stat || "None");
-      stATGonusAmountInput.value(item.stATGonuses.amount || "0");
+    if (item.statbonuses) {
+      statbonusStatSelect.value(item.statbonuses.stat || "None");
+      statbonusAmountInput.value(item.statbonuses.amount || "0");
     } else {
-      stATGonusStatSelect.value("None");
-      stATGonusAmountInput.value("0");
+      statbonusStatSelect.value("None");
+      statbonusAmountInput.value("0");
     }
 
     if (item.statRequirements) {
@@ -2360,9 +2360,9 @@ function showAddEditEquipmentModal() {
     let selectedType = typeSelect.value();
     let newName = nameInput.value().trim();
 
-    let stATGonusStat = stATGonusStatSelect.value();
-    let stATGonusAmount = parseInt(stATGonusAmountInput.value()) || 0;
-    let stATGonuses = stATGonusStat !== "None" ? { stat: stATGonusStat, amount: stATGonusAmount } : null;
+    let statbonusStat = statbonusStatSelect.value();
+    let statbonusAmount = parseInt(statbonusAmountInput.value()) || 0;
+    let statbonuses = statbonusStat !== "None" ? { stat: statbonusStat, amount: statbonusAmount } : null;
 
     let statReq1 = statReq1Select.value();
     let statReq1Value = parseInt(statReq1Input.value());
@@ -2399,7 +2399,7 @@ function showAddEditEquipmentModal() {
       eq.modifier = parseInt(weaponModifierInput.value()) || 0;
       eq.weaponCategory = weaponCategorySelect.value();
     }
-    if (stATGonuses) eq.stATGonuses = stATGonuses;
+    if (statbonuses) eq.statbonuses = statbonuses;
 
     return eq;
   }
@@ -2663,7 +2663,7 @@ function showAddEditEquipmentModal() {
       updateEquipmentOptions();
       createInventoryUI();
       createEquipmentUI();
-      updateStATGonusesDisplay();
+      updatestatbonusesDisplay();
       updateResourcesBasedOnStats();
       updateAbilities();
       successMessage.html("Equipment Updated in Master List and Inventory");
@@ -2718,7 +2718,7 @@ function showAddEditEquipmentModal() {
             // Remove from inventory
             inventory.splice(inventory.indexOf(item), 1);
             localStorage.setItem('inventory', JSON.stringify(inventory));
-            updateStATGonusesDisplay();
+            updatestatbonusesDisplay();
             updateResourcesBasedOnStats();
             updateAvailableEquipment();
             updateAbilities();
@@ -2871,7 +2871,7 @@ function createStatsUI() {
     }
   }
 
-  updateStATGonusesDisplay();
+  updatestatbonusesDisplay();
 }
 function createStatInput(abbrev, name, initialValue, container, statName, linkable, greyOutAtMax = false, showTotalAndBonus = false) {
   let div = createDiv().parent(container).style("margin", "5px");
@@ -2933,7 +2933,7 @@ function createStatInput(abbrev, name, initialValue, container, statName, linkab
   // Add bonus span if applicable
   if (showTotalAndBonus) {
     let bonusSpan = createSpan().parent(div).style("margin-left", "5px");
-    stATGonusElements[abbrev] = bonusSpan;
+    statbonusElements[abbrev] = bonusSpan;
   }
 }
 function tryChangeStat(statName, newValue) {
@@ -2978,7 +2978,7 @@ function tryChangeStat(statName, newValue) {
   }
 
   // Check stat requirements for equipped items
-  let bonuses = getStATGonuses();
+  let bonuses = getstatbonuses();
   let newTotal = newValueInt + (bonuses[statName] || 0);
   for (let slot in equippedItems) {
     let item = equippedItems[slot];
@@ -3004,7 +3004,7 @@ function tryChangeStat(statName, newValue) {
     case "SPR": stat_spr = newValueInt; break;
     case "LCK": stat_lck = newValueInt; break;
   }
-  updateStATGonusesDisplay();
+  updatestatbonusesDisplay();
   return true;
 }
 function createAdditionalAttributesUI() {
@@ -3241,7 +3241,7 @@ function createEquipmentUI() {
         }
       }
       calculateMovement();
-      updateStATGonusesDisplay();
+      updatestatbonusesDisplay();
       updateResourcesBasedOnStats();
       updateAbilities();
       createEquipmentUI();
@@ -3279,7 +3279,7 @@ function createEquipmentUI() {
       crystalCell.mousePressed(() => showEquipmentDescription(slot, itemData, true));
     }
 
-    let bonusText = itemData && itemData.stATGonuses ? `${itemData.stATGonuses.stat} ${itemData.stATGonuses.amount > 0 ? "+" : ""}${itemData.stATGonuses.amount}` : "-";
+    let bonusText = itemData && itemData.statbonuses ? `${itemData.statbonuses.stat} ${itemData.statbonuses.amount > 0 ? "+" : ""}${itemData.statbonuses.amount}` : "-";
     createElement("td", bonusText)
       .parent(row)
       .style("border", "1px solid #ccc")
@@ -3356,15 +3356,15 @@ function showModifyCrystalsModal() {
     .attribute("placeholder", "Describe the crystal...");
   createSpan("What the crystal does or its lore.").parent(descDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
-  let stATGonusDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
-  createSpan("Stat Bonus:").parent(stATGonusDiv).style("display", "inline-block").style("width", "100px");
-  let statSelect = createSelect().parent(stATGonusDiv).style("width", "80px").style("margin-right", "5px");
+  let statbonusDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Stat Bonus:").parent(statbonusDiv).style("display", "inline-block").style("width", "100px");
+  let statSelect = createSelect().parent(statbonusDiv).style("width", "80px").style("margin-right", "5px");
   ["None", "STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statSelect.option(stat));
   let amountInput = createInput("0", "number")
-    .parent(stATGonusDiv)
+    .parent(statbonusDiv)
     .style("width", "50px")
     .attribute("placeholder", "e.g., 2");
-  createSpan("Stat to boost (e.g., MAG) and amount.").parent(stATGonusDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
+  createSpan("Stat to boost (e.g., MAG) and amount.").parent(statbonusDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
   let statReqDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Stat Requirement:").parent(statReqDiv).style("display", "inline-block").style("width", "100px");
@@ -3422,10 +3422,10 @@ function showModifyCrystalsModal() {
       let crystal = crystalsFromInventory[idx];
       nameInput.value(crystal.name || "");
       descInput.value(crystal.description || "");
-      let stATGonuses = crystal.stATGonuses || {};
-      let stat = Object.keys(stATGonuses).length > 0 ? Object.keys(stATGonuses)[0] : "None";
+      let statbonuses = crystal.statbonuses || {};
+      let stat = Object.keys(statbonuses).length > 0 ? Object.keys(statbonuses)[0] : "None";
       statSelect.value(stat);
-      amountInput.value(stat !== "None" && stATGonuses[stat] ? stATGonuses[stat] : 0);
+      amountInput.value(stat !== "None" && statbonuses[stat] ? statbonuses[stat] : 0);
       let statReqs = crystal.statRequirements || {};
       let reqStat = Object.keys(statReqs).length > 0 ? Object.keys(statReqs)[0] : "None";
       statReqSelect.value(reqStat);
@@ -3437,10 +3437,10 @@ function showModifyCrystalsModal() {
         let crystal = crystalsFromAvailable[availableIdx];
         nameInput.value(crystal.name || "");
         descInput.value(crystal.description || "");
-        let stATGonuses = crystal.stATGonuses || {};
-        let stat = Object.keys(stATGonuses).length > 0 ? Object.keys(stATGonuses)[0] : "None";
+        let statbonuses = crystal.statbonuses || {};
+        let stat = Object.keys(statbonuses).length > 0 ? Object.keys(statbonuses)[0] : "None";
         statSelect.value(stat);
-        amountInput.value(stat !== "None" && stATGonuses[stat] ? stATGonuses[stat] : 0);
+        amountInput.value(stat !== "None" && statbonuses[stat] ? statbonuses[stat] : 0);
         let statReqs = crystal.statRequirements || {};
         let reqStat = Object.keys(statReqs).length > 0 ? Object.keys(statReqs)[0] : "None";
         statReqSelect.value(reqStat);
@@ -3503,7 +3503,7 @@ function showModifyCrystalsModal() {
           name,
           description: desc,
           category: "Crystals",
-          stATGonuses: stat !== "None" ? { [stat]: amount } : {},
+          statbonuses: stat !== "None" ? { [stat]: amount } : {},
           statRequirements: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
           abilities: abilities.length > 0 ? abilities : [],
           quantity: 1,
@@ -3634,7 +3634,7 @@ function showModifyCrystalsModal() {
         name: newName,
         description: newDesc,
         category: "Crystals",
-        stATGonuses: stat !== "None" ? { [stat]: amount } : {},
+        statbonuses: stat !== "None" ? { [stat]: amount } : {},
         statRequirements: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
         abilities: abilities.length > 0 ? abilities : [],
         quantity: crystal.quantity || 1,
@@ -3659,7 +3659,7 @@ function showModifyCrystalsModal() {
       }
 
       localStorage.setItem('inventory', JSON.stringify(inventory));
-      updateStATGonusesDisplay();
+      updatestatbonusesDisplay();
       updateResourcesBasedOnStats();
       updateAbilities();
       createEquipmentUI();
@@ -3712,7 +3712,7 @@ function showModifyCrystalsModal() {
           }
           inventory.splice(inventory.indexOf(crystal), 1);
           localStorage.setItem('inventory', JSON.stringify(inventory));
-          updateStATGonusesDisplay();
+          updatestatbonusesDisplay();
           updateResourcesBasedOnStats();
           updateAbilities();
           createEquipmentUI();
@@ -3745,8 +3745,8 @@ function createEquipmentFromModal(
   penaltySelect,
   slotsSelect,
   linkedStatSelect,
-  stATGonusAmountInput,
-  stATGonusStatSelect,
+  statbonusAmountInput,
+  statbonusStatSelect,
   descriptionInput,
   statReq1Select,
   statReq1Input,
@@ -3776,9 +3776,9 @@ function createEquipmentFromModal(
   let linkedStat = ["On-Hand", "Off-Hand"].includes(type)
     ? linkedStatSelect.value()
     : null;
-  let stATGonusAmount = parseInt(stATGonusAmountInput.value()) || 0;
-  let stATGonusStat =
-    stATGonusStatSelect.value() === "None" ? null : stATGonusStatSelect.value();
+  let statbonusAmount = parseInt(statbonusAmountInput.value()) || 0;
+  let statbonusStat =
+    statbonusStatSelect.value() === "None" ? null : statbonusStatSelect.value();
   let description =
     descriptionInput.value().trim() || "No description provided.";
   // Stat Requirements
@@ -3808,9 +3808,9 @@ function createEquipmentFromModal(
     name: name,
     movementPenalty: movementPenalty,
     crystalSlots: crystalSlots,
-    stATGonus:
-      stATGonusAmount !== 0 && stATGonusStat
-        ? { amount: stATGonusAmount, stat: stATGonusStat }
+    statbonus:
+      statbonusAmount !== 0 && statbonusStat
+        ? { amount: statbonusAmount, stat: statbonusStat }
         : null,
     modifier: modifier !== 0 ? modifier : null,
     linkedStat: linkedStat,
@@ -3865,7 +3865,7 @@ function equipItem(slot, itemName) {
   calculateMovement();
   updateResourcesBasedOnStats();
   createEquipmentUI();
-  updateStATGonusesDisplay();
+  updatestatbonusesDisplay();
 }
 
 // ### Talents UI ###
@@ -4964,23 +4964,23 @@ function updateTraitsTable() {
 
 // ### Stat and Resource Management ###
 
-function getStATGonuses() {
+function getstatbonuses() {
   let bonuses = {};
   for (let slot in equippedItems) {
     let item = equippedItems[slot];
     if (item) {
-      // Equipment bonuses - Fixed to use stATGonuses
-      if (item.stATGonuses) {
-        let stat = item.stATGonuses.stat;
-        let amount = item.stATGonuses.amount || 0;
+      // Equipment bonuses - Fixed to use statbonuses
+      if (item.statbonuses) {
+        let stat = item.statbonuses.stat;
+        let amount = item.statbonuses.amount || 0;
         bonuses[stat] = (bonuses[stat] || 0) + amount;
       }
-      // Crystal bonuses (already using stATGonuses)
+      // Crystal bonuses (already using statbonuses)
       if (item.equippedCrystals) {
         item.equippedCrystals.forEach(crystal => {
-          if (crystal && crystal.stATGonuses) {
-            for (let stat in crystal.stATGonuses) {
-              bonuses[stat] = (bonuses[stat] || 0) + crystal.stATGonuses[stat];
+          if (crystal && crystal.statbonuses) {
+            for (let stat in crystal.statbonuses) {
+              bonuses[stat] = (bonuses[stat] || 0) + crystal.statbonuses[stat];
             }
           }
         });
@@ -5017,7 +5017,7 @@ function getTotalStat(statName) {
     default:
       return 0;
   }
-  let bonuses = getStATGonuses();
+  let bonuses = getstatbonuses();
   return baseStat + (bonuses[statName] || 0);
 }
 
@@ -5033,19 +5033,19 @@ function updateResourcesBasedOnStats() {
   maxMpInput.value(max_mp);
 }
 
-function updateStATGonusesDisplay() {
-  let bonuses = getStATGonuses();
-  for (let stat in stATGonusElements) {
+function updatestatbonusesDisplay() {
+  let bonuses = getstatbonuses();
+  for (let stat in statbonusElements) {
     // Skip Level, EXP, and Movement
     if (stat === "Level" || stat === "EXP" || stat === "Movement") {
       continue;
     }
     let bonus = bonuses[stat] || 0;
     if (bonus !== 0) {
-      stATGonusElements[stat].html(`${bonus > 0 ? '+' : ''}${bonus}`);
-      stATGonusElements[stat].style("color", bonus > 0 ? "green" : "red");
+      statbonusElements[stat].html(`${bonus > 0 ? '+' : ''}${bonus}`);
+      statbonusElements[stat].style("color", bonus > 0 ? "green" : "red");
     } else {
-      stATGonusElements[stat].html("");
+      statbonusElements[stat].html("");
     }
   }
 }
