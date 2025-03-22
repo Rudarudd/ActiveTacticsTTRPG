@@ -12,6 +12,7 @@ let max_ATG = 100,
   current_ATG = 0;
 
 // Global stat variables – all start at 1
+let lockToLevel = false;
 let stat_str = 1,
   stat_vit = 1,
   stat_dex = 1,
@@ -2767,7 +2768,7 @@ function showAddEditEquipmentModal() {
     }
   }
 
-  // Event Listeners
+  // --- Event Listeners ---
   typeSelect.changed(() => {
     updateTypeVisibility();
     updateEquipmentOptions();
@@ -2787,7 +2788,9 @@ function showAddEditEquipmentModal() {
   updateTypeVisibility();
   updateEquipmentOptions();
 
-  // Build item object from form
+  // --- Button logic ---
+
+  // Helper: Build item object from form
   function buildEquipmentObject() {
     let selectedType = typeSelect.value();
     let newName = nameInput.value().trim();
@@ -2804,6 +2807,10 @@ function showAddEditEquipmentModal() {
     if (statReq1 !== "None" && statReq1Value) statRequirements[statReq1] = statReq1Value;
     if (statReq2 !== "None" && statReq2Value) statRequirements[statReq2] = statReq2Value;
 
+    // Find the existing inventory item to preserve quantity
+    let existingItem = inventory.find(i => i.name === nameInput.value() && i.category === "Equipment");
+    let preservedQuantity = existingItem ? (existingItem.quantity || 1) : 1;
+
     let eq = {
       name: newName,
       description: descriptionInput.value(),
@@ -2811,17 +2818,17 @@ function showAddEditEquipmentModal() {
       category: "Equipment",
       quality: qualitySelect.value(),
       crystalSlots: parseInt(slotsSelect.value()) || 0,
-      quantity: 1,
+      quantity: preservedQuantity, // Preserve the existing quantity
       statRequirements: Object.keys(statRequirements).length > 0 ? statRequirements : {},
       dualWield: (["On-Hand", "Off-Hand"].includes(typeSelect.value())) ? dualWieldCheckbox.checked() : false,
       twoHanded: (["On-Hand", "Off-Hand"].includes(typeSelect.value())) ? twoHandedCheckbox.checked() : false,
     };
 
-    if (["Chest", "Helm", "Gloves", "Greaves"].includes(typeSelect.value())) {
+    if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
       eq.movementPenalty = parseInt(penaltySelect.value()) || 0;
       eq.defense = parseInt(defenseInput.value()) || 0;
       eq.modifier = parseInt(armorModifierInput.value()) || 0;
-    } else if (["On-Hand", "Off-Hand"].includes(typeSelect.value())) {
+    } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
       eq.linkedStat = linkedStatSelect.value();
       eq.damageDice = damageDiceInput.value().trim();
       eq.modifier = parseInt(weaponModifierInput.value()) || 0;
@@ -2888,6 +2895,7 @@ function showAddEditEquipmentModal() {
             availableItems["Equipment"].push(eqObj);
           }
           inventory.push(eqObj);
+          console.log("Added to inventory and updated master list:", eqObj);
           localStorage.setItem('inventory', JSON.stringify(inventory));
           updateAvailableEquipment();
           updateEquipmentOptions();
@@ -2928,6 +2936,7 @@ function showAddEditEquipmentModal() {
         }
         inventory.push(eqObj);
         availableItems["Equipment"].push({ ...eqObj });
+        console.log("Added new equipment to inventory and master list:", eqObj);
         localStorage.setItem('inventory', JSON.stringify(inventory));
         updateAvailableEquipment();
         updateEquipmentOptions();
@@ -2953,7 +2962,7 @@ function showAddEditEquipmentModal() {
       }
     });
 
-  // SAVE => Update master list, inventory, and equipped items, and unequip if stat requirements are not met
+  // SAVE => Update master list, inventory, and conditionally unequip based on dualWield/twoHanded changes or canWieldItem
   createButton("Save")
     .parent(buttonContainer)
     .style("margin", "5px")
@@ -3034,31 +3043,50 @@ function showAddEditEquipmentModal() {
         // Update existing items in inventory with the same name
         inventory.forEach((invItem, invIdx) => {
           if (invItem.name === originalName && invItem.category === "Equipment") {
-            // Preserve equippedCrystals if present
             let equippedCrystals = invItem.equippedCrystals || Array(eqObj.crystalSlots || 0).fill(null);
             inventory[invIdx] = { ...eqObj, equippedCrystals };
           }
         });
 
+        // Check if dualWield or twoHanded has changed
+        let originalDualWield = item.dualWield || false;
+        let originalTwoHanded = item.twoHanded || false;
+        let newDualWield = eqObj.dualWield;
+        let newTwoHanded = eqObj.twoHanded;
+        let wieldPropertiesChanged = originalDualWield !== newDualWield || originalTwoHanded !== newTwoHanded;
+
         // Update equipped items with the same name and check stat requirements
-        let unequippedSlots = [];
+        let unequippedSlotsStat = [];
+        let unequippedSlotsWield = [];
         for (let slot in equippedItems) {
           if (equippedItems[slot] && equippedItems[slot].name === originalName) {
-            // Preserve equippedCrystals if present
             let equippedCrystals = equippedItems[slot].equippedCrystals || Array(eqObj.crystalSlots || 0).fill(null);
             equippedItems[slot] = { ...eqObj, equippedCrystals };
-            // Check if the character still meets the updated stat requirements
+
+            // Check stat requirements with canWieldItem
             if (!canWieldItem(equippedItems[slot])) {
-              unequippedSlots.push(slot);
+              unequippedSlotsStat.push(slot);
+              equippedItems[slot] = null;
+            }
+            // If wield properties changed, unequip the item
+            else if (wieldPropertiesChanged) {
+              unequippedSlotsWield.push(slot);
               equippedItems[slot] = null;
             }
           }
         }
 
-        // Show a message if any items were unequipped
-        if (unequippedSlots.length > 0) {
+        // Combine reasons for unequipping and show pop-up
+        let messageParts = [];
+        if (unequippedSlotsStat.length > 0) {
+          messageParts.push(`Equipment Updated: '${eqObj.name}' has been unequipped from slot(s) ${unequippedSlotsStat.join(", ")} due to unmet stat requirements.`);
+        }
+        if (unequippedSlotsWield.length > 0) {
+          messageParts.push(`Equipment Updated: '${eqObj.name}' has been unequipped from slot(s) ${unequippedSlotsWield.join(", ")} due to changes in Dual Wield or Two-Handed properties.`);
+        }
+        if (messageParts.length > 0) {
           showConfirmationModal(
-            `Cannot equip ${eqObj.name} in slot(s) ${unequippedSlots.join(", ")}: stat requirements not met.`,
+            messageParts.join(" "),
             () => {},
             true
           );
@@ -3078,7 +3106,7 @@ function showAddEditEquipmentModal() {
       contentWrapper.elt.scrollTop = 0;
     });
 
-  // REMOVE => Remove item from both inventory and master list
+  // REMOVE => Remove item from master list and inventory
   createButton("Remove")
     .parent(buttonContainer)
     .style("margin", "5px")
@@ -3116,20 +3144,14 @@ function showAddEditEquipmentModal() {
           `Remove the item from the master list? "${item.name}"`,
           () => {
             // If equipped, unequip
-            for (let slot in equippedItems) {
-              if (equippedItems[slot] && equippedItems[slot].name === item.name) {
-                equippedItems[slot] = null;
-              }
+            if (equippedItems["Accessory 1"] && equippedItems["Accessory 1"].name === item.name) {
+              equippedItems["Accessory 1"] = null;
+            }
+            if (equippedItems["Accessory 2"] && equippedItems["Accessory 2"].name === item.name) {
+              equippedItems["Accessory 2"] = null;
             }
             // Remove from inventory
             inventory.splice(inventory.indexOf(item), 1);
-
-            // ALSO remove from the master list
-            let masterIdx = availableItems["Equipment"].findIndex(e => e.name === item.name);
-            if (masterIdx !== -1) {
-              availableItems["Equipment"].splice(masterIdx, 1);
-            }
-
             localStorage.setItem('inventory', JSON.stringify(inventory));
             updateStATGonusesDisplay();
             updateResourcesBasedOnStats();
@@ -3161,9 +3183,7 @@ function showAddEditEquipmentModal() {
       modalDiv.remove();
     });
 }
-
 // ### Stats UI ###
-
 function createStatsUI() {
   let statsContainer = select("#stats");
   if (!statsContainer) {
@@ -3173,15 +3193,65 @@ function createStatsUI() {
   statsContainer.html(""); // Clear entire stats tab
 
   createElement("h2", "Stats").parent(statsContainer);
-  let statsDesc = createP("Stats determine your character’s core abilities. Click a stat name for details.")
+  let statsDesc = createP("Stats determine your character’s core abilities. The editable field shows your base stat value, the grayed-out field next to it displays your total stat value (including bonuses), and the green (positive) or red (negative) number indicates your stat bonus from equipment. Click a stat name for details.")
     .parent(statsContainer)
     .style("font-size", "12px")
     .style("color", "#666")
     .style("margin-top", "5px")
     .style("margin-bottom", "10px");
 
-  createStatInput("Level", "Level", level, statsContainer, "Level", false);
-  createStatInput("EXP", "EXP", exp, statsContainer, "EXP", false);
+  // Add "Lock to Level" checkbox
+  let lockDiv = createDiv().parent(statsContainer).style("margin", "5px");
+  let lockLabel = createSpan("Lock to Level: ").parent(lockDiv).style("margin-right", "5px");
+  let lockCheckbox = createCheckbox("", lockToLevel)
+    .parent(lockDiv)
+    .style("display", "inline-block")
+    .style("margin", "0 5px 0 0");
+  createSpan("Limit stat points based on level (14 + 1 per level).")
+    .parent(lockDiv)
+    .style("font-size", "11px")
+    .style("color", "#666")
+    .style("display", "block")
+    .style("margin-top", "2px");
+  lockCheckbox.changed(() => {
+    if (lockCheckbox.checked()) {
+      // Calculate total points available and spent
+      let distributablePoints = 14 + (level - 1);
+      let startingPoints = 7; // 1 point per stat (7 stats)
+      let pointsSpent = stat_str + stat_vit + stat_dex + stat_mag + stat_wil + stat_spr + stat_lck;
+      let distributablePointsSpent = pointsSpent - startingPoints;
+      if (distributablePointsSpent > distributablePoints) {
+        showConfirmationModal(
+          `Your current stats exceed the available points for your level (${distributablePoints} points). Please adjust your stats to within the limit before enabling Lock to Level.`,
+          () => {},
+          true
+        );
+        lockCheckbox.checked(false); // Prevent enabling
+        return;
+      }
+    }
+    lockToLevel = lockCheckbox.checked();
+    updateStATGonusesDisplay();
+  });
+
+  // Display available points based on level
+  let distributablePoints = 14 + (level - 1);
+  let startingPoints = 7; // 1 point per stat (7 stats)
+  let pointsSpent = stat_str + stat_vit + stat_dex + stat_mag + stat_wil + stat_spr + stat_lck;
+  let distributablePointsSpent = pointsSpent - startingPoints;
+  let pointsDiv = createDiv().parent(statsContainer).style("margin", "5px");
+  createSpan(`Points Available: ${distributablePoints - distributablePointsSpent}/${distributablePoints}`).parent(pointsDiv);
+
+  // Placeholder for Ability Points and Talent Points
+  let abilityPoints = Math.floor((level - 1) / 2); // 1 point every 2 levels starting at level 3
+  let talentPoints = Math.floor(level / 5); // 1 point every 5 levels starting at level 5
+  let pointsInfoDiv = createDiv().parent(statsContainer).style("margin", "5px");
+  createSpan(`Ability Points: ${abilityPoints} (future use)`).parent(pointsInfoDiv).style("margin-right", "10px");
+  createSpan(`Talent Points: ${talentPoints} (future use)`).parent(pointsInfoDiv);
+
+  // Stats without total or bonus display
+  createStatInput("Level", "Level", level, statsContainer, "Level", false, false, false);
+  createStatInput("EXP", "EXP", exp, statsContainer, "EXP", false, false, false);
 
   let movementDiv = createDiv().parent(statsContainer).style("margin", "5px");
   let movementLabel = createSpan("Movement: ").parent(movementDiv).style("cursor", "pointer");
@@ -3194,13 +3264,14 @@ function createStatsUI() {
     .style("background-color", "#e0e0e0")
     .id("movementInput");
 
-  createStatInput("STR", "Strength", stat_str, statsContainer, "STR", true);
-  createStatInput("VIT", "Vitality", stat_vit, statsContainer, "VIT", true);
-  createStatInput("DEX", "Dexterity", stat_dex, statsContainer, "DEX", true);
-  createStatInput("MAG", "Magic", stat_mag, statsContainer, "MAG", true);
-  createStatInput("WIL", "Willpower", stat_wil, statsContainer, "WIL", true);
-  createStatInput("SPR", "Spirit", stat_spr, statsContainer, "SPR", true);
-  createStatInput("LCK", "Luck", stat_lck, statsContainer, "LCK", true, true);
+  // Stats with total and bonus display
+  createStatInput("STR", "Strength", stat_str, statsContainer, "STR", true, false, true);
+  createStatInput("VIT", "Vitality", stat_vit, statsContainer, "VIT", true, false, true);
+  createStatInput("DEX", "Dexterity", stat_dex, statsContainer, "DEX", true, false, true);
+  createStatInput("MAG", "Magic", stat_mag, statsContainer, "MAG", true, false, true);
+  createStatInput("WIL", "Willpower", stat_wil, statsContainer, "WIL", true, false, true);
+  createStatInput("SPR", "Spirit", stat_spr, statsContainer, "SPR", true, false, true);
+  createStatInput("LCK", "Luck", stat_lck, statsContainer, "LCK", true, true, true);
 
   createAdditionalAttributesUI();
 
@@ -3212,9 +3283,11 @@ function createStatsUI() {
       statLabelElements[stat].style("color", skillColor);
     }
   }
-}
 
-function createStatInput(abbrev, name, initialValue, container, statName, linkable, greyOutAtMax = false) {
+  // Update bonus display after creating the UI
+  updateStATGonusesDisplay();
+}
+function createStatInput(abbrev, name, initialValue, container, statName, linkable, greyOutAtMax = false, showTotalAndBonus = false) {
   let div = createDiv().parent(container).style("margin", "5px");
   let label = createSpan(name + " (" + abbrev + "): ").parent(div).style("cursor", "pointer");
   label.mouseClicked(() => showStatDescription(name + " (" + abbrev + ")", statDescriptions[abbrev] || "No description available."));
@@ -3223,8 +3296,8 @@ function createStatInput(abbrev, name, initialValue, container, statName, linkab
   let input = createInput(initialValue.toString(), "number").parent(div).style("width", "50px");
   input.changed(() => {
     let val = int(input.value());
-    val = constrain(val, 1, 99);
-    tryChangeStat(statName, val);
+    val = constrain(val, 1, 99); // Minimum is 1
+    let success = tryChangeStat(statName, val);
     let currentStatValue;
     switch (statName) {
       case "Level": currentStatValue = level; break;
@@ -3237,30 +3310,90 @@ function createStatInput(abbrev, name, initialValue, container, statName, linkab
       case "SPR": currentStatValue = stat_spr; break;
       case "LCK": currentStatValue = stat_lck; break;
     }
-    input.value(currentStatValue);
-    if (greyOutAtMax && currentStatValue === 99) {
-      input.attribute("disabled", "true").style("background-color", "#ccc");
-    } else if (greyOutAtMax) {
-      input.removeAttribute("disabled").style("background-color", "white");
+    // Only update the UI if the change was successful
+    if (success) {
+      input.value(currentStatValue);
+      if (greyOutAtMax && currentStatValue === 99) {
+        input.attribute("disabled", "true").style("background-color", "#ccc");
+      } else if (greyOutAtMax) {
+        input.removeAttribute("disabled").style("background-color", "white");
+      }
+      // Update total stat display if applicable
+      if (showTotalAndBonus) {
+        let totalInput = select(`#total-${statName}`);
+        if (totalInput) {
+          totalInput.value(getTotalStat(statName));
+        }
+      }
+      // Refresh the UI to update points display
+      createStatsUI();
+    } else {
+      // Revert the input value if the change failed
+      input.value(currentStatValue);
     }
   });
 
-  let bonusSpan = createSpan().parent(div).style("color", "green").style("margin-left", "5px");
-  stATGonusElements[abbrev] = bonusSpan;
+  // Add total stat field if applicable
+  if (showTotalAndBonus) {
+    let totalInput = createInput(getTotalStat(statName).toString(), "number")
+      .parent(div)
+      .style("width", "50px")
+      .style("margin-left", "5px")
+      .attribute("readonly", "true")
+      .style("background-color", "#e0e0e0")
+      .id(`total-${statName}`);
+  }
+
+  // Add bonus span if applicable
+  if (showTotalAndBonus) {
+    let bonusSpan = createSpan().parent(div).style("margin-left", "5px");
+    stATGonusElements[abbrev] = bonusSpan;
+  }
 }
-
 function tryChangeStat(statName, newValue) {
-  let newValueInt = constrain(int(newValue), 1, 99);
+  let newValueInt = constrain(int(newValue), 1, 99); // Minimum is 1
 
+  // Skip Level and EXP as they don't use points
   if (statName === "Level" || statName === "EXP") {
     if (statName === "Level") level = newValueInt;
     else if (statName === "EXP") exp = newValueInt;
     return true;
   }
 
+  // Calculate total points available and spent
+  let distributablePoints = 14 + (level - 1);
+  let startingPoints = 7; // 1 point per stat (7 stats)
+  let pointsSpent = stat_str + stat_vit + stat_dex + stat_mag + stat_wil + stat_spr + stat_lck;
+  let distributablePointsSpent = pointsSpent - startingPoints;
+  let currentStatValue;
+  switch (statName) {
+    case "STR": currentStatValue = stat_str; break;
+    case "VIT": currentStatValue = stat_vit; break;
+    case "DEX": currentStatValue = stat_dex; break;
+    case "MAG": currentStatValue = stat_mag; break;
+    case "WIL": currentStatValue = stat_wil; break;
+    case "SPR": currentStatValue = stat_spr; break;
+    case "LCK": currentStatValue = stat_lck; break;
+    default: return false;
+  }
+
+  // Calculate new points spent if this stat changes
+  let pointsDelta = newValueInt - currentStatValue;
+  let newDistributablePointsSpent = distributablePointsSpent + pointsDelta;
+
+  // Check if the change is allowed when "Lock to Level" is enabled
+  if (lockToLevel && pointsDelta > 0 && newDistributablePointsSpent > distributablePoints) {
+    showConfirmationModal(
+      `Cannot increase ${statName}: you have no points remaining. Available points: ${distributablePoints - distributablePointsSpent}.`,
+      () => {},
+      true
+    );
+    return false;
+  }
+
+  // Check stat requirements for equipped items
   let bonuses = getStATGonuses();
   let newTotal = newValueInt + (bonuses[statName] || 0);
-
   for (let slot in equippedItems) {
     let item = equippedItems[slot];
     if (item && item.statRequirements && item.statRequirements[statName]) {
@@ -3275,6 +3408,7 @@ function tryChangeStat(statName, newValue) {
     }
   }
 
+  // Apply the change
   switch (statName) {
     case "STR": stat_str = newValueInt; break;
     case "VIT": stat_vit = newValueInt; updateResourcesBasedOnStats(); break;
@@ -3287,7 +3421,6 @@ function tryChangeStat(statName, newValue) {
   updateStATGonusesDisplay();
   return true;
 }
-
 function createAdditionalAttributesUI() {
   let statsContainer = select("#stats");
   if (!statsContainer) return;
@@ -3394,7 +3527,6 @@ function calculateMovement() {
   let movementInput = select("#movementInput");
   if (movementInput) movementInput.value(movement + " ft");
 }
-
 function createEquipmentUI() {
   let equipmentContainerDiv = select("#equipment");
   if (!equipmentContainerDiv) {
@@ -3461,11 +3593,36 @@ function createEquipmentUI() {
     let itemSelect = createSelect()
       .parent(nameCell)
       .style("width", "100%");
-    itemSelect.option("None");
+
+    // Clear the dropdown to avoid rendering issues
+    itemSelect.html("");
+
+    // Add "None" option
+    let noneOption = document.createElement("option");
+    noneOption.text = "None";
+    noneOption.value = "None";
+    itemSelect.elt.appendChild(noneOption);
+
     let availableItems = availableEquipment[slot];
     if (availableItems) {
       console.log(`Available items for ${slot}:`, availableItems.map(item => item.name));
+
+      // Always add the currently equipped item to the dropdown
+      let currentItem = equippedItems[slot];
+      if (currentItem) {
+        let option = document.createElement("option");
+        option.text = currentItem.name;
+        option.value = currentItem.name;
+        itemSelect.elt.appendChild(option);
+      }
+
+      // Add other available items, respecting quantity limits
       availableItems.forEach(item => {
+        // Skip the currently equipped item since we already added it
+        if (currentItem && item.name === currentItem.name) {
+          return;
+        }
+
         // Check if the item is already equipped elsewhere and if there's enough quantity
         let equippedCount = equippedCounts[item.name] || 0;
         let inventoryItem = inventory.find(i => i.name === item.name && i.category === "Equipment");
@@ -3489,11 +3646,21 @@ function createEquipmentUI() {
 
         // Only add the item to the dropdown if there's enough quantity remaining
         if (!isAlreadyEquipped || remainingQuantity > 0) {
-          itemSelect.option(item.name);
+          let option = document.createElement("option");
+          option.text = item.name;
+          option.value = item.name;
+          itemSelect.elt.appendChild(option);
         }
       });
     }
-    itemSelect.value(equippedItems[slot] ? equippedItems[slot].name : "None");
+
+    // Set the selected value
+    let currentItemName = equippedItems[slot] ? equippedItems[slot].name : "None";
+    console.log(`Setting dropdown value for ${slot} to: ${currentItemName}`);
+    itemSelect.value(currentItemName);
+
+    // Debug: Log the dropdown's HTML to confirm options
+    console.log(`Dropdown HTML for ${slot}:`, itemSelect.elt.outerHTML);
 
     // Disable the dropdown if the opposite hand has a two-handed weapon
     if ((slot === "On-Hand" && disableOnHand) || (slot === "Off-Hand" && disableOffHand)) {
@@ -5184,9 +5351,14 @@ function updateResourcesBasedOnStats() {
 function updateStATGonusesDisplay() {
   let bonuses = getStATGonuses();
   for (let stat in stATGonusElements) {
+    // Skip Level, EXP, and Movement
+    if (stat === "Level" || stat === "EXP" || stat === "Movement") {
+      continue;
+    }
     let bonus = bonuses[stat] || 0;
-    if (bonus !== 0) { // Show bonus if non-zero (positive or negative)
-      stATGonusElements[stat].html(` (${bonus > 0 ? '+' : ''}${bonus})`);
+    if (bonus !== 0) {
+      stATGonusElements[stat].html(`${bonus > 0 ? '+' : ''}${bonus}`);
+      stATGonusElements[stat].style("color", bonus > 0 ? "green" : "red");
     } else {
       stATGonusElements[stat].html("");
     }
