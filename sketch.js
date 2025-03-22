@@ -1,7 +1,8 @@
 // Clear localStorage at startup (remove after testing)
 localStorage.removeItem('inventory');
 localStorage.removeItem('equippedItems');
-// Global resource variables – starting with 25 HP and 10 MP
+
+// Global resource variables
 let max_hp = 25,
   current_hp = 25;
 let max_mp = 10,
@@ -11,8 +12,8 @@ let max_stamina = 100,
 let max_ATG = 100,
   current_ATG = 0;
 
-// Global stat variables – all start at 1
-let lockToLevel = false;
+// Global Stat Variables
+let lockToLevel = true;
 let stat_str = 1,
   stat_vit = 1,
   stat_dex = 1,
@@ -25,12 +26,13 @@ let level = 1,
   movement = 65; // Base movement starts at 65 ft
 let stATGonusElements = {};
 
-// Player's starting inventory (populated initially)
+//Talent Point Pool
+let totalTalentPoints = 0; // Total Talent Points based on level
+let spentTalentPoints = 0; // Talent Points spent on talents
+
+// Inventory Startup & Categories
 let inventory = [];
-
-// Add this near the top of your script with other constants
 let inventoryCategories = ["Equipment", "Consumables", "Materials", "Crystals", "Miscellaneous"];
-
 let categoryStates = {
 };
 
@@ -120,9 +122,9 @@ let availableEquipment = {
   "Accessory 1": [],
   "Accessory 2": [],
 };
-
 let slotSelects = {};
 
+//Ability Points
 let characterAbilities = [];
 let abilityPoints = 1; // Starting with 1 point at Level 1
 let learnedAbilities = {}; // Object to track learned abilities by category, e.g., { "Melee - Heavy": ["Cleave"] }
@@ -172,7 +174,7 @@ const weaponCategories = [
   "Hybrid"
 ];
 
-// Global variables (keep these from both versions as needed)
+// Resource Tab Setup
 let cnv;
 let currentTab = 'resources';
 let modalDiv = null;
@@ -738,8 +740,6 @@ function showConfirmationModal(message, onConfirm, isError = false) {
       });
   }
 }
-// Remove redundant switchTab function
-// Delete: function switchTab(tabId) { ... }
 // For linking stats to skills
 let statLabelElements = {};
 let attributeCheckboxes = {};
@@ -2780,9 +2780,9 @@ function createStatsUI() {
     .style("margin-top", "2px");
   lockCheckbox.changed(() => {
     if (lockCheckbox.checked()) {
-      // Calculate total points available and spent
+      // Check stat points
       let distributablePoints = 14 + (level - 1);
-      let startingPoints = 7; // 1 point per stat (7 stats)
+      let startingPoints = 7;
       let pointsSpent = stat_str + stat_vit + stat_dex + stat_mag + stat_wil + stat_spr + stat_lck;
       let distributablePointsSpent = pointsSpent - startingPoints;
       if (distributablePointsSpent > distributablePoints) {
@@ -2791,28 +2791,50 @@ function createStatsUI() {
           () => {},
           true
         );
-        lockCheckbox.checked(false); // Prevent enabling
+        lockCheckbox.checked(false);
         return;
       }
+      // Revert totalTalentPoints to calculated value when locking
+      totalTalentPoints = 1 + Math.floor(level / 5);
     }
     lockToLevel = lockCheckbox.checked();
-    updateStATGonusesDisplay();
+    createStatsUI(); // Refresh UI to update input states
   });
 
   // Display available points based on level
   let distributablePoints = 14 + (level - 1);
-  let startingPoints = 7; // 1 point per stat (7 stats)
+  let startingPoints = 7;
   let pointsSpent = stat_str + stat_vit + stat_dex + stat_mag + stat_wil + stat_spr + stat_lck;
   let distributablePointsSpent = pointsSpent - startingPoints;
   let pointsDiv = createDiv().parent(statsContainer).style("margin", "5px");
   createSpan(`Points Available: ${distributablePoints - distributablePointsSpent}/${distributablePoints}`).parent(pointsDiv);
 
-  // Placeholder for Ability Points and Talent Points
+  // Calculate and display Ability Points and Total Talent Points
   let abilityPoints = Math.floor((level - 1) / 2); // 1 point every 2 levels starting at level 3
-  let talentPoints = Math.floor(level / 5); // 1 point every 5 levels starting at level 5
+  let calculatedTalentPoints = 1 + Math.floor(level / 5); // 1 point at level 1, plus 1 every 5 levels
+  if (lockToLevel) {
+    totalTalentPoints = calculatedTalentPoints; // Enforce calculated value when locked
+  }
   let pointsInfoDiv = createDiv().parent(statsContainer).style("margin", "5px");
   createSpan(`Ability Points: ${abilityPoints} (future use)`).parent(pointsInfoDiv).style("margin-right", "10px");
-  createSpan(`Talent Points: ${talentPoints} (future use)`).parent(pointsInfoDiv);
+
+  // Display Total Talent Points with editable input
+  let talentPointsDiv = createDiv().parent(statsContainer).style("margin", "5px");
+  let talentPointsLabel = createSpan("Total Talent Points: ").parent(talentPointsDiv);
+  let talentPointsInput = createInput(totalTalentPoints.toString(), "number")
+    .parent(talentPointsDiv)
+    .style("width", "50px");
+  if (lockToLevel) {
+    talentPointsInput.attribute("readonly", "true").style("background-color", "#e0e0e0");
+  } else {
+    talentPointsInput.removeAttribute("readonly").style("background-color", "white");
+  }
+  talentPointsInput.changed(() => {
+    let newValue = int(talentPointsInput.value());
+    newValue = constrain(newValue, 1, 99); // Minimum 1, maximum 99
+    totalTalentPoints = newValue;
+    createStatsUI(); // Refresh UI to update displays
+  });
 
   // Stats without total or bonus display
   createStatInput("Level", "Level", level, statsContainer, "Level", false, false, false);
@@ -2829,7 +2851,7 @@ function createStatsUI() {
     .style("background-color", "#e0e0e0")
     .id("movementInput");
 
-  // Stats with total and bonus display
+  // Stats with total or bonus display
   createStatInput("STR", "Strength", stat_str, statsContainer, "STR", true, false, true);
   createStatInput("VIT", "Vitality", stat_vit, statsContainer, "VIT", true, false, true);
   createStatInput("DEX", "Dexterity", stat_dex, statsContainer, "DEX", true, false, true);
@@ -2849,7 +2871,6 @@ function createStatsUI() {
     }
   }
 
-  // Update bonus display after creating the UI
   updateStATGonusesDisplay();
 }
 function createStatInput(abbrev, name, initialValue, container, statName, linkable, greyOutAtMax = false, showTotalAndBonus = false) {
@@ -3848,7 +3869,14 @@ function equipItem(slot, itemName) {
 }
 
 // ### Talents UI ###
-
+function getTalentPointCost(level) {
+  switch (level) {
+    case "I": return 1;
+    case "II": return 3;
+    case "III": return 5;
+    default: return 0;
+  }
+}
 function createTalentsUI() {
   let talentsContainerDiv = select("#talents");
   if (!talentsContainerDiv) {
@@ -3866,6 +3894,11 @@ function createTalentsUI() {
     .style("color", "#666")
     .style("margin-top", "5px")
     .style("margin-bottom", "10px");
+
+  // Display available Talent Points
+  let availableTalentPoints = totalTalentPoints - spentTalentPoints;
+  let talentPointsDiv = createDiv().parent(talentsContainerDiv).style("margin", "5px");
+  createSpan(`Available Talent Points: ${availableTalentPoints}/${totalTalentPoints}`).parent(talentPointsDiv);
 
   createButton("Add Custom Talent")
     .parent(talentsContainerDiv)
@@ -3968,15 +4001,26 @@ function showAddCustomTalentModal() {
     .style("width", "300px");
 
   createElement("h3", "Add Custom Talent").parent(modalDiv);
+
+  let errorMessage = createP("")
+    .parent(modalDiv)
+    .style("color", "red")
+    .style("display", "none")
+    .style("margin-bottom", "10px");
+
+  let successMessage = createP("")
+    .parent(modalDiv)
+    .style("color", "green")
+    .style("display", "none")
+    .style("margin-bottom", "10px");
+
   let nameLabel = createSpan("Talent Name:").parent(modalDiv);
   let nameInput = createInput("")
     .parent(modalDiv)
     .style("width", "100%")
     .style("margin-bottom", "10px");
 
-  let levelLabel = createSpan("Levels (select highest desired):").parent(
-    modalDiv
-  );
+  let levelLabel = createSpan("Levels (select highest desired):").parent(modalDiv);
   let levelsDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
 
   let levelCheckboxes = {};
@@ -4018,7 +4062,9 @@ function showAddCustomTalentModal() {
       let name = nameInput.value();
       let category = categorySelect.value();
       if (!name || !category) {
-        alert("Please provide a talent name and category.");
+        errorMessage.html("Please provide a talent name and category.");
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
@@ -4026,7 +4072,9 @@ function showAddCustomTalentModal() {
         levelCheckboxes[lvl].checked()
       );
       if (checkedLevels.length === 0) {
-        alert("Please select at least one level.");
+        errorMessage.html("Please select at least one level.");
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
 
@@ -4043,20 +4091,35 @@ function showAddCustomTalentModal() {
       );
       for (let lvl of requiredLevels) {
         if (!checkedLevels.includes(lvl)) {
-          alert(
+          errorMessage.html(
             `Please ensure Level ${
               ["I", "II", "III"].indexOf(lvl) + 1
             } is selected and described.`
           );
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
           return;
         }
         let desc = levelDescriptions[lvl].input.value();
         if (!desc) {
-          alert(`Please provide a description for Level ${lvl}.`);
+          errorMessage.html(`Please provide a description for Level ${lvl}.`);
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
           return;
         }
       }
 
+      // Check Talent Points
+      let talentCost = getTalentPointCost(maxLevelIndex);
+      let availableTalentPoints = totalTalentPoints - spentTalentPoints;
+      if (talentCost > availableTalentPoints) {
+        errorMessage.html(`Not enough Talent Points! Need ${talentCost}, have ${availableTalentPoints}.`);
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
+        return;
+      }
+
+      // Add the talents
       let newTalents = [];
       requiredLevels.forEach((lvl) => {
         let fullName = `${name} - Level ${lvl}`;
@@ -4074,8 +4137,17 @@ function showAddCustomTalentModal() {
       talents = talents.filter((t) => !t.name.startsWith(name));
       let levelOneTalent = newTalents.find((t) => t.level === "I");
       if (levelOneTalent) talents.push(levelOneTalent);
-      updateTalentsTable();
-      modalDiv.remove();
+
+      // Deduct Talent Points
+      spentTalentPoints += talentCost;
+      createStatsUI(); // Update Talent Points display on Stats tab
+      createTalentsUI(); // Refresh the entire Talents tab UI
+
+      // Show success message and keep modal open
+      successMessage.html("Talent Added");
+      successMessage.style("display", "block");
+      errorMessage.style("display", "none");
+      modalDiv.elt.scrollTop = 0;
     });
 
   createButton("Cancel")
@@ -4083,7 +4155,6 @@ function showAddCustomTalentModal() {
     .style("margin", "5px")
     .mousePressed(() => modalDiv.remove());
 }
-
 function showAddEditTalentsModal() {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv()
@@ -4098,6 +4169,19 @@ function showAddEditTalentsModal() {
     .style("width", "300px");
 
   createElement("h3", "Add / Edit Existing Talents").parent(modalDiv);
+
+  let errorMessage = createP("")
+    .parent(modalDiv)
+    .style("color", "red")
+    .style("display", "none")
+    .style("margin-bottom", "10px");
+
+  let successMessage = createP("")
+    .parent(modalDiv)
+    .style("color", "green")
+    .style("display", "none")
+    .style("margin-bottom", "10px");
+
   let talentNames = [
     ...new Set(existingTalents.map((t) => t.name.split(" - Level")[0])),
   ];
@@ -4166,23 +4250,40 @@ function showAddEditTalentsModal() {
     .mousePressed(() => {
       let selectedName = talentSelect.value();
       if (!selectedName) {
-        alert("Please select a talent name.");
+        errorMessage.html("Please select a talent name.");
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
       let checkedLevels = Object.keys(levelCheckboxes).filter((lvl) =>
         levelCheckboxes[lvl].checked()
       );
       if (checkedLevels.length === 0) {
-        alert("Please select at least one level.");
+        errorMessage.html("Please select at least one level.");
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
-      talents = talents.filter((t) => !t.name.startsWith(selectedName));
       let initialLevel = "I";
       let desc = levelDescriptions[initialLevel].input.value();
       if (!desc) {
-        alert(`Please provide a description for Level ${initialLevel}.`);
+        errorMessage.html(`Please provide a description for Level ${initialLevel}.`);
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
+
+      // Check Talent Points
+      let talentCost = getTalentPointCost(initialLevel);
+      let availableTalentPoints = totalTalentPoints - spentTalentPoints;
+      if (talentCost > availableTalentPoints) {
+        errorMessage.html(`Not enough Talent Points! Need ${talentCost}, have ${availableTalentPoints}.`);
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
+        return;
+      }
+
+      talents = talents.filter((t) => !t.name.startsWith(selectedName));
       let fullName = `${selectedName} - Level ${initialLevel}`;
       talents.push({
         name: fullName,
@@ -4190,7 +4291,17 @@ function showAddEditTalentsModal() {
         category: categorySelect.value(),
         description: desc,
       });
-      updateTalentsTable();
+
+      // Deduct Talent Points
+      spentTalentPoints += talentCost;
+      createStatsUI(); // Update Talent Points display on Stats tab
+      createTalentsUI(); // Refresh the entire Talents tab UI
+
+      // Show success message and keep modal open
+      successMessage.html("Talent Added to Character");
+      successMessage.style("display", "block");
+      errorMessage.style("display", "none");
+      modalDiv.elt.scrollTop = 0;
     });
 
   createButton("Save")
@@ -4200,7 +4311,9 @@ function showAddEditTalentsModal() {
       let selectedName = talentSelect.value();
       let category = categorySelect.value();
       if (!selectedName) {
-        alert("Please select a talent name.");
+        errorMessage.html("Please select a talent name.");
+        errorMessage.style("display", "block");
+        successMessage.style("display", "none");
         return;
       }
       let checkedLevels = Object.keys(levelCheckboxes).filter((lvl) =>
@@ -4220,16 +4333,20 @@ function showAddEditTalentsModal() {
         );
         for (let lvl of requiredLevels) {
           if (!checkedLevels.includes(lvl)) {
-            alert(
+            errorMessage.html(
               `Please ensure Level ${
                 ["I", "II", "III"].indexOf(lvl) + 1
               } is selected and described.`
             );
+            errorMessage.style("display", "block");
+            successMessage.style("display", "none");
             return;
           }
           let desc = levelDescriptions[lvl].input.value();
           if (!desc) {
-            alert(`Please provide a description for Level ${lvl}.`);
+            errorMessage.html(`Please provide a description for Level ${lvl}.`);
+            errorMessage.style("display", "block");
+            successMessage.style("display", "none");
             return;
           }
         }
@@ -4260,8 +4377,12 @@ function showAddEditTalentsModal() {
             if (existingIndex >= 0) existingTalents.splice(existingIndex, 1);
           }
         }
-        updateTalentsTable();
+        createTalentsUI(); // Refresh the entire Talents tab UI
       }
+      successMessage.html("Talent Updated");
+      successMessage.style("display", "block");
+      errorMessage.style("display", "none");
+      modalDiv.elt.scrollTop = 0;
     });
 
   createButton("Close")
@@ -4269,7 +4390,6 @@ function showAddEditTalentsModal() {
     .style("margin", "5px")
     .mousePressed(() => modalDiv.remove());
 }
-
 function showRemoveExistingTalentModal() {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv()
@@ -4299,12 +4419,20 @@ function showRemoveExistingTalentModal() {
     .style("margin", "5px")
     .mousePressed(() => {
       let selectedName = talentSelect.value();
+      // Refund Talent Points for talents in the player's list
+      talents.forEach((talent) => {
+        if (talent.name.startsWith(selectedName + " - Level")) {
+          let cost = getTalentPointCost(talent.level);
+          spentTalentPoints -= cost;
+        }
+      });
       existingTalents = existingTalents.filter(
         (t) => !t.name.startsWith(selectedName + " - Level")
       );
       talents = talents.filter(
         (t) => !t.name.startsWith(selectedName + " - Level")
       );
+      createStatsUI(); // Update Talent Points display
       updateTalentsTable();
       modalDiv.remove();
     });
@@ -4412,8 +4540,23 @@ function updateTalentsTable() {
         (t) => t.name === `${baseName} - Level ${newLevel}`
       );
       if (newTalentData) {
+        let oldCost = getTalentPointCost(talent.level);
+        let newCost = getTalentPointCost(newLevel);
+        let costDifference = newCost - oldCost;
+        let availableTalentPoints = totalTalentPoints - spentTalentPoints;
+        if (costDifference > 0 && costDifference > availableTalentPoints) {
+          showConfirmationModal(
+            `Not enough Talent Points to upgrade! Need ${costDifference}, have ${availableTalentPoints}.`,
+            () => {},
+            true
+          );
+          levelSelect.value(talent.level); // Revert the selection
+          return;
+        }
+        spentTalentPoints += costDifference;
         talents[index] = { ...newTalentData };
-        updateTalentsTable();
+        createStatsUI(); // Update Talent Points display on Stats tab
+        createTalentsUI(); // Refresh the entire Talents tab UI
       }
     });
 
@@ -4430,8 +4573,11 @@ function updateTalentsTable() {
       .style("margin", "5px")
       .mousePressed(() => {
         showConfirmationModal(`Remove ${talent.name}?`, () => {
+          let cost = getTalentPointCost(talent.level);
+          spentTalentPoints -= cost; // Refund Talent Points
           talents.splice(index, 1);
-          updateTalentsTable();
+          createStatsUI(); // Update Talent Points display on Stats tab
+          createTalentsUI(); // Refresh the entire Talents tab UI
         });
       });
   });
