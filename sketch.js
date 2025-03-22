@@ -1429,446 +1429,7 @@ function showConfirmationModal(message, onConfirm, isError = false) {
       });
   }
 }
-function getAvailableCrystals() {
-  let equippedCrystals = [];
-  for (let slot in equippedItems) {
-    let item = equippedItems[slot];
-    if (item && item.equippedCrystals) {
-      item.equippedCrystals.forEach(crystal => {
-        if (crystal) equippedCrystals.push(crystal);
-      });
-    }
-  }
-  return inventory.filter(item => item.category === "Crystals" && !equippedCrystals.includes(item));
-}
-function showEditInventoryModal() {
-  if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv()
-    .style("position", "absolute")
-    .style("top", "50%")
-    .style("left", "50%")
-    .style("transform", "translate(-50%, -50%)")
-    .style("background", "#fff")
-    .style("padding", "20px")
-    .style("border", "2px solid #000")
-    .style("z-index", "1000")
-    .style("width", "300px");
 
-  createElement("h3", "Edit Item").parent(modalDiv);
-
-  let categoryDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Category:")
-    .parent(categoryDiv)
-    .style("display", "block");
-  let categorySelect = createSelect()
-    .parent(categoryDiv)
-    .style("width", "100%");
-  ["Consumables", "Materials", "Miscellaneous"].forEach((cat) =>
-    categorySelect.option(cat)
-  );
-  createSpan("The type of item (for Equipment, use the Equipment tab).")
-    .parent(categoryDiv)
-    .style("font-size", "12px")
-    .style("color", "#666")
-    .style("display", "block");
-
-  let itemDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Select Item:")
-    .parent(itemDiv)
-    .style("display", "block");
-  let itemSelect = createSelect()
-    .parent(itemDiv)
-    .style("width", "100%");
-
-  let nameDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Name:")
-    .parent(nameDiv)
-    .style("display", "block");
-  let nameInput = createInput("")
-    .parent(nameDiv)
-    .style("width", "100%");
-
-  let descDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Description:")
-    .parent(descDiv)
-    .style("display", "block");
-  let descriptionInput = createElement("textarea")
-    .parent(descDiv)
-    .style("width", "100%")
-    .style("height", "60px");
-
-  let quantityDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Quantity:")
-    .parent(quantityDiv)
-    .style("display", "block");
-  let quantityInput = createInput("1", "number")
-    .parent(quantityDiv)
-    .style("width", "100%")
-    .attribute("min", "1");
-
-  let qualityDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Quality:")
-    .parent(qualityDiv)
-    .style("display", "block");
-  let qualitySelect = createSelect()
-    .parent(qualityDiv)
-    .style("width", "100%");
-  ["Poor", "Common", "Uncommon", "Rare", "Legendary"].forEach(q => qualitySelect.option(q));
-
-  function updateItemOptions() {
-    let selectedCategory = categorySelect.value();
-    itemSelect.html("");
-    let categoryItems = inventory.filter(item => item.category === selectedCategory);
-    if (categoryItems.length > 0) {
-      categoryItems.forEach((item, idx) => itemSelect.option(item.name, idx));
-      itemSelect.value(categoryItems[0].name);
-      loadItemData();
-    } else {
-      itemSelect.option("No items available");
-    }
-  }
-
-  function loadItemData() {
-    let selectedCategory = categorySelect.value();
-    let selectedName = itemSelect.value();
-    let itemIdx = inventory.findIndex(item => item.name === selectedName && item.category === selectedCategory);
-    if (itemIdx >= 0) {
-      let item = inventory[itemIdx];
-      nameInput.value(item.name);
-      descriptionInput.value(item.description || "");
-      quantityInput.value(item.quantity || 1);
-      qualitySelect.value(item.quality || "Common");
-    }
-  }
-
-  categorySelect.changed(updateItemOptions);
-  itemSelect.changed(loadItemData);
-  updateItemOptions();
-
-  createButton("Save")
-  .parent(buttonContainer)
-  .style("margin", "5px")
-  .style("padding", "5px 10px")
-  .style("background-color", "#2196F3")
-  .style("color", "white")
-  .style("border", "none")
-  .style("border-radius", "3px")
-  .style("cursor", "pointer")
-  .mousePressed(() => {
-    let idx = parseInt(equipmentSelect.value());
-    if (idx === -1) {
-      errorMessage.html("Please select an item to edit.");
-      errorMessage.style("display", "block");
-      successMessage.style("display", "none");
-      return;
-    }
-
-    let selectedType = typeSelect.value();
-    let allEquipment = inventory.filter(item => 
-      item.category === "Equipment" && 
-      item.type === selectedType
-    );
-    let availableEquipment = availableItems["Equipment"].filter(item => 
-      item.type === selectedType && 
-      !inventory.some(i => i.name === item.name && i.category === "Equipment")
-    );
-
-    let item;
-    let inventoryIdx;
-
-    if (idx < allEquipment.length) {
-      // Existing inventory item
-      item = allEquipment[idx];
-      inventoryIdx = inventory.indexOf(item);
-      console.log("Editing existing item:", item); // Debug
-    } else {
-      // Available item (not in inventory yet)
-      let availableIdx = idx - allEquipment.length;
-      if (availableIdx >= availableEquipment.length) {
-        errorMessage.html("Invalid item selected.");
-        errorMessage.style("display", "block");
-        successMessage.style("display", "none");
-        return;
-      }
-      item = availableEquipment[availableIdx];
-      inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === "Equipment");
-      console.log("Selected available item:", item); // Debug
-    }
-
-    let newName = nameInput.value().trim();
-    if (!newName) {
-      errorMessage.html("Please provide a name for the equipment.");
-      errorMessage.style("display", "block");
-      successMessage.style("display", "none");
-      return;
-    }
-
-    // Check for duplicate names (excluding the current item)
-    let existingItemWithNewName = inventory.find(i => 
-      i.name === newName && 
-      i.category === "Equipment" && 
-      i !== inventory[inventoryIdx]
-    );
-    if (existingItemWithNewName) {
-      errorMessage.html(`An equipment with the name "${newName}" already exists.`);
-      errorMessage.style("display", "block");
-      successMessage.style("display", "none");
-      return;
-    }
-
-    // Build updated equipment object (simplified for brevity)
-    let updatedEquipment = {
-      name: newName,
-      description: descriptionInput.value(),
-      type: selectedType,
-      category: "Equipment",
-      quality: qualitySelect.value(),
-      crystalSlots: parseInt(slotsSelect.value()) || 0,
-      quantity: item.quantity || 1
-    };
-
-    // Add type-specific properties (e.g., defense for Chest, damageDice for On-Hand)
-    if (["Chest", "Helm", "Gloves", "Greaves"].includes(selectedType)) {
-      updatedEquipment.defense = parseInt(defenseInput.value()) || 0;
-      updatedEquipment.movementPenalty = parseInt(penaltySelect.value()) || 0;
-      updatedEquipment.modifier = parseInt(armorModifierInput.value()) || 0;
-    } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
-      updatedEquipment.linkedStat = linkedStatSelect.value();
-      updatedEquipment.damageDice = damageDiceInput.value().trim();
-      updatedEquipment.modifier = parseInt(weaponModifierInput.value()) || 0;
-      updatedEquipment.weaponCategory = weaponCategorySelect.value();
-    }
-
-    // Update or add the item
-    if (inventoryIdx !== -1) {
-      // Update existing item
-      inventory[inventoryIdx] = updatedEquipment;
-      console.log("Updated item in inventory:", updatedEquipment);
-    } else {
-      // Add new item
-      inventory.push(updatedEquipment);
-      console.log("Added new item to inventory:", updatedEquipment);
-    }
-
-    localStorage.setItem('inventory', JSON.stringify(inventory));
-    updateAvailableEquipment();
-    updateAbilities();
-    createInventoryUI();
-    createEquipmentUI();
-
-    successMessage.html("Equipment Updated");
-    successMessage.style("display", "block");
-    errorMessage.style("display", "none");
-
-    modalDiv.elt.scrollTop = 0;
-    equipmentSelect.value("-1");
-    loadEquipmentData();
-    updateEquipmentOptions();
-  });
-
-  createButton("Cancel")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => modalDiv.remove());
-}
-function showRemoveInventoryModal() {
-  if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv()
-    .style("position", "absolute")
-    .style("top", "50%")
-    .style("left", "50%")
-    .style("transform", "translate(-50%, -50%)")
-    .style("background", "#fff")
-    .style("padding", "20px")
-    .style("border", "2px solid #000")
-    .style("z-index", "1000")
-    .style("width", "300px");
-
-  createElement("h3", "Remove Item").parent(modalDiv);
-
-  let categoryDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Category:")
-    .parent(categoryDiv)
-    .style("display", "block");
-  let categorySelect = createSelect()
-    .parent(categoryDiv)
-    .style("width", "100%");
-  inventoryCategories.forEach(cat => categorySelect.option(cat));
-  createSpan("Select the item category.")
-    .parent(categoryDiv)
-    .style("font-size", "12px")
-    .style("color", "#666")
-    .style("display", "block");
-
-  let itemDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  createSpan("Select Item:")
-    .parent(itemDiv)
-    .style("display", "block");
-  let itemSelect = createSelect()
-    .parent(itemDiv)
-    .style("width", "100%");
-
-  function updateItemOptions() {
-    let selectedCategory = categorySelect.value();
-    itemSelect.html("");
-    let categoryItems = inventory.filter(item => item.category === selectedCategory);
-    if (categoryItems.length > 0) {
-      categoryItems.forEach((item, idx) => itemSelect.option(item.name, idx));
-      itemSelect.value(categoryItems[0].name);
-    } else {
-      itemSelect.option("No items available");
-    }
-  }
-
-  categorySelect.changed(updateItemOptions);
-  updateItemOptions();
-
-  createButton("Remove")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => {
-      let selectedCategory = categorySelect.value();
-      let selectedName = itemSelect.value();
-      if (selectedName === "No items available") {
-        showConfirmationModal("No item selected to remove.", () => {}, true);
-        return;
-      }
-      let itemIdx = inventory.findIndex(item => item.name === selectedName && item.category === selectedCategory);
-      if (itemIdx >= 0) {
-        showConfirmationModal(`Are you sure you want to remove ${selectedName}?`, () => {
-          inventory.splice(itemIdx, 1);
-          updateAvailableEquipment();
-          createInventoryUI();
-          createEquipmentUI();
-          modalDiv.remove();
-        });
-      }
-    });
-
-  createButton("Cancel")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => modalDiv.remove());
-}
-
-function showAddItemModal() {
-  if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv()
-    .style("position", "absolute")
-    .style("top", "50%")
-    .style("left", "50%")
-    .style("transform", "translate(-50%, -50%)")
-    .style("background", "#fff")
-    .style("padding", "20px")
-    .style("border", "2px solid #000")
-    .style("z-index", "1000")
-    .style("width", "300px");
-
-  createElement("h3", "Add Item").parent(modalDiv);
-
-  let errorMessage = createP("")
-    .parent(modalDiv)
-    .style("color", "red")
-    .style("display", "none")
-    .style("margin-bottom", "10px");
-
-  let categoryDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  let categoryLabel = createSpan("Category:")
-    .parent(categoryDiv)
-    .style("display", "block");
-  let categorySelect = createSelect()
-    .parent(categoryDiv)
-    .style("width", "100%")
-    .style("margin-bottom", "10px");
-  createSpan("The type of item to add (for Equipment, use the Equipment tab).")
-    .parent(categoryDiv)
-    .style("font-size", "12px")
-    .style("color", "#666")
-    .style("display", "block");
-  ["Consumables", "Materials", "Miscellaneous"].forEach((cat) => {
-    if (availableItems[cat].length > 0) categorySelect.option(cat);
-  });
-
-  let itemDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  let itemLabel = createSpan("Select Item:")
-    .parent(itemDiv)
-    .style("display", "block");
-  let itemSelect = createSelect()
-    .parent(itemDiv)
-    .style("width", "100%");
-  createSpan("The item to add to your inventory.")
-    .parent(itemDiv)
-    .style("font-size", "12px")
-    .style("color", "#666")
-    .style("display", "block");
-
-  let quantityDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
-  let quantityLabel = createSpan("Quantity:")
-    .parent(quantityDiv)
-    .style("display", "block");
-  let quantityInput = createInput("1", "number")
-    .parent(quantityDiv)
-    .style("width", "100%")
-    .attribute("min", "1");
-  createSpan("Number of items to add (1 or more).")
-    .parent(quantityDiv)
-    .style("font-size", "12px")
-    .style("color", "#666")
-    .style("display", "block");
-
-  function updateItemOptions() {
-    let selectedCategory = categorySelect.value();
-    itemSelect.html("");
-    let categoryItems = availableItems[selectedCategory] || [];
-    if (categoryItems.length > 0) {
-      categoryItems.forEach((item) => itemSelect.option(item.name));
-      itemSelect.value(categoryItems[0].name);
-    } else {
-      itemSelect.option("No items available");
-    }
-  }
-
-  categorySelect.changed(updateItemOptions);
-  updateItemOptions();
-
-  createButton("Add")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => {
-      let selectedCategory = categorySelect.value();
-      let selectedName = itemSelect.value();
-      let quantity = parseInt(quantityInput.value()) || 1;
-      if (selectedName === "No items available" || quantity < 1) {
-        errorMessage.html("Please select a valid item and quantity.");
-        errorMessage.style("display", "block");
-        return;
-      }
-      let itemTemplate = availableItems[selectedCategory].find((i) => i.name === selectedName);
-      if (itemTemplate) {
-        if (inventory.some(i => i.name === selectedName && i.category === selectedCategory)) {
-          errorMessage.html(`An item with the name "${selectedName}" already exists in the "${selectedCategory}" category.`);
-          errorMessage.style("display", "block");
-          return;
-        }
-        let newItem = { ...itemTemplate, quantity: quantity };
-        inventory.push(newItem);
-        localStorage.setItem('inventory', JSON.stringify(inventory)); // Persist to localStorage
-        updateAvailableEquipment();
-        createInventoryUI();
-        createEquipmentUI();
-        modalDiv.remove();
-        errorMessage.style("display", "none"); // Clear error on success
-      }
-    });
-
-  createButton("Cancel")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => {
-      modalDiv.remove();
-      errorMessage.style("display", "none"); // Clear error on cancel
-    });
-}
 function showStatDescription(title, description) {
   // Remove any existing modal to avoid overlap
   if (modalDiv) modalDiv.remove();
@@ -1969,24 +1530,22 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
     .style("word-wrap", "break-word");
 
   if (!allowCrystalEquip) {
-    // Display equipment details with all fields, excluding those not filled in
-    createElement("h3", `${slot}: ${item ? item.name : "None"}`).parent(modalDiv);
+    // Parse the slot to remove the index suffix (e.g., "Crystals-0" -> "Crystals")
+    let slotTitle = slot.includes("-") ? slot.split("-")[0] : slot;
+    createElement("h3", `${slotTitle}: ${item ? item.name : "None"}`).parent(modalDiv);
 
     if (item) {
       let detailsDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
       let addDetail = (label, value, isBoolean = false) => {
-        // Skip if the value is undefined, null, or empty
         if (value === undefined || value === null || value === "") {
           return;
         }
-        // For objects, skip if empty; otherwise, format as key-value pairs
         if (typeof value === "object") {
           if (Object.keys(value).length === 0) {
             return;
           }
           value = Object.entries(value).map(([key, val]) => `${key}: ${val}`).join(", ");
         }
-        // For booleans, only show if true
         if (isBoolean) {
           if (!value) {
             return;
@@ -2026,19 +1585,16 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
     // Display crystal management (unchanged behavior)
     createElement("h3", `${slot}: Essence Crystal Slots`).parent(modalDiv);
 
-    // Add inline error message
     let errorMessage = createP("")
       .parent(modalDiv)
       .style("color", "red")
       .style("display", "none")
       .style("margin-bottom", "10px");
 
-    // Create a div for crystal descriptions that we can update dynamically
     let crystalDescriptions = createDiv().parent(modalDiv).style("margin-bottom", "10px");
 
-    // Helper function to update crystal descriptions
     function updateCrystalDescriptions() {
-      crystalDescriptions.html(""); // Clear existing content
+      crystalDescriptions.html("");
       let hasCrystals = item.equippedCrystals.some(crystal => crystal !== null);
       if (!hasCrystals) {
         createSpan("No crystals equipped.").parent(crystalDescriptions);
@@ -2071,16 +1627,13 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
       }
     }
 
-    // Initial display of crystal descriptions
     if (item.crystalSlots > 0) {
-      // Ensure equippedCrystals array matches the number of crystal slots
       if (!item.equippedCrystals || item.equippedCrystals.length !== item.crystalSlots) {
         item.equippedCrystals = Array(item.crystalSlots).fill(null);
       }
 
-      updateCrystalDescriptions(); // Initial render
+      updateCrystalDescriptions();
 
-      // Function to recalculate crystal usage
       function updateCrystalUsageCount() {
         let count = {};
         for (let otherSlot in equippedItems) {
@@ -2154,7 +1707,6 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
             }
           }
 
-          // Update all dropdowns after a change
           let crystalUsageCount = updateCrystalUsageCount();
           crystalSelects.forEach((select, index) => {
             let currentValue = select.value();
@@ -2172,10 +1724,7 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
             select.value(currentValue);
           });
 
-          // Update crystal descriptions dynamically
           updateCrystalDescriptions();
-
-          // Clear error message on successful change
           errorMessage.style("display", "none");
           updateStATGonusesDisplay();
           updateResourcesBasedOnStats();
@@ -3728,7 +3277,7 @@ function createEquipmentUI() {
   });
 }
 function showModifyCrystalsModal() {
-if (modalDiv) modalDiv.remove();
+  if (modalDiv) modalDiv.remove();
   modalDiv = createDiv()
     .style("position", "absolute")
     .style("top", "50%")
@@ -3749,15 +3298,15 @@ if (modalDiv) modalDiv.remove();
 
   createElement("h3", "Manage Crystals").parent(contentWrapper);
 
-  let errorMessage = createP("")
-    .parent(contentWrapper)
-    .style("color", "red")
-    .style("display", "none")
-    .style("margin-bottom", "10px");
-
   let successMessage = createP("")
     .parent(contentWrapper)
     .style("color", "green")
+    .style("display", "none")
+    .style("margin-bottom", "10px");
+
+  let errorMessage = createP("")
+    .parent(contentWrapper)
+    .style("color", "red")
     .style("display", "none")
     .style("margin-bottom", "10px");
 
@@ -3772,31 +3321,46 @@ if (modalDiv) modalDiv.remove();
 
   let nameDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Name:").parent(nameDiv).style("display", "inline-block").style("width", "100px");
-  let nameInput = createInput("").parent(nameDiv).style("width", "180px");
+  let nameInput = createInput("")
+    .parent(nameDiv)
+    .style("width", "180px")
+    .attribute("placeholder", "e.g., Fire Crystal");
   createSpan("The crystal’s unique identifier.").parent(nameDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
   let descDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Description:").parent(descDiv).style("display", "inline-block").style("width", "100px");
-  let descInput = createInput("").parent(descDiv).style("width", "180px");
+  let descInput = createInput("")
+    .parent(descDiv)
+    .style("width", "180px")
+    .attribute("placeholder", "Describe the crystal...");
   createSpan("What the crystal does or its lore.").parent(descDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
   let stATGonusDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Stat Bonus:").parent(stATGonusDiv).style("display", "inline-block").style("width", "100px");
   let statSelect = createSelect().parent(stATGonusDiv).style("width", "80px").style("margin-right", "5px");
   ["None", "STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statSelect.option(stat));
-  let amountInput = createInput("0", "number").parent(stATGonusDiv).style("width", "50px");
+  let amountInput = createInput("0", "number")
+    .parent(stATGonusDiv)
+    .style("width", "50px")
+    .attribute("placeholder", "e.g., 2");
   createSpan("Stat to boost (e.g., MAG) and amount.").parent(stATGonusDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
   let statReqDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Stat Requirement:").parent(statReqDiv).style("display", "inline-block").style("width", "100px");
   let statReqSelect = createSelect().parent(statReqDiv).style("width", "80px").style("margin-right", "5px");
   ["None", "STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statReqSelect.option(stat));
-  let statReqInput = createInput("0", "number").parent(statReqDiv).style("width", "50px");
+  let statReqInput = createInput("0", "number")
+    .parent(statReqDiv)
+    .style("width", "50px")
+    .attribute("placeholder", "e.g., 5");
   createSpan("Minimum stat needed to equip (e.g., 5 MAG).").parent(statReqDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
   let abilitiesDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Abilities:").parent(abilitiesDiv).style("display", "inline-block").style("width", "100px");
-  let abilitiesInput = createInput("").parent(abilitiesDiv).style("width", "180px").attribute("placeholder", "e.g., Fire, Cure");
+  let abilitiesInput = createInput("")
+    .parent(abilitiesDiv)
+    .style("width", "180px")
+    .attribute("placeholder", "e.g., Fire, Cure");
   createSpan("Skills granted (comma-separated).").parent(abilitiesDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
   let buttonContainer = createDiv()
@@ -3959,9 +3523,16 @@ if (modalDiv) modalDiv.remove();
       updateAvailableEquipment();
       createEquipmentUI();
       if (typeof createInventoryUI === "function") createInventoryUI();
-      modalDiv.remove();
+      // Show success message and reset form state without closing the modal
+      successMessage.html("Crystal Added to Inventory");
+      successMessage.style("display", "block");
       errorMessage.style("display", "none");
-      successMessage.style("display", "none");
+      // Reset the form to "None" state
+      crystalSelect.value("-1");
+      updateCrystalOptions();
+      loadCrystalData();
+      // Scroll to the top to show the success message
+      contentWrapper.elt.scrollTop = 0;
     });
 
   createButton("Save")
@@ -4079,6 +3650,7 @@ if (modalDiv) modalDiv.remove();
       crystalSelect.value("-1");
       updateCrystalOptions();
       loadCrystalData();
+      contentWrapper.elt.scrollTop = 0;
     });
 
   createButton("Remove")
@@ -5640,15 +5212,15 @@ function showModifyItemsModal() {
 
   createElement("h3", "Modify Items").parent(modalDiv);
 
-  let errorMessage = createP("")
-    .parent(modalDiv)
-    .style("color", "red")
-    .style("display", "none")
-    .style("margin-bottom", "10px");
-
   let successMessage = createP("")
     .parent(modalDiv)
     .style("color", "green")
+    .style("display", "none")
+    .style("margin-bottom", "10px");
+
+  let errorMessage = createP("")
+    .parent(modalDiv)
+    .style("color", "red")
     .style("display", "none")
     .style("margin-bottom", "10px");
 
@@ -5745,100 +5317,107 @@ function showModifyItemsModal() {
   itemSelect.changed(loadItemData);
   updateItemOptions();
 
- createButton("Add")
-  .parent(modalDiv)
-  .style("margin", "5px")
-  .style("padding", "5px 10px")
-  .style("background-color", "#4CAF50")
-  .style("color", "white")
-  .style("border", "none")
-  .style("border-radius", "3px")
-  .style("cursor", "pointer")
-  .mousePressed(() => {
-    let idx = parseInt(itemSelect.value());
-    let selectedCategory = categorySelect.value();
-    let allItems = inventory.filter(item => item.category === selectedCategory);
-    let availableItemsForCategory = availableItems[selectedCategory] ? availableItems[selectedCategory].filter(item => 
-      !inventory.some(i => i.name === item.name && i.category === selectedCategory)
-    ) : [];
+  createButton("Add")
+    .parent(modalDiv)
+    .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#4CAF50")
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
+    .mousePressed(() => {
+      let idx = parseInt(itemSelect.value());
+      let selectedCategory = categorySelect.value();
+      let allItems = inventory.filter(item => item.category === selectedCategory);
+      let availableItemsForCategory = availableItems[selectedCategory] ? availableItems[selectedCategory].filter(item => 
+        !inventory.some(i => i.name === item.name && i.category === selectedCategory)
+      ) : [];
 
-    if (idx === -1) {
-      // Add a new custom item
-      let category = categorySelect.value();
-      let newName = nameInput.value().trim();
+      if (idx === -1) {
+        // Add a new custom item
+        let category = categorySelect.value();
+        let newName = nameInput.value().trim();
 
-      if (!newName) {
-        errorMessage.html("Please provide a name for the item.");
+        if (!newName) {
+          errorMessage.html("Please provide a name for the item.");
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+
+        if (inventory.some(item => item.name === newName && item.category === category)) {
+          errorMessage.html(`An item with the name "${newName}" already exists in ${category}. Please choose a different name.`);
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+
+        if (availableItems[category] && availableItems[category].some(item => item.name === newName)) {
+          errorMessage.html(`An item with the name "${newName}" already exists in available items for ${category}. Please choose a different name.`);
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+
+        let newItem = {
+          name: newName,
+          category: category,
+          description: descriptionInput.value(),
+          quality: qualitySelect.value(),
+          quantity: 1
+        };
+
+        console.log("Adding new item:", newItem);
+        inventory.push(newItem);
+        // Add to availableItems to preserve it after deletion
+        if (!availableItems[category]) {
+          availableItems[category] = [];
+        }
+        availableItems[category].push({ ...newItem }); // Add to availableItems
+      } else if (idx >= allItems.length) {
+        // Add an available item to inventory
+        let availableIdx = idx - allItems.length;
+        if (availableIdx < 0 || availableIdx >= availableItemsForCategory.length) {
+          errorMessage.html("Invalid available item selected.");
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+        let item = availableItemsForCategory[availableIdx];
+        let newItem = { ...item, quantity: 1 };
+
+        if (inventory.some(i => i.name === item.name && i.category === selectedCategory)) {
+          errorMessage.html(`Item "${item.name}" already exists in inventory. Use Save to update it.`);
+          errorMessage.style("display", "block");
+          successMessage.style("display", "none");
+          return;
+        }
+
+        console.log("Adding available item to inventory:", newItem);
+        inventory.push(newItem);
+      } else {
+        errorMessage.html("Please select 'None' to add a new item or an available item.");
         errorMessage.style("display", "block");
         successMessage.style("display", "none");
         return;
       }
 
-      if (inventory.some(item => item.name === newName && item.category === category)) {
-        errorMessage.html(`An item with the name "${newName}" already exists in ${category}. Please choose a different name.`);
-        errorMessage.style("display", "block");
-        successMessage.style("display", "none");
-        return;
-      }
-
-      if (availableItems[category] && availableItems[category].some(item => item.name === newName)) {
-        errorMessage.html(`An item with the name "${newName}" already exists in available items for ${category}. Please choose a different name.`);
-        errorMessage.style("display", "block");
-        successMessage.style("display", "none");
-        return;
-      }
-
-      let newItem = {
-        name: newName,
-        category: category,
-        description: descriptionInput.value(),
-        quality: qualitySelect.value(),
-        quantity: 1
-      };
-
-      console.log("Adding new item:", newItem);
-      inventory.push(newItem);
-      // Add to availableItems to preserve it after deletion
-      if (!availableItems[category]) {
-        availableItems[category] = [];
-      }
-      availableItems[category].push({ ...newItem }); // Add to availableItems
-    } else if (idx >= allItems.length) {
-      // Add an available item to inventory
-      let availableIdx = idx - allItems.length;
-      if (availableIdx < 0 || availableIdx >= availableItemsForCategory.length) {
-        errorMessage.html("Invalid available item selected.");
-        errorMessage.style("display", "block");
-        successMessage.style("display", "none");
-        return;
-      }
-      let item = availableItemsForCategory[availableIdx];
-      let newItem = { ...item, quantity: 1 };
-
-      if (inventory.some(i => i.name === item.name && i.category === selectedCategory)) {
-        errorMessage.html(`Item "${item.name}" already exists in inventory. Use Save to update it.`);
-        errorMessage.style("display", "block");
-        successMessage.style("display", "none");
-        return;
-      }
-
-      console.log("Adding available item to inventory:", newItem);
-      inventory.push(newItem);
-    } else {
-      errorMessage.html("Please select 'None' to add a new item or an available item.");
-      errorMessage.style("display", "block");
-      successMessage.style("display", "none");
-      return;
-    }
-
-    localStorage.setItem('inventory', JSON.stringify(inventory));
-    console.log("Updated inventory:", inventory);
-    updateAvailableEquipment();
-    createInventoryUI();
-    modalDiv.remove();
-    errorMessage.style("display", "none");
-    successMessage.style("display", "none");
-  });
+      localStorage.setItem('inventory', JSON.stringify(inventory));
+      console.log("Updated inventory:", inventory);
+      updateAvailableEquipment();
+      createInventoryUI();
+      // Show success message and reset form state without closing the modal
+      successMessage.html("Item Added to Inventory");
+      successMessage.style("display", "block");
+      errorMessage.style("display", "none");
+      // Reset the form to "None" state
+      itemSelect.value("-1");
+      updateItemOptions();
+      loadItemData();
+      // Scroll to the top to show the success message
+      modalDiv.elt.scrollTop = 0;
+    });
 
   createButton("Save")
     .parent(modalDiv)
@@ -5958,6 +5537,8 @@ function showModifyItemsModal() {
       itemSelect.value("-1");
       updateItemOptions();
       loadItemData();
+      // Scroll to the top to show the success message
+      modalDiv.elt.scrollTop = 0;
     });
 
   createButton("Remove")
@@ -6017,67 +5598,6 @@ function showModifyItemsModal() {
       successMessage.style("display", "none");
     });
 }
-function showAddEditInventoryModal() {
-  if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv().class("modal");
-
-  createElement("h3", "Edit or Remove Items").parent(modalDiv);
-
-  inventory.forEach((item, index) => {
-    let itemRow = createDiv().parent(modalDiv).class("resource-row");
-    createSpan(`${item.name} (${item.category})`).parent(itemRow).style("flex", "1");
-    createButton("Edit")
-      .parent(itemRow)
-      .class("resource-button small-button")
-      .mousePressed(() => editInventoryItem(index));
-    createButton("Remove")
-      .parent(itemRow)
-      .class("resource-button small-button")
-      .mousePressed(() => {
-        inventory.splice(index, 1);
-        modalDiv.remove();
-        createInventoryUI();
-      });
-  });
-
-  createButton("Close")
-    .parent(modalDiv)
-    .style("margin-top", "10px")
-    .mousePressed(() => modalDiv.remove());
-}
-
-function editInventoryItem(index) {
-  if (modalDiv) modalDiv.remove();
-  let item = inventory[index];
-  modalDiv = createDiv().class("modal");
-
-  createElement("h3", `Edit Item: ${item.name}`).parent(modalDiv);
-
-  let descInput = createInput(item.description || "")
-    .parent(modalDiv)
-    .style("width", "100%")
-    .style("margin-bottom", "10px");
-  let categorySelect = createSelect()
-    .parent(modalDiv)
-    .style("width", "100%")
-    .style("margin-bottom", "10px");
-  inventoryCategories.forEach(cat => categorySelect.option(cat));
-  categorySelect.value(item.category || "Miscellaneous");
-
-  createButton("Save")
-    .parent(modalDiv)
-    .mousePressed(() => {
-      inventory[index].description = descInput.value();
-      inventory[index].category = categorySelect.value();
-      modalDiv.remove();
-      createInventoryUI();
-    });
-
-  createButton("Cancel")
-    .parent(modalDiv)
-    .mousePressed(() => modalDiv.remove());
-}
-
 function getEquippedWeaponCategory() {
   let onHand = equippedItems["On-Hand"];
   let offHand = equippedItems["Off-Hand"];
