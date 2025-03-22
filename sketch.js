@@ -4795,7 +4795,7 @@ function createTraitsUI() {
     .parent(buttonRow)
     .class("resource-button")
     .mousePressed(showAddCustomTraitModal);
-  createButton("Modify Existing Traits")
+  createButton("Modify Traits")
     .parent(buttonRow)
     .class("resource-button")
     .mousePressed(showAddEditTraitsModal);
