@@ -4109,17 +4109,7 @@ function showAddCustomTalentModal() {
         }
       }
 
-      // Check Talent Points
-      let talentCost = getTalentPointCost(maxLevelIndex);
-      let availableTalentPoints = totalTalentPoints - spentTalentPoints;
-      if (talentCost > availableTalentPoints) {
-        errorMessage.html(`Not enough Talent Points! Need ${talentCost}, have ${availableTalentPoints}.`);
-        errorMessage.style("display", "block");
-        successMessage.style("display", "none");
-        return;
-      }
-
-      // Add the talents
+      // Add the talents to existingTalents only
       let newTalents = [];
       requiredLevels.forEach((lvl) => {
         let fullName = `${name} - Level ${lvl}`;
@@ -4134,17 +4124,10 @@ function showAddCustomTalentModal() {
         newTalents.push(talent);
       });
 
-      talents = talents.filter((t) => !t.name.startsWith(name));
-      let levelOneTalent = newTalents.find((t) => t.level === "I");
-      if (levelOneTalent) talents.push(levelOneTalent);
-
-      // Deduct Talent Points
-      spentTalentPoints += talentCost;
-      createStatsUI(); // Update Talent Points display on Stats tab
-      createTalentsUI(); // Refresh the entire Talents tab UI
+      createTalentsUI(); // Refresh the Talents tab UI
 
       // Show success message and keep modal open
-      successMessage.html("Talent Added");
+      successMessage.html("Talent Added to Master List");
       successMessage.style("display", "block");
       errorMessage.style("display", "none");
       modalDiv.elt.scrollTop = 0;
@@ -4419,22 +4402,37 @@ function showRemoveExistingTalentModal() {
     .style("margin", "5px")
     .mousePressed(() => {
       let selectedName = talentSelect.value();
-      // Refund Talent Points for talents in the player's list
-      talents.forEach((talent) => {
-        if (talent.name.startsWith(selectedName + " - Level")) {
-          let cost = getTalentPointCost(talent.level);
-          spentTalentPoints -= cost;
+      if (!selectedName) {
+        showConfirmationModal(
+          "Please select a talent to remove.",
+          () => {},
+          true
+        );
+        return;
+      }
+      // Show confirmation box
+      showConfirmationModal(
+        `Are you sure you want to remove "${selectedName}" from the master list? This action cannot be undone.`,
+        () => {
+          // Refund Talent Points for talents in the player's list
+          talents.forEach((talent) => {
+            if (talent.name.startsWith(selectedName + " - Level")) {
+              let cost = getTalentPointCost(talent.level);
+              spentTalentPoints -= cost;
+            }
+          });
+          // Remove from existingTalents and talents
+          existingTalents = existingTalents.filter(
+            (t) => !t.name.startsWith(selectedName + " - Level")
+          );
+          talents = talents.filter(
+            (t) => !t.name.startsWith(selectedName + " - Level")
+          );
+          createStatsUI(); // Update Talent Points display on Stats tab
+          createTalentsUI(); // Refresh the entire Talents tab UI
+          modalDiv.remove();
         }
-      });
-      existingTalents = existingTalents.filter(
-        (t) => !t.name.startsWith(selectedName + " - Level")
       );
-      talents = talents.filter(
-        (t) => !t.name.startsWith(selectedName + " - Level")
-      );
-      createStatsUI(); // Update Talent Points display
-      updateTalentsTable();
-      modalDiv.remove();
     });
 
   createButton("Cancel")
