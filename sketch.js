@@ -3887,7 +3887,7 @@ function createTalentsUI() {
 
   createElement("h2", "Talents").parent(talentsContainerDiv);
   let talentsDesc = createP(
-    "Use buttons to add, edit, or remove talents. Click a talent's name to view its details. Use arrows to reorder."
+    "Use buttons to add, edit, or remove talents from the master list, reset to defaults, or equip talents (costing Talent Points). Click a talent's name for details, use arrows to reorder, change levels (adjusts Talent Points), or remove to unequip and refund points."
   ).parent(talentsContainerDiv);
   talentsDesc
     .style("font-size", "12px")
