@@ -1750,27 +1750,7 @@ function showRemoveInventoryModal() {
     .style("margin", "5px")
     .mousePressed(() => modalDiv.remove());
 }
-function showItemDetailsModal(item) {
-  if (modalDiv) modalDiv.remove();
-  modalDiv = createDiv()
-    .style("position", "absolute")
-    .style("top", "50%")
-    .style("left", "50%")
-    .style("transform", "translate(-50%, -50%)")
-    .style("background", "#fff")
-    .style("padding", "20px")
-    .style("border", "2px solid #000")
-    .style("z-index", "1000")
-    .style("width", "300px");
 
-  createElement("h3", item.name).parent(modalDiv);
-  createP(item.description || "No description available.").parent(modalDiv);
-
-  createButton("Close")
-    .parent(modalDiv)
-    .style("margin", "5px")
-    .mousePressed(() => modalDiv.remove());
-}
 function showAddItemModal() {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv()
@@ -1970,6 +1950,11 @@ function showTalentDescription(title, description) {
     .mousePressed(() => modalDiv.remove());
 }
 function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
+  if (!item && !allowCrystalEquip) {
+    showConfirmationModal("No item equipped in this slot.", () => {}, true);
+    return;
+  }
+
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv()
     .style("position", "absolute")
@@ -1984,30 +1969,61 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
     .style("word-wrap", "break-word");
 
   if (!allowCrystalEquip) {
-    // Display equipment details (unchanged behavior)
+    // Display equipment details with all fields, excluding those not filled in
     createElement("h3", `${slot}: ${item ? item.name : "None"}`).parent(modalDiv);
+
     if (item) {
-      let details = item.description ? `${item.description}<br>` : "No description provided.<br>";
-      if (item.statRequirements && Object.keys(item.statRequirements).length > 0) {
-        let reqs = Object.entries(item.statRequirements)
-          .map(([stat, value]) => `${value} ${stat}`)
-          .join(" & ");
-        details += `Requirements: ${reqs}<br>`;
-      }
+      let detailsDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+      let addDetail = (label, value, isBoolean = false) => {
+        // Skip if the value is undefined, null, or empty
+        if (value === undefined || value === null || value === "") {
+          return;
+        }
+        // For objects, skip if empty; otherwise, format as key-value pairs
+        if (typeof value === "object") {
+          if (Object.keys(value).length === 0) {
+            return;
+          }
+          value = Object.entries(value).map(([key, val]) => `${key}: ${val}`).join(", ");
+        }
+        // For booleans, only show if true
+        if (isBoolean) {
+          if (!value) {
+            return;
+          }
+          value = "Yes";
+        }
+        createSpan(`${label}: ${value}`).parent(detailsDiv).style("display", "block");
+      };
+
+      addDetail("Name", item.name);
+      addDetail("Description", item.description || "No description provided.");
+      addDetail("Type", item.type);
+      addDetail("Category", item.category);
+      addDetail("Quality", item.quality);
+      addDetail("Crystal Slots", item.crystalSlots);
+      addDetail("Quantity", item.quantity);
+      addDetail("Stat Requirements", item.statRequirements && Object.keys(item.statRequirements).length > 0 ? item.statRequirements : undefined);
+      addDetail("Dual Wield", item.dualWield, true);
+      addDetail("Two-Handed", item.twoHanded, true);
+      addDetail("Linked Stat", item.linkedStat);
       if (item.damageDice) {
         let modifierText = item.modifier && item.modifier !== 0 ? (item.modifier > 0 ? `+${item.modifier}` : item.modifier) : "";
-        details += `Damage: ${item.damageDice}${modifierText}<br>`;
+        addDetail("Damage", `${item.damageDice}${modifierText}`);
       } else if (item.defense) {
-        details += `Defense: ${item.defense}${item.modifier && item.modifier !== 0 ? (item.modifier > 0 ? ` +${item.modifier}` : ` ${item.modifier}`) : ""}<br>`;
+        let modifierText = item.modifier && item.modifier !== 0 ? (item.modifier > 0 ? ` +${item.modifier}` : ` ${item.modifier}`) : "";
+        addDetail("Defense", `${item.defense}${modifierText}`);
       } else if (item.modifier && item.modifier !== 0) {
-        details += `Modifier: ${item.modifier > 0 ? `+${item.modifier}` : item.modifier}<br>`;
+        addDetail("Modifier", item.modifier > 0 ? `+${item.modifier}` : item.modifier);
       }
-      createP(details).parent(modalDiv);
+      addDetail("Weapon Category", item.weaponCategory);
+      addDetail("Movement Penalty", item.movementPenalty !== undefined ? `${item.movementPenalty} ft` : undefined);
+      addDetail("Stat Bonus", item.stATGonuses ? `${item.stATGonuses.stat} ${item.stATGonuses.amount > 0 ? "+" : ""}${item.stATGonuses.amount}` : undefined);
     } else {
       createP("No description available.").parent(modalDiv);
     }
   } else {
-    // Display crystal management (updated behavior)
+    // Display crystal management (unchanged behavior)
     createElement("h3", `${slot}: Essence Crystal Slots`).parent(modalDiv);
 
     // Add inline error message
@@ -3564,15 +3580,6 @@ function createEquipmentUI() {
   let disableOnHand = twoHandedInOffHand;
   let disableOffHand = twoHandedInOnHand;
 
-  // Calculate how many of each item are currently equipped
-  let equippedCounts = {};
-  for (let slot in equippedItems) {
-    let item = equippedItems[slot];
-    if (item) {
-      equippedCounts[item.name] = (equippedCounts[item.name] || 0) + 1;
-    }
-  }
-
   Object.keys(equippedItems).forEach((slot) => {
     let row = createElement("tr").parent(equipmentTable);
     let slotCell = createElement("td")
@@ -3593,42 +3600,12 @@ function createEquipmentUI() {
     let itemSelect = createSelect()
       .parent(nameCell)
       .style("width", "100%");
-
-    // Clear the dropdown to avoid rendering issues
-    itemSelect.html("");
-
-    // Add "None" option
-    let noneOption = document.createElement("option");
-    noneOption.text = "None";
-    noneOption.value = "None";
-    itemSelect.elt.appendChild(noneOption);
-
+    let item = equippedItems[slot];
+    let itemName = item ? item.name : "None";
+    itemSelect.option("None", "None");
     let availableItems = availableEquipment[slot];
     if (availableItems) {
-      console.log(`Available items for ${slot}:`, availableItems.map(item => item.name));
-
-      // Always add the currently equipped item to the dropdown
-      let currentItem = equippedItems[slot];
-      if (currentItem) {
-        let option = document.createElement("option");
-        option.text = currentItem.name;
-        option.value = currentItem.name;
-        itemSelect.elt.appendChild(option);
-      }
-
-      // Add other available items, respecting quantity limits
       availableItems.forEach(item => {
-        // Skip the currently equipped item since we already added it
-        if (currentItem && item.name === currentItem.name) {
-          return;
-        }
-
-        // Check if the item is already equipped elsewhere and if there's enough quantity
-        let equippedCount = equippedCounts[item.name] || 0;
-        let inventoryItem = inventory.find(i => i.name === item.name && i.category === "Equipment");
-        let totalQuantity = inventoryItem ? (inventoryItem.quantity || 1) : 1;
-        let remainingQuantity = totalQuantity - equippedCount;
-
         // Prevent the same accessory from being equipped in both slots
         let isAlreadyEquipped = false;
         if (slot === "Accessory 1" && equippedItems["Accessory 2"] && equippedItems["Accessory 2"].name === item.name) {
@@ -3636,31 +3613,23 @@ function createEquipmentUI() {
         } else if (slot === "Accessory 2" && equippedItems["Accessory 1"] && equippedItems["Accessory 1"].name === item.name) {
           isAlreadyEquipped = true;
         }
-
         // For On-Hand and Off-Hand, also check if the item is already equipped in the other slot
         if (slot === "On-Hand" && equippedItems["Off-Hand"] && equippedItems["Off-Hand"].name === item.name) {
           isAlreadyEquipped = true;
         } else if (slot === "Off-Hand" && equippedItems["On-Hand"] && equippedItems["On-Hand"].name === item.name) {
           isAlreadyEquipped = true;
         }
-
         // Only add the item to the dropdown if there's enough quantity remaining
+        let equippedCount = Object.values(equippedItems).filter(eq => eq && eq.name === item.name).length;
+        let inventoryItem = inventory.find(i => i.name === item.name && i.category === "Equipment");
+        let totalQuantity = inventoryItem ? (inventoryItem.quantity || 1) : 1;
+        let remainingQuantity = totalQuantity - equippedCount;
         if (!isAlreadyEquipped || remainingQuantity > 0) {
-          let option = document.createElement("option");
-          option.text = item.name;
-          option.value = item.name;
-          itemSelect.elt.appendChild(option);
+          itemSelect.option(item.name, item.name);
         }
       });
     }
-
-    // Set the selected value
-    let currentItemName = equippedItems[slot] ? equippedItems[slot].name : "None";
-    console.log(`Setting dropdown value for ${slot} to: ${currentItemName}`);
-    itemSelect.value(currentItemName);
-
-    // Debug: Log the dropdown's HTML to confirm options
-    console.log(`Dropdown HTML for ${slot}:`, itemSelect.elt.outerHTML);
+    itemSelect.value(itemName);
 
     // Disable the dropdown if the opposite hand has a two-handed weapon
     if ((slot === "On-Hand" && disableOnHand) || (slot === "Off-Hand" && disableOffHand)) {
@@ -3708,50 +3677,50 @@ function createEquipmentUI() {
       createEquipmentUI();
     });
 
-    let item = equippedItems[slot];
-    let reqText = item && item.statRequirements ? Object.entries(item.statRequirements).map(([stat, val]) => `${val} ${stat}`).join(", ") : "-";
+    let itemData = equippedItems[slot];
+    let reqText = itemData && itemData.statRequirements ? Object.entries(itemData.statRequirements).map(([stat, val]) => `${val} ${stat}`).join(", ") : "-";
     createElement("td", reqText)
       .parent(row)
       .style("border", "1px solid #ccc")
       .style("padding", "5px");
 
     let dmgDefText = "-";
-    if (item) {
-      if (item.damageDice) dmgDefText = `${item.damageDice}${item.modifier ? (item.modifier > 0 ? `+${item.modifier}` : item.modifier) : ""}`;
-      else if (item.defense) dmgDefText = `${item.defense}${item.modifier ? (item.modifier > 0 ? `+${item.modifier}` : item.modifier) : ""}`;
+    if (itemData) {
+      if (itemData.damageDice) dmgDefText = `${itemData.damageDice}${itemData.modifier ? (itemData.modifier > 0 ? `+${itemData.modifier}` : itemData.modifier) : ""}`;
+      else if (itemData.defense) dmgDefText = `${itemData.defense}${itemData.modifier ? (itemData.modifier > 0 ? `+${itemData.modifier}` : itemData.modifier) : ""}`;
     }
     createElement("td", dmgDefText)
       .parent(row)
       .style("border", "1px solid #ccc")
       .style("padding", "5px");
 
-    createElement("td", item && item.movementPenalty !== undefined ? item.movementPenalty.toString() : "-")
+    createElement("td", itemData && itemData.movementPenalty !== undefined ? itemData.movementPenalty.toString() : "-")
       .parent(row)
       .style("border", "1px solid #ccc")
       .style("padding", "5px");
 
-    let crystalCell = createElement("td", item && item.crystalSlots !== undefined ? item.crystalSlots.toString() : "0")
+    let crystalCell = createElement("td", itemData && itemData.crystalSlots !== undefined ? itemData.crystalSlots.toString() : "0")
       .parent(row)
       .style("border", "1px solid #ccc")
       .style("padding", "5px")
-      .style("cursor", item ? "pointer" : "default")
-      .style("color", item ? "blue" : "black");
-    if (item) {
-      crystalCell.mousePressed(() => showEquipmentDescription(slot, item, true));
+      .style("cursor", itemData ? "pointer" : "default")
+      .style("color", itemData ? "blue" : "black");
+    if (itemData) {
+      crystalCell.mousePressed(() => showEquipmentDescription(slot, itemData, true));
     }
 
-    let bonusText = item && item.stATGonuses ? `${item.stATGonuses.stat} ${item.stATGonuses.amount > 0 ? "+" : ""}${item.stATGonuses.amount}` : "-";
+    let bonusText = itemData && itemData.stATGonuses ? `${itemData.stATGonuses.stat} ${itemData.stATGonuses.amount > 0 ? "+" : ""}${itemData.stATGonuses.amount}` : "-";
     createElement("td", bonusText)
       .parent(row)
       .style("border", "1px solid #ccc")
       .style("padding", "5px");
 
-    createElement("td", item && item.linkedStat ? item.linkedStat : "-")
+    createElement("td", itemData && itemData.linkedStat ? itemData.linkedStat : "-")
       .parent(row)
       .style("border", "1px solid #ccc")
       .style("padding", "5px");
 
-    let weaponCategoryText = (item && (slot === "On-Hand" || slot === "Off-Hand")) ? (item.weaponCategory || "-") : "-";
+    let weaponCategoryText = (itemData && (slot === "On-Hand" || slot === "Off-Hand")) ? (itemData.weaponCategory || "-") : "-";
     createElement("td", weaponCategoryText)
       .parent(row)
       .style("border", "1px solid #ccc")
@@ -5365,6 +5334,7 @@ function updateStATGonusesDisplay() {
   }
 }
 // Inventory UI Creation
+// Inventory UI Creation
 function createInventoryUI() {
   console.log("Creating Inventory UI, current inventory:", JSON.stringify(inventory, null, 2));
   let inventoryContainer = select("#inventory");
@@ -5504,7 +5474,7 @@ function createInventoryUI() {
               .style("cursor", "pointer")
               .style("color", "#0000EE")
               .style("text-decoration", "underline")
-              .mousePressed(() => showItemDetailsModal(item));
+              .mousePressed(() => showEquipmentDescription(category + "-" + idx, item, false));
             createElement("td", item.description || "-").parent(row);
             let quantityCell = createElement("td").parent(row);
             let qtyInput = createInput((item.quantity || 1).toString(), "number")
@@ -5530,42 +5500,42 @@ function createInventoryUI() {
             });
             createElement("td", item.quality || "Common").parent(row);
             let actionCell = createElement("td").parent(row);
-createButton("Delete")
-  .parent(actionCell)
-  .class("resource-button small-button")
-  .mousePressed(() => {
-    let inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === item.category);
-    if (inventoryIdx !== -1) {
-      // Check if the item is a Crystal and is equipped
-      if (item.category === "Crystals") {
-        let isEquipped = Object.values(equippedItems).some(equipped => 
-          equipped && equipped.equippedCrystals && equipped.equippedCrystals.some(c => c && c.name === item.name)
-        );
-        if (isEquipped) {
-          showConfirmationModal(`${item.name} is currently equipped as a crystal. Unequip it before deleting.`, () => {}, true);
-          return;
-        }
-      }
+            createButton("Delete")
+              .parent(actionCell)
+              .class("resource-button small-button")
+              .mousePressed(() => {
+                let inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === item.category);
+                if (inventoryIdx !== -1) {
+                  // Check if the item is a Crystal and is equipped
+                  if (item.category === "Crystals") {
+                    let isEquipped = Object.values(equippedItems).some(equipped => 
+                      equipped && equipped.equippedCrystals && equipped.equippedCrystals.some(c => c && c.name === item.name)
+                    );
+                    if (isEquipped) {
+                      showConfirmationModal(`${item.name} is currently equipped as a crystal. Unequip it before deleting.`, () => {}, true);
+                      return;
+                    }
+                  }
 
-      // Proceed with deletion confirmation
-      showConfirmationModal(
-        `Are you sure you want to delete ${item.name}?`,
-        () => {
-          inventory.splice(inventoryIdx, 1);
-          localStorage.setItem('inventory', JSON.stringify(inventory));
-          updateAvailableEquipment(); // This will now safely handle modalDiv being null
-          createInventoryUI();
-          createEquipmentUI();
-          // Only call updateEquipmentOptions if the modal is actually open
-          if (modalDiv && modalDiv.elt && document.body.contains(modalDiv.elt)) {
-            updateEquipmentOptions();
-          }
-        }
-      );
-    } else {
-      console.error(`Item ${item.name} not found in inventory for deletion!`);
-    }
-  });
+                  // Proceed with deletion confirmation
+                  showConfirmationModal(
+                    `Are you sure you want to delete ${item.name}?`,
+                    () => {
+                      inventory.splice(inventoryIdx, 1);
+                      localStorage.setItem('inventory', JSON.stringify(inventory));
+                      updateAvailableEquipment();
+                      createInventoryUI();
+                      createEquipmentUI();
+                      // If the Modify Equipment modal is open, refresh its dropdown
+                      if (modalDiv && modalDiv.elt && document.body.contains(modalDiv.elt)) {
+                        updateEquipmentOptions();
+                      }
+                    }
+                  );
+                } else {
+                  console.error(`Item ${item.name} not found in inventory for deletion!`);
+                }
+              });
           });
         });
       }
@@ -5594,7 +5564,7 @@ createButton("Delete")
             .style("cursor", "pointer")
             .style("color", "#0000EE")
             .style("text-decoration", "underline")
-            .mousePressed(() => showItemDetailsModal(item));
+            .mousePressed(() => showEquipmentDescription(category + "-" + idx, item, false));
           createElement("td", item.description || "-").parent(row);
           let quantityCell = createElement("td").parent(row);
           let qtyInput = createInput((item.quantity || 1).toString(), "number")
