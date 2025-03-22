@@ -26,6 +26,12 @@ let level = 1,
   movement = 65; // Base movement starts at 65 ft
 let statbonusElements = {};
 
+// Helper function to enable/disable buttons
+// Using elt.disabled instead of .attribute("disabled", ...) due to inconsistent behavior with p5.js attribute method
+function setButtonDisabled(button, isDisabled) {
+  button.elt.disabled = isDisabled;
+}
+
 //Talent Point Pool
 let totalTalentPoints = 0; // Total Talent Points based on level
 let spentTalentPoints = 0; // Talent Points spent on talents
@@ -134,35 +140,40 @@ let learnedAbilities = {}; // Object to track learned abilities by category, e.g
 // Define available abilities with placeholders
 let availableAbilities = {
   "Melee - Heavy": [
-    { name: "Cleave", ATGCost: 50, statReq: { STR: 10 }, pointCost: 1, effect: "Hits all enemies for 1.5x damage" },
-    { name: "Smash", ATGCost: 75, statReq: { STR: 15 }, pointCost: 2, effect: "Single target, 2x damage" }
+    { name: "Cleave", ATGCost: 50, statReq: { STR: 1 }, pointCost: 1, effect: { dice: "1d8", description: "Hits all enemies" } },
+    { name: "Smash", ATGCost: 75, statReq: { STR: 15 }, pointCost: 2, effect: { dice: "1d10", description: "Single target" } }
   ],
   "Melee - Balanced": [
-    { name: "Balanced Strike", ATGCost: 40, statReq: { STR: 8, DEX: 8 }, pointCost: 1, effect: "Balanced attack with 1d8 damage" }
+    { name: "Balanced Strike", ATGCost: 40, statReq: { STR: 8, DEX: 8 }, pointCost: 1, effect: { dice: "1d8", description: "Balanced attack" } }
   ],
   "Melee - Light": [
-    { name: "Quick Slash", ATGCost: 30, statReq: { DEX: 10 }, pointCost: 1, effect: "Fast attack, 1d6+DEX damage" }
+    { name: "Quick Slash", ATGCost: 30, statReq: { DEX: 10 }, pointCost: 1, effect: { dice: "1d6", description: "Fast attack" } }
   ],
   "Ranged - Short": [
-    { name: "Rapid Shot", ATGCost: 35, statReq: { DEX: 10 }, pointCost: 1, effect: "Quick ranged attack, 20-30 ft" }
+    { name: "Rapid Shot", ATGCost: 35, statReq: { DEX: 10 }, pointCost: 1, effect: { dice: "1d6", description: "Quick ranged attack, 20-30 ft" } }
   ],
   "Ranged - Long": [
-    { name: "Sniper Shot", ATGCost: 60, statReq: { DEX: 12 }, pointCost: 2, effect: "Long-range precision shot, 60-100 ft" }
+    { name: "Sniper Shot", ATGCost: 60, statReq: { DEX: 12 }, pointCost: 2, effect: { dice: "1d10", description: "Long-range precision shot, 60-100 ft" } }
   ],
   "Magical - Offensive": [
-    { name: "Fireball", ATGCost: 80, statReq: { MAG: 10 }, pointCost: 2, effect: "Elemental damage, 3d6 fire" }
+    { name: "Fireball", ATGCost: 80, statReq: { MAG: 10 }, pointCost: 2, effect: { dice: "3d6", description: "Elemental fire damage to all enemies", mpCost: 10 } }
   ],
   "Magical - Support": [
-    { name: "Healing Aura", ATGCost: 70, statReq: { SPR: 10 }, pointCost: 2, effect: "Heals allies for 2d8 HP" }
+    { name: "Healing Aura", ATGCost: 70, statReq: { SPR: 10 }, pointCost: 2, effect: { dice: "2d8", description: "Heals all allies", mpCost: 8 } }
   ],
   "Shields": [
-    { name: "Shield Bash", ATGCost: 40, statReq: { STR: 8 }, pointCost: 1, effect: "Stuns enemy for 1 turn" }
+    { name: "Shield Bash", ATGCost: 40, statReq: { STR: 8 }, pointCost: 1, effect: { dice: "1d4", description: "Stuns enemy for 1 turn" } }
   ],
   "Hybrid": [
-    { name: "Gunblade Slash", ATGCost: 50, statReq: { STR: 8, DEX: 8 }, pointCost: 1, effect: "Melee attack in Melee mode" },
-    { name: "Gunblade Shot", ATGCost: 50, statReq: { DEX: 10 }, pointCost: 1, effect: "Ranged attack in Ranged mode" }
+    { name: "Gunblade Slash", ATGCost: 50, statReq: { STR: 8, DEX: 8 }, pointCost: 1, effect: { dice: "1d8", description: "Melee attack in Melee mode" } },
+    { name: "Gunblade Shot", ATGCost: 50, statReq: { DEX: 10 }, pointCost: 1, effect: { dice: "1d6", description: "Ranged attack in Ranged mode" } }
   ]
 };
+// Create a pristine copy of the initial availableAbilities
+let pristineAvailableAbilities = JSON.parse(JSON.stringify(availableAbilities));
+
+// Working copy of abilities that can be modified
+let existingAbilities = JSON.parse(JSON.stringify(availableAbilities));
 
 const weaponCategories = [
   "Melee - Heavy",
@@ -1438,7 +1449,7 @@ function showStatDescription(title, description) {
 
   // Create a new div for the modal
   modalDiv = createDiv()
-    .style("position", "absolute")
+    .style("position", "fixed")
     .style("top", "50%")
     .style("left", "50%")
     .style("transform", "translate(-50%, -50%)")
@@ -1465,7 +1476,7 @@ function showTraitDescription(name, positive, negative) {
 
   // Create a new div for the modal
   modalDiv = createDiv()
-    .style("position", "absolute")
+    .style("position", "fixed")
     .style("top", "50%")
     .style("left", "50%")
     .style("transform", "translate(-50%, -50%)")
@@ -1491,7 +1502,7 @@ function showTalentDescription(title, description) {
 
   // Create a new div for the modal
   modalDiv = createDiv()
-    .style("position", "absolute")
+    .style("position", "fixed")
     .style("top", "50%")
     .style("left", "50%")
     .style("transform", "translate(-50%, -50%)")
@@ -1520,7 +1531,7 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
 
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv()
-    .style("position", "absolute")
+    .style("position", "fixed")
     .style("top", "50%")
     .style("left", "50%")
     .style("transform", "translate(-50%, -50%)")
@@ -4050,7 +4061,7 @@ function showAddCustomTalentModal() {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv().parent(appWrapper);
   modalDiv.class("modal")
-    .style("position", "absolute")
+    .style("position", "fixed")
     .style("top", "50%")
     .style("left", "50%")
     .style("transform", "translate(-50%, -50%)")
@@ -4647,7 +4658,6 @@ function manageLevelDependencies(levelCheckboxes, levelDescriptions, lvl) {
     }
   } else if (lvl === "III") {
     if (levelCheckboxes["III"].checked()) {
-      // Fixed syntax error
       levelCheckboxes["I"].checked(true);
       levelCheckboxes["II"].checked(true);
       levelDescriptions["I"].div.style("display", "block");
@@ -4841,7 +4851,7 @@ function showAddCustomTraitModal() {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv().parent(appWrapper);
   modalDiv.class("modal")
-    .style("position", "absolute")
+    .style("position", "fixed")
     .style("top", "50%")
     .style("left", "50%")
     .style("transform", "translate(-50%, -50%)")
@@ -5317,7 +5327,7 @@ function getstatbonuses() {
   for (let slot in equippedItems) {
     let item = equippedItems[slot];
     if (item) {
-      // Equipment bonuses - Fixed to use statbonuses
+      // Equipment bonuses with stat bonuses
       if (item.statbonuses) {
         let stat = item.statbonuses.stat;
         let amount = item.statbonuses.amount || 0;
@@ -6213,7 +6223,7 @@ function isAbilityLearned(category, abilityName) {
 function meetsStatRequirements(statReq) {
   if (!statReq) return true;
   for (let [stat, required] of Object.entries(statReq)) {
-    if (getTotalStat(stat) < required) return false; // Assumes getTotalStat exists
+    if (getTotalStat(stat) < required) return false;
   }
   return true;
 }
@@ -6230,6 +6240,17 @@ function learnAbility(category, ability) {
     }
   } else {
     showConfirmationModal("Cannot learn ability: insufficient points or stats.", () => {}, true);
+  }
+}
+//Unlearn a weapon-specific ability
+function unlearnAbility(category, ability) {
+  if (learnedAbilities[category] && learnedAbilities[category].includes(ability.name)) {
+    // Remove the ability from learnedAbilities
+    learnedAbilities[category] = learnedAbilities[category].filter(name => name !== ability.name);
+    // Refund the ability points
+    abilityPoints += ability.pointCost;
+    // Refresh the UI
+    createAbilitiesUI();
   }
 }
 
@@ -6255,7 +6276,6 @@ function useAbility(ability, category) {
   }
 }
 function createAbilitiesUI() {
-  console.log("createAbilitiesUI called");
   let abilitiesContainer = select("#abilities");
   if (!abilitiesContainer) {
     console.error("No #abilities div found in HTML!");
@@ -6272,6 +6292,32 @@ function createAbilitiesUI() {
     .style("display", "block")
     .style("margin-bottom", "10px");
 
+  // Buttons Row
+  let buttonRow = createDiv().parent(abilitiesContainer).class("resource-row");
+  createButton("Create Custom Ability")
+    .parent(buttonRow)
+    .class("resource-button")
+    .mousePressed(showCreateCustomAbilityModal);
+  createButton("Modify Abilities")
+    .parent(buttonRow)
+    .class("resource-button")
+    .mousePressed(showModifyAbilitiesModal);
+  createButton("Default Ability List")
+    .parent(buttonRow)
+    .class("resource-button")
+    .mousePressed(() => {
+      showConfirmationModal(
+        "Are you sure you want to restore the default ability list? This will reset the master list and unlearn all abilities.",
+        () => {
+          console.log("Restoring default ability list");
+          existingAbilities = JSON.parse(JSON.stringify(pristineAvailableAbilities));
+          learnedAbilities = {};
+          abilityPoints = 1;
+          createAbilitiesUI();
+        }
+      );
+    });
+
   // Crystal Spells Section
   createElement("h3", "Crystal Spells").parent(abilitiesContainer);
   if (characterAbilities.length === 0) {
@@ -6286,12 +6332,13 @@ function createAbilitiesUI() {
     characterAbilities.forEach(ability => {
       let row = createElement("tr").parent(crystalTable);
       createElement("td", ability).parent(row);
-      createElement("td", "Effect description here").parent(row); // Placeholder
+      createElement("td", "Effect description here").parent(row);
       let actionCell = createElement("td").parent(row);
-      createButton("Use")
+      let useButton = createButton("Use")
         .parent(actionCell)
-        .class("resource-button small-button")
-        .mousePressed(() => useCrystalAbility(ability));
+        .class("resource-button small-button");
+      setButtonDisabled(useButton, false);
+      useButton.mousePressed(() => useCrystalAbility(ability));
     });
   }
 
@@ -6305,15 +6352,23 @@ function createAbilitiesUI() {
   // Display all weapon categories
   weaponCategories.forEach(category => {
     let categoryDiv = createDiv().parent(abilitiesContainer).style("margin-bottom", "20px");
-    createElement("h4", `${category}`).parent(categoryDiv);
+    let categoryHeader = createElement("h4", `${category}`)
+      .parent(categoryDiv)
+      .style("cursor", "pointer")
+      .style("margin", "0")
+      .style("background", "#f2f2f2")
+      .style("padding", "5px");
 
-    let abilities = availableAbilities[category] || [];
+    let contentDiv = createDiv().parent(categoryDiv);
+    contentDiv.style("display", "block");
+
+    let abilities = existingAbilities[category] || [];
     if (abilities.length === 0) {
-      createP(`No abilities defined for ${category}. Edit 'availableAbilities' in the code to add some.`)
-        .parent(categoryDiv)
+      createP(`No abilities defined for ${category}.`)
+        .parent(contentDiv)
         .style("color", "#666");
     } else {
-      let table = createElement("table").parent(categoryDiv).class("rules-table");
+      let table = createElement("table").parent(contentDiv).class("rules-table");
       let header = createElement("tr").parent(table);
       createElement("th", "Name").parent(header).style("width", "20%");
       createElement("th", "ATG Cost").parent(header).style("width", "10%");
@@ -6325,37 +6380,72 @@ function createAbilitiesUI() {
 
       abilities.forEach(ability => {
         let row = createElement("tr").parent(table);
-        createElement("td", ability.name).parent(row);
-        createElement("td", String(ability.ATGCost)).parent(row); // Convert number to string
+        let nameCell = createElement("td").parent(row);
+        createSpan(ability.name)
+          .parent(nameCell)
+          .style("cursor", "pointer")
+          .style("color", "#0000EE")
+          .style("text-decoration", "underline")
+          .mousePressed(() => showAbilityDescription(ability.name, ability.description || "No description provided."));
+        createElement("td", String(ability.ATGCost)).parent(row);
         let statReqText = ability.statReq ? Object.entries(ability.statReq).map(([stat, val]) => `${val} ${stat}`).join(", ") : "-";
         createElement("td", statReqText).parent(row);
-        createElement("td", String(ability.pointCost)).parent(row); // Convert number to string
-        createElement("td", ability.effect).parent(row);
+        createElement("td", String(ability.pointCost)).parent(row);
+        let effectText = ability.effect.dice ? `${ability.effect.dice} - ${ability.effect.description}` : ability.effect.description;
+        createElement("td", effectText).parent(row);
+
         let isLearned = isAbilityLearned(category, ability.name);
-        createElement("td", isLearned ? "Learned" : "Not Learned").parent(row);
+        let statusCell = createElement("td").parent(row);
+        let reasons = [];
+        let meetsStats = meetsStatRequirements(ability.statReq);
+        let hasEnoughPoints = abilityPoints >= ability.pointCost;
+
+        if (!meetsStats) reasons.push("Stats too low");
+        if (!hasEnoughPoints) reasons.push("Not enough points");
+
+        if (isLearned) {
+          // Make "Learned" clickable to unlearn
+          createSpan("Learned")
+            .parent(statusCell)
+            .style("cursor", "pointer")
+            .style("color", "#0000EE")
+            .style("text-decoration", "underline")
+            .mousePressed(() => {
+              showConfirmationModal(
+                `Are you sure you want to unlearn "${ability.name}"?`,
+                () => {
+                  unlearnAbility(category, ability);
+                }
+              );
+            });
+        } else {
+          statusCell.html(reasons.length > 0 ? reasons.join(", ") : "Not Learned");
+        }
 
         let actionCell = createElement("td").parent(row);
         if (isLearned) {
           let equippedCategory = getEquippedWeaponCategory();
           let canUse = equippedCategory === category;
-          createButton("Use")
+          let useButton = createButton("Use")
             .parent(actionCell)
-            .class("resource-button small-button")
-            .attribute("disabled", canUse ? null : "true")
-            .mousePressed(() => {
-              if (canUse) {
-                useAbility(ability, category);
-              } else {
-                showConfirmationModal("Cannot use this ability: Wrong weapon equipped.", () => {}, true);
-              }
-            });
+            .class("resource-button small-button");
+          setButtonDisabled(useButton, !canUse);
+          useButton.mousePressed(() => {
+            if (canUse) {
+              useAbility(ability, category);
+            } else {
+              showConfirmationModal("Cannot use this ability: Wrong weapon equipped.", () => {}, true);
+            }
+          });
         } else {
-          let canLearn = meetsStatRequirements(ability.statReq) && abilityPoints >= ability.pointCost;
-          createButton("Learn")
+          let canLearn = meetsStats && hasEnoughPoints;
+          let learnButton = createButton("Learn")
             .parent(actionCell)
-            .class("resource-button small-button")
-            .attribute("disabled", canLearn ? null : "true")
-            .mousePressed(() => learnAbility(category, ability));
+            .class("resource-button small-button");
+          setButtonDisabled(learnButton, !canLearn);
+          learnButton.mousePressed(() => {
+            learnAbility(category, ability);
+          });
         }
       });
     }
@@ -6365,6 +6455,70 @@ function createAbilitiesUI() {
   createP(`Available Ability Points: ${abilityPoints}`)
     .parent(abilitiesContainer)
     .style("margin-top", "10px");
+}
+
+function meetsStatRequirements(statReq) {
+  if (!statReq) return true;
+  for (let [stat, required] of Object.entries(statReq)) {
+    if (getTotalStat(stat) < required) return false;
+  }
+  return true;
+}
+
+function getTotalStat(statName) {
+  let baseStat;
+  switch (statName) {
+    case "STR":
+      baseStat = stat_str;
+      break;
+    case "VIT":
+      baseStat = stat_vit;
+      break;
+    case "DEX":
+      baseStat = stat_dex;
+      break;
+    case "MAG":
+      baseStat = stat_mag;
+      break;
+    case "WIL":
+      baseStat = stat_wil;
+      break;
+    case "SPR":
+      baseStat = stat_spr;
+      break;
+    case "LCK":
+      baseStat = stat_lck;
+      break;
+    default:
+      return 0;
+  }
+  let bonuses = getstatbonuses();
+  return baseStat + (bonuses[statName] || 0);
+}
+
+function updateAbilities() {
+  characterAbilities = []; // Reset the abilities array
+
+  // Collect abilities from equipped crystals
+  for (let slot in equippedItems) {
+    let item = equippedItems[slot];
+    if (item && item.equippedCrystals) {
+      item.equippedCrystals.forEach(crystal => {
+        if (crystal && crystal.abilities) {
+          crystal.abilities.forEach(ability => {
+            if (!characterAbilities.includes(ability)) {
+              characterAbilities.push(ability);
+            }
+          });
+        }
+      });
+    }
+  }
+
+  // Optionally, refresh the Abilities UI if it’s the active tab
+  if (currentTab === "abilities") {
+    createAbilitiesUI();
+  }
 }
 function updateAbilities() {
   console.log("Updating abilities...");
@@ -6392,4 +6546,582 @@ function updateAbilities() {
   }
 
   console.log("Updated characterAbilities:", characterAbilities);
+}
+function showAbilityDescription(name, description) {
+  if (modalDiv) modalDiv.remove();
+  modalDiv = createDiv()
+    .style("position", "fixed")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("max-width", "400px")
+    .style("word-wrap", "break-word");
+
+  createElement("h3", name).parent(modalDiv);
+  createP(description).parent(modalDiv);
+
+  createButton("Close")
+    .parent(modalDiv)
+    .style("margin-top", "10px")
+    .mousePressed(() => modalDiv.remove());
+}
+
+//Create Custom Ability
+function showCreateCustomAbilityModal() {
+  const appWrapper = select("#app-wrapper");
+  if (modalDiv) modalDiv.remove();
+  modalDiv = createDiv().parent(appWrapper);
+  modalDiv.class("modal");
+
+  const viewportHeight = window.innerHeight;
+  const minTopOffset = 20;
+  const maxHeightPercentage = 0.9;
+
+  // Modal positioning
+  modalDiv
+    .style("top", `${minTopOffset}px`)
+    .style("left", "50%")
+    .style("transform", "translateX(-50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("width", "300px")  // match trait modal width
+    .style("box-sizing", "border-box")
+    .style("font-size", "14px");
+
+  let contentWrapper = createDiv()
+    .parent(modalDiv)
+    .class("modal-content")
+    .style("flex", "1 1 auto")
+    .style("overflow-y", "auto")  // revert to auto to match trait modal
+    .style("max-height", `calc(${viewportHeight * maxHeightPercentage}px - 80px)`);
+
+  let buttonContainer = createDiv()
+    .parent(modalDiv)
+    .class("modal-buttons")
+    .style("flex", "0 0 auto")
+    .style("padding-top", "10px")
+    .style("border-top", "1px solid #ccc")
+    .style("display", "flex")
+    .style("justify-content", "space-between")
+    .style("gap", "5px");
+
+  createElement("h3", "Create Custom Ability").parent(contentWrapper);
+
+  let successMessage = createP("")
+    .parent(contentWrapper)
+    .style("color", "green")
+    .style("display", "none")
+    .style("margin-bottom", "10px");
+
+  let errorMessage = createP("")
+    .parent(contentWrapper)
+    .style("color", "red")
+    .style("display", "none")
+    .style("margin-bottom", "10px");
+
+  // Fields
+  let nameDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Name:").parent(nameDiv).style("display", "block");
+  let nameInput = createInput("")
+    .parent(nameDiv)
+    .style("width", "100%")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .attribute("placeholder", "e.g., Cleave")
+    .id("ability-name-input");
+
+  let descDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Description:").parent(descDiv).style("display", "block");
+  let descriptionInput = createElement("textarea")
+    .parent(descDiv)
+    .style("width", "100%")
+    .style("height", "60px")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .attribute("placeholder", "Describe the ability...")
+    .id("ability-description-input");
+
+  let categoryDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Weapon Category:").parent(categoryDiv).style("display", "block");
+  let categorySelect = createSelect()
+    .parent(categoryDiv)
+    .style("width", "100%")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .id("ability-category-select");
+  weaponCategories.forEach(category => categorySelect.option(category));
+
+  let statReqDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Stat Requirements (e.g., STR 10):").parent(statReqDiv).style("display", "block");
+  let statReqInputs = {};
+  ["STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"].forEach(stat => {
+    let statRow = createDiv().parent(statReqDiv).style("display", "flex").style("align-items", "center");
+    createSpan(`${stat}:`).parent(statRow).style("width", "50px");
+    statReqInputs[stat] = createInput("0", "number")
+      .parent(statRow)
+      .style("width", "50px")
+      .style("border", "1px solid #ccc")
+      .style("box-sizing", "border-box")
+      .attribute("min", "0")
+      .id(`stat-req-${stat}`);
+  });
+
+  let atgDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("ATG Cost:").parent(atgDiv).style("display", "block");
+  let atgInput = createInput("0", "number")
+    .parent(atgDiv)
+    .style("width", "100%")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .attribute("min", "0")
+    .id("ability-atg-input");
+
+  let pointDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Ability Point Cost:").parent(pointDiv).style("display", "block");
+  let pointInput = createInput("1", "number")
+    .parent(pointDiv)
+    .style("width", "100%")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .attribute("min", "1")
+    .id("ability-point-input");
+
+  let effectDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Effect Dice (e.g., 1d8):").parent(effectDiv).style("display", "block");
+  let effectDiceInput = createInput("")
+    .parent(effectDiv)
+    .style("width", "100%")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .attribute("placeholder", "e.g., 1d8")
+    .id("ability-effect-dice-input");
+
+  let effectDescDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Effect Description:").parent(effectDescDiv).style("display", "block");
+  let effectDescInput = createElement("textarea")
+    .parent(effectDescDiv)
+    .style("width", "100%")
+    .style("height", "60px")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .attribute("placeholder", "e.g., Hits all enemies")
+    .id("ability-effect-desc-input");
+
+  createButton("Add")
+    .parent(buttonContainer)
+    .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#4CAF50")
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
+    .mousePressed(() => {
+      successMessage.html("");
+      successMessage.style("display", "none");
+      errorMessage.html("");
+      errorMessage.style("display", "none");
+
+      let newAbility = {
+        name: nameInput.value().trim(),
+        description: descriptionInput.value().trim(),
+        ATGCost: parseInt(atgInput.value()) || 0,
+        statReq: {},
+        pointCost: parseInt(pointInput.value()) || 1,
+        effect: {
+          dice: effectDiceInput.value().trim(),
+          description: effectDescInput.value().trim()
+        }
+      };
+
+      for (let stat in statReqInputs) {
+        let value = parseInt(statReqInputs[stat].value()) || 0;
+        if (value > 0) newAbility.statReq[stat] = value;
+      }
+
+      if (!newAbility.name) {
+        errorMessage.html("Please provide a name for the ability.");
+        errorMessage.style("display", "block");
+        contentWrapper.elt.scrollTop = 0;
+        return;
+      }
+
+      let selectedCategory = categorySelect.value();
+      if (!existingAbilities[selectedCategory]) existingAbilities[selectedCategory] = [];
+      if (existingAbilities[selectedCategory].some(a => a.name === newAbility.name)) {
+        errorMessage.html(`An ability with the name "${newAbility.name}" already exists in ${selectedCategory}.`);
+        errorMessage.style("display", "block");
+        contentWrapper.elt.scrollTop = 0;
+        return;
+      }
+
+      existingAbilities[selectedCategory].push(newAbility);
+      createAbilitiesUI();
+      successMessage.html("Ability Added");
+      successMessage.style("display", "block");
+      contentWrapper.elt.scrollTop = 0;
+    });
+
+  createButton("Close")
+    .parent(buttonContainer)
+    .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#ccc")
+    .style("color", "black")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
+    .mousePressed(() => modalDiv.remove());
+}
+//Modify Abilities
+function showModifyAbilitiesModal() {
+  const appWrapper = select("#app-wrapper");
+  if (modalDiv) modalDiv.remove();
+  modalDiv = createDiv().parent(appWrapper);
+  modalDiv.class("modal");
+
+  const viewportHeight = window.innerHeight;
+  const minTopOffset = 20;
+  const maxHeightPercentage = 0.9;
+
+  // Modal position
+  modalDiv
+    .style("top", `${minTopOffset}px`)
+    .style("left", "50%")
+    .style("transform", "translateX(-50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("width", "300px") // match Trait modal width
+    .style("box-sizing", "border-box")
+    .style("font-size", "14px");
+
+  let contentWrapper = createDiv()
+    .parent(modalDiv)
+    .class("modal-content")
+    .style("flex", "1 1 auto")
+    .style("overflow-y", "auto")
+    .style("max-height", `calc(${viewportHeight * maxHeightPercentage}px - 80px)`);
+
+  let buttonContainer = createDiv()
+    .parent(modalDiv)
+    .class("modal-buttons")
+    .style("flex", "0 0 auto")
+    .style("padding-top", "10px")
+    .style("border-top", "1px solid #ccc")
+    .style("display", "flex")
+    .style("justify-content", "space-between")
+    .style("gap", "5px");
+
+  createElement("h3", "Modify Abilities").parent(contentWrapper);
+
+  let successMessage = createP("")
+    .parent(contentWrapper)
+    .style("color", "green")
+    .style("display", "none")
+    .style("margin-bottom", "10px");
+
+  let errorMessage = createP("")
+    .parent(contentWrapper)
+    .style("color", "red")
+    .style("display", "none")
+    .style("margin-bottom", "10px");
+
+  // Fields
+  let categoryDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Weapon Category:").parent(categoryDiv).style("display", "block");
+  let categorySelect = createSelect()
+    .parent(categoryDiv)
+    .style("width", "100%")
+    .id("ability-category-select");
+  weaponCategories.forEach(category => categorySelect.option(category));
+
+  let abilitySelectDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Ability:").parent(abilitySelectDiv).style("display", "block");
+  let abilitySelect = createSelect()
+    .parent(abilitySelectDiv)
+    .style("width", "100%")
+    .id("ability-select");
+
+  let nameDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Name:").parent(nameDiv).style("display", "block");
+  let nameInput = createInput("")
+    .parent(nameDiv)
+    .style("width", "100%")
+    .attribute("placeholder", "e.g., Cleave")
+    .id("ability-name-input");
+
+  let descDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Description:").parent(descDiv).style("display", "block");
+  let descriptionInput = createElement("textarea")
+    .parent(descDiv)
+    .style("width", "100%")
+    .style("height", "60px")
+    .attribute("placeholder", "Describe the ability...")
+    .id("ability-description-input");
+
+  let statReqDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Stat Requirements (e.g., STR 10):").parent(statReqDiv).style("display", "block");
+  let statReqInputs = {};
+  ["STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"].forEach(stat => {
+    let statRow = createDiv().parent(statReqDiv).style("display", "flex").style("align-items", "center");
+    createSpan(`${stat}:`).parent(statRow).style("width", "50px");
+    statReqInputs[stat] = createInput("0", "number")
+      .parent(statRow)
+      .style("width", "50px")
+      .attribute("min", "0")
+      .id(`stat-req-${stat}`);
+  });
+
+  let atgDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("ATG Cost:").parent(atgDiv).style("display", "block");
+  let atgInput = createInput("0", "number")
+    .parent(atgDiv)
+    .style("width", "100%")
+    .attribute("min", "0")
+    .id("ability-atg-input");
+
+  let pointDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Ability Point Cost:").parent(pointDiv).style("display", "block");
+  let pointInput = createInput("1", "number")
+    .parent(pointDiv)
+    .style("width", "100%")
+    .attribute("min", "1")
+    .id("ability-point-input");
+
+  let effectDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Effect Dice (e.g., 1d8):").parent(effectDiv).style("display", "block");
+  let effectDiceInput = createInput("")
+    .parent(effectDiv)
+    .style("width", "100%")
+    .attribute("placeholder", "e.g., 1d8")
+    .id("ability-effect-dice-input");
+
+  let effectDescDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Effect Description:").parent(effectDescDiv).style("display", "block");
+  let effectDescInput = createElement("textarea")
+    .parent(effectDescDiv)
+    .style("width", "100%")
+    .style("height", "60px")
+    .attribute("placeholder", "e.g., Hits all enemies")
+    .id("ability-effect-desc-input");
+
+  // Populate Ability Dropdown
+  function updateAbilityOptions() {
+    let selectedCategory = categorySelect.value();
+    let prevValue = abilitySelect.value();
+
+    abilitySelect.html("");
+    abilitySelect.option("Select Ability", -1);
+
+    let abilities = existingAbilities[selectedCategory] || [];
+    abilities.forEach((ability, idx) => {
+      abilitySelect.option(ability.name, idx);
+    });
+
+    if (prevValue !== null && abilitySelect.elt.querySelector(`option[value="${prevValue}"]`)) {
+      abilitySelect.value(prevValue);
+    } else {
+      abilitySelect.value(-1);
+    }
+  }
+
+  // Load Selected Ability Data
+  function loadAbilityData() {
+    let idx = parseInt(abilitySelect.value());
+    if (idx === -1) {
+      nameInput.value("");
+      descriptionInput.value("");
+      for (let stat in statReqInputs) statReqInputs[stat].value("0");
+      atgInput.value("0");
+      pointInput.value("1");
+      effectDiceInput.value("");
+      effectDescInput.value("");
+      return;
+    }
+
+    let selectedCategory = categorySelect.value();
+    let ability = existingAbilities[selectedCategory][idx];
+    nameInput.value(ability.name || "");
+    descriptionInput.value(ability.description || "");
+    for (let stat in statReqInputs) {
+      statReqInputs[stat].value(ability.statReq && ability.statReq[stat] ? ability.statReq[stat] : "0");
+    }
+    atgInput.value(ability.ATGCost || 0);
+    pointInput.value(ability.pointCost || 1);
+    effectDiceInput.value(ability.effect.dice || "");
+    effectDescInput.value(ability.effect.description || "");
+  }
+
+  categorySelect.changed(() => {
+    updateAbilityOptions();
+    loadAbilityData();
+  });
+  abilitySelect.changed(loadAbilityData);
+
+  // Initial values
+  categorySelect.value("Melee - Heavy");
+  updateAbilityOptions();
+
+  // Save Button
+  createButton("Save")
+    .parent(buttonContainer)
+    .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#2196F3")
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
+    .mousePressed(() => {
+      successMessage.html("");
+      successMessage.style("display", "none");
+      errorMessage.html("");
+      errorMessage.style("display", "none");
+
+      let idx = parseInt(abilitySelect.value());
+      if (idx === -1) {
+        errorMessage.html("Please select an ability to modify.");
+        errorMessage.style("display", "block");
+        contentWrapper.elt.scrollTop = 0;
+        return;
+      }
+
+      let selectedCategory = categorySelect.value();
+      let originalName = existingAbilities[selectedCategory][idx].name;
+
+      let updatedAbility = {
+        name: nameInput.value().trim(),
+        description: descriptionInput.value().trim(),
+        ATGCost: parseInt(atgInput.value()) || 0,
+        statReq: {},
+        pointCost: parseInt(pointInput.value()) || 1,
+        effect: {
+          dice: effectDiceInput.value().trim(),
+          description: effectDescInput.value().trim()
+        }
+      };
+
+      for (let stat in statReqInputs) {
+        let value = parseInt(statReqInputs[stat].value()) || 0;
+        if (value > 0) updatedAbility.statReq[stat] = value;
+      }
+
+      if (!updatedAbility.name) {
+        errorMessage.html("Please provide a name for the ability.");
+        errorMessage.style("display", "block");
+        contentWrapper.elt.scrollTop = 0;
+        return;
+      }
+
+      let duplicate = existingAbilities[selectedCategory].find(a => a.name === updatedAbility.name && a.name !== originalName);
+      if (duplicate) {
+        errorMessage.html(`An ability with the name "${updatedAbility.name}" already exists in ${selectedCategory}.`);
+        errorMessage.style("display", "block");
+        contentWrapper.elt.scrollTop = 0;
+        return;
+      }
+
+      // Update the ability
+      existingAbilities[selectedCategory][idx] = updatedAbility;
+
+      // Update learned abilities if the name changed
+      if (learnedAbilities[selectedCategory] && learnedAbilities[selectedCategory].includes(originalName)) {
+        let learnedIdx = learnedAbilities[selectedCategory].indexOf(originalName);
+        learnedAbilities[selectedCategory][learnedIdx] = updatedAbility.name;
+      }
+
+      createAbilitiesUI();
+      successMessage.html("Ability Updated");
+      successMessage.style("display", "block");
+      contentWrapper.elt.scrollTop = 0;
+    });
+
+  // Remove Button
+  createButton("Remove")
+    .parent(buttonContainer)
+    .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#f44336")
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
+    .mousePressed(() => {
+      let idx = parseInt(abilitySelect.value());
+      if (idx === -1) {
+        errorMessage.html("Please select an ability to remove.");
+        errorMessage.style("display", "block");
+        contentWrapper.elt.scrollTop = 0;
+        return;
+      }
+
+      let selectedCategory = categorySelect.value();
+      let abilityName = existingAbilities[selectedCategory][idx].name;
+
+      showConfirmationModal(
+        `Are you sure you want to remove "${abilityName}" from the master list?`,
+        () => {
+          // Remove from learned abilities
+          if (learnedAbilities[selectedCategory]) {
+            learnedAbilities[selectedCategory] = learnedAbilities[selectedCategory].filter(name => name !== abilityName);
+          }
+          // Remove from existing abilities
+          existingAbilities[selectedCategory].splice(idx, 1);
+          createAbilitiesUI();
+          modalDiv.remove();
+        }
+      );
+    });
+
+  // Close Button
+  createButton("Close")
+    .parent(buttonContainer)
+    .style("margin", "5px")
+    .style("padding", "5px 10px")
+    .style("background-color", "#ccc")
+    .style("color", "black")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
+    .mousePressed(() => modalDiv.remove());
+}
+
+//Dice Roller
+function executeEffect(effect) {
+  let result = "";
+  let roll = effect.dice ? rollDice(effect.dice) : 0;
+  let total = roll;
+
+  // For now, we'll log the effect description and dice roll
+  // Later, you can parse the description to determine targets and effects
+  result = `Rolled ${effect.dice} for ${total} - ${effect.description}`;
+  
+  // Example: If description includes "Hits all enemies", apply damage
+  if (effect.description.toLowerCase().includes("hits all enemies")) {
+    enemies.forEach(enemy => {
+      let damage = Math.max(total - enemy.def, 0);
+      enemy.hp -= damage;
+      result += ` Dealt ${damage} damage to enemy (HP: ${enemy.hp}).`;
+    });
+  } else if (effect.description.toLowerCase().includes("single target")) {
+    let enemy = enemies[0];
+    let damage = Math.max(total - enemy.def, 0);
+    enemy.hp -= damage;
+    result += ` Dealt ${damage} damage to enemy (HP: ${enemy.hp}).`;
+  } else if (effect.description.toLowerCase().includes("heals all allies")) {
+    allies.forEach(ally => {
+      ally.hp = Math.min(ally.hp + total, ally.max_hp);
+      result += ` Healed ally for ${total} (HP: ${ally.hp}/${ally.max_hp}).`;
+    });
+  }
+
+  return result;
 }
