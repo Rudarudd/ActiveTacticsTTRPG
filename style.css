@@ -170,24 +170,45 @@ header button {
   font-size: 12px;
 }
 
-/* Style for category headers in the Items table */
-.expandable-section h3 {
+/* Style for category headers in the Items and Abilities tables */
+.expandable-section h3,
+.expandable-section h4 {
   cursor: pointer;
   padding: 5px;
   background-color: #f2f2f2;
   margin: 0;
   position: relative;
+  transition: background-color 0.3s ease;
 }
 
-.expandable-section h3::before {
+.expandable-section h3:hover,
+.expandable-section h4:hover {
+  background-color: #e0e0e0; /* Slightly darker on hover */
+}
+
+.expandable-section h3::before,
+.expandable-section h4::before {
   content: "▶";
   display: inline-block;
   margin-right: 5px;
   transition: transform 0.3s ease;
 }
 
-.expandable-section h3.expanded::before {
-  content: "▼";
+.expandable-section h3.expanded::before,
+.expandable-section h4.expanded::before {
+  transform: rotate(90deg); /* Rotate the arrow to point down */
+}
+
+/* Style for the collapsible content */
+.expandable-section .content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease; /* Smooth height transition */
+}
+
+/* When expanded, set a large max-height to ensure all content is visible */
+.expandable-section .content.expanded {
+  max-height: 1000px; /* Large enough to fit most content; adjust if needed */
 }
 
 /* Modal styling */
@@ -213,13 +234,12 @@ header button {
 .modal-content {
   flex: 1 1 auto;
   overflow-y: auto;
-  overflow-x: hidden; /* Prevent horizontal scrollbar */
+  overflow-x: hidden;
   max-height: calc(90vh - 80px);
   padding-right: 5px;
-  word-wrap: break-word; /* Ensure text wraps */
+  word-wrap: break-word;
 }
 
-/* Layout for rows with multiple children */
 .modal-content .resource-row {
   display: flex;
   flex-wrap: wrap;
@@ -230,7 +250,7 @@ header button {
 
 .modal-content .resource-row > * {
   flex: 1 1 auto;
-  min-width: 0; /* Allow shrinking */
+  min-width: 0;
   box-sizing: border-box;
 }
 
@@ -238,13 +258,13 @@ header button {
 .modal-content input,
 .modal-content textarea {
   width: 100%;
-  max-width: 100%; /* Prevent exceeding parent width */
+  max-width: 100%;
   box-sizing: border-box;
 }
 
 .modal-content span {
-  flex: 1 1 100px; /* Default width for labels, allowing wrapping */
-  word-break: break-word; /* Ensure long labels break */
+  flex: 1 1 100px;
+  word-break: break-word;
 }
 
 .modal-buttons {
@@ -256,17 +276,15 @@ header button {
   gap: 5px;
 }
 
-/* Adjust modal width for larger screens (e.g., fullscreen) */
 @media (min-width: 1200px) {
   .modal {
-    width: 400px; /* Wider modal for larger screens */
+    width: 400px;
   }
   .modal-content {
     max-height: calc(90vh - 80px);
   }
 }
 
-/* Adjust max-height for taller screens */
 @media (min-height: 800px) {
   .modal {
     max-height: 90vh;
