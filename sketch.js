@@ -216,9 +216,22 @@ let availableItems = {
   "Materials": [
     { name: "Rope", description: "100ft of rope.", category: "Materials", quantity: 1, quality: "Uncommon" }
   ],
-  "Crystals": [
-    { name: "Fire Crystal", description: "Grants the ability to cast Fire.", category: "Crystals", statbonuses: { MAG: 2 }, abilities: ["Fire"], statReq: { MAG: 5 }, quantity: 1, quality: "Rare" },
-    { name: "Heal Crystal", description: "Grants the ability to cast Cure.", category: "Crystals", statbonuses: { WIL: 1 }, abilities: ["Cure"], statReq: { WIL: 3 }, quantity: 1, quality: "Rare" }
+"Crystals": [
+    // Existing Crystals (renamed statReq to statRequirements)
+    { name: "Fire Crystal", description: "Grants the ability to cast Fire.", category: "Crystals", statbonuses: { MAG: 2 }, abilities: ["Fire"], statRequirements: { MAG: 5 }, quantity: 1, quality: "Rare" },
+    { name: "Heal Crystal", description: "Grants the ability to cast Cure.", category: "Crystals", statbonuses: { WIL: 1 }, abilities: ["Cure"], statRequirements: { WIL: 3 }, quantity: 1, quality: "Rare" },
+    // New Common Crystals (Basic effects, low stat requirements)
+    { name: "Ice Crystal", description: "Grants the ability to cast Ice.", category: "Crystals", statbonuses: { MAG: 1 }, abilities: ["Ice"], statRequirements: { MAG: 3 }, quantity: 1, quality: "Common" },
+    { name: "Wind Crystal", description: "Grants the ability to cast Gust.", category: "Crystals", statbonuses: { DEX: 1 }, abilities: ["Gust"], statRequirements: { DEX: 2 }, quantity: 1, quality: "Common" },
+    { name: "Light Crystal", description: "Grants the ability to cast Flash.", category: "Crystals", statbonuses: { SPR: 1 }, abilities: ["Flash"], statRequirements: { SPR: 2 }, quantity: 1, quality: "Common" },
+    // New Uncommon Crystals (Moderate effects, some stat requirements)
+    { name: "Thunder Crystal", description: "Grants the ability to cast Thunder.", category: "Crystals", statbonuses: { MAG: 2 }, abilities: ["Thunder"], statRequirements: { MAG: 5 }, quantity: 1, quality: "Uncommon" },
+    { name: "Shield Crystal", description: "Grants the ability to cast Shield.", category: "Crystals", statbonuses: { WIL: 1 }, abilities: ["Shield"], statRequirements: { WIL: 4 }, quantity: 1, quality: "Uncommon" },
+    { name: "Haste Crystal", description: "Grants the ability to cast Haste.", category: "Crystals", statbonuses: { DEX: 1 }, abilities: ["Haste"], statRequirements: { DEX: 3 }, quantity: 1, quality: "Uncommon" },
+    // New Rare Crystals (Powerful effects, higher stat requirements)
+    { name: "Blizzard Crystal", description: "Grants the ability to cast Blizzard.", category: "Crystals", statbonuses: { MAG: 3 }, abilities: ["Blizzard"], statRequirements: { MAG: 7 }, quantity: 1, quality: "Rare" },
+    { name: "Regen Crystal", description: "Grants the ability to cast Regen.", category: "Crystals", statbonuses: { WIL: 2 }, abilities: ["Regen"], statRequirements: { WIL: 6 }, quantity: 1, quality: "Rare" },
+    { name: "Invisibility Crystal", description: "Grants the ability to cast Invisibility.", category: "Crystals", statbonuses: { DEX: 2 }, abilities: ["Invisibility"], statRequirements: { DEX: 5 }, quantity: 1, quality: "Rare" }
   ],
   "Miscellaneous": [
     { name: "Old Key", description: "Rusty but functional.", category: "Miscellaneous", quantity: 1, quality: "Poor" }
@@ -329,10 +342,23 @@ let availableAbilities = {
     { name: "Gunblade Slash", ATGCost: 50, statReq: { STR: 8, DEX: 8 }, pointCost: 1, effect: { dice: "1d8", description: "Melee attack in Melee mode" } },
     { name: "Gunblade Shot", ATGCost: 50, statReq: { DEX: 10 }, pointCost: 1, effect: { dice: "1d6", description: "Ranged attack in Ranged mode" } }
   ],
-  "Crystals": [
-    { name: "Fire", ATGCost: 25, statReq: { MAG: 5 }, effect: { dice: "2d6", description: "Elemental fire damage", mpCost: 5 } },
-    { name: "Cure", ATGCost: 25, statReq: { WIL: 3 }, effect: { dice: "1d8", description: "Heals the user", mpCost: 3 } }
-  ]
+"Crystals": [
+  // Existing Abilities
+  { name: "Fire", ATGCost: 25, statReq: { MAG: 5 }, effect: { dice: "2d6", description: "Elemental fire damage", mpCost: 5 } },
+  { name: "Cure", ATGCost: 25, statReq: { WIL: 3 }, effect: { dice: "1d8", description: "Heals the user", mpCost: 3 } },
+  // New Common Abilities
+  { name: "Ice", ATGCost: 25, statReq: { MAG: 3 }, effect: { dice: "2d6", description: "Elemental ice damage", mpCost: 5 } },
+  { name: "Gust", ATGCost: 20, statReq: { DEX: 2 }, effect: { dice: "1d6", description: "Elemental wind damage, pushes target back 10 ft", mpCost: 4 } },
+  { name: "Flash", ATGCost: 20, statReq: { SPR: 2 }, effect: { dice: "", description: "Blinds the target for 1 turn", mpCost: 3 } },
+  // New Uncommon Abilities
+  { name: "Thunder", ATGCost: 30, statReq: { MAG: 5 }, effect: { dice: "3d6", description: "Elemental lightning damage", mpCost: 8 } },
+  { name: "Shield", ATGCost: 25, statReq: { WIL: 4 }, effect: { dice: "", description: "Grants +3 defense for 3 turns", mpCost: 6 } },
+  { name: "Haste", ATGCost: 20, statReq: { DEX: 3 }, effect: { dice: "", description: "Grants +2 DEX for 3 turns", mpCost: 5 } },
+  // New Rare Abilities
+  { name: "Blizzard", ATGCost: 40, statReq: { MAG: 7 }, effect: { dice: "4d6", description: "Elemental ice damage to all enemies", mpCost: 12 } },
+  { name: "Regen", ATGCost: 30, statReq: { WIL: 6 }, effect: { dice: "1d4", description: "Heals the target each turn for 3 turns", mpCost: 10 } },
+  { name: "Invisibility", ATGCost: 35, statReq: { DEX: 5 }, effect: { dice: "", description: "Grants +5 evasion for 3 turns", mpCost: 8 } }
+]
 };
 // Create a pristine copy of the initial availableAbilities
 let pristineAvailableAbilities = JSON.parse(JSON.stringify(availableAbilities));
@@ -1549,7 +1575,7 @@ let existingTraits = [...defaultTraits];
 // ### Utility Functions ###
 function canWieldItem(item) {
   if (!item || !item.statRequirements || Object.keys(item.statRequirements).length === 0) {
-    return true; // No requirements, can wield
+    return true; // No stat requirements, can wield
   }
 
   let totalStats = {
@@ -1562,12 +1588,15 @@ function canWieldItem(item) {
     LCK: getTotalStat("LCK")
   };
 
-  for (let [stat, required] of Object.entries(item.statRequirements)) {
-    if (totalStats[stat] < required) {
-      return false; // Stat requirement not met
+  for (let [stat, requiredValue] of Object.entries(item.statRequirements)) {
+    let currentValue = totalStats[stat];
+    if (currentValue < requiredValue) {
+      console.log(`Cannot wield ${item.name}: ${stat} is ${currentValue}, requires ${requiredValue}`);
+      return false;
     }
   }
-  return true; // All requirements met
+
+  return true;
 }
 function updateAbilities() {
   console.log("Updating abilities...");
@@ -1788,7 +1817,7 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
       createP("No description available.").parent(modalDiv);
     }
   } else {
-    // Display crystal management (unchanged behavior)
+    // Display crystal management
     createElement("h3", `${slot}: Essence Crystal Slots`).parent(modalDiv);
 
     let errorMessage = createP("")
@@ -1879,40 +1908,53 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
         crystalSelect.value(currentCrystal ? currentCrystal.name : "None");
         crystalSelect.changed(function() {
           let selectedName = this.value();
+          let previousCrystal = item.equippedCrystals[i];
+
           if (selectedName === "None") {
             item.equippedCrystals[i] = null;
           } else {
             let crystal = inventory.find(item => item.name === selectedName && item.category === "Crystals");
             if (crystal) {
+              // Check quantity availability
               let crystalUsageCount = updateCrystalUsageCount();
               let equippedCount = crystalUsageCount[crystal.name] || 0;
               let totalQuantity = crystal.quantity || 1;
               let availableQuantity = totalQuantity - equippedCount;
-              if (availableQuantity <= 0 && !(currentCrystal && currentCrystal.name === crystal.name)) {
+              if (availableQuantity <= 0 && !(previousCrystal && previousCrystal.name === crystal.name)) {
                 errorMessage.html(`Cannot equip ${crystal.name}: no more available (already equipped ${equippedCount}/${totalQuantity}).`);
                 errorMessage.style("display", "block");
-                crystalSelect.value(currentCrystal ? currentCrystal.name : "None");
+                crystalSelect.value(previousCrystal ? previousCrystal.name : "None");
                 return;
               }
+
+              // Check stat requirements
+              console.log(`Checking stat requirements for ${crystal.name}:`, crystal.statRequirements);
               if (!canWieldItem(crystal)) {
                 let totalStats = {
-                  STR: getTotalStat("STR"), VIT: getTotalStat("VIT"), DEX: getTotalStat("DEX"),
-                  MAG: getTotalStat("MAG"), WIL: getTotalStat("WIL"), SPR: getTotalStat("SPR"),
+                  STR: getTotalStat("STR"),
+                  VIT: getTotalStat("VIT"),
+                  DEX: getTotalStat("DEX"),
+                  MAG: getTotalStat("MAG"),
+                  WIL: getTotalStat("WIL"),
+                  SPR: getTotalStat("SPR"),
                   LCK: getTotalStat("LCK")
                 };
+                console.log("Player's total stats:", totalStats);
                 let missing = Object.entries(crystal.statRequirements || {})
                   .filter(([stat, req]) => totalStats[stat] < req)
                   .map(([stat, req]) => `${stat}: ${totalStats[stat]}/${req}`)
                   .join(", ");
                 errorMessage.html(`Cannot equip ${selectedName}: ${missing}`);
                 errorMessage.style("display", "block");
-                crystalSelect.value(currentCrystal ? currentCrystal.name : "None");
+                crystalSelect.value(previousCrystal ? previousCrystal.name : "None");
                 return;
               }
+
               item.equippedCrystals[i] = crystal;
             }
           }
 
+          // Update dropdown options to reflect current usage
           let crystalUsageCount = updateCrystalUsageCount();
           crystalSelects.forEach((select, index) => {
             let currentValue = select.value();
@@ -1936,6 +1978,7 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
           updateResourcesBasedOnStats();
           updateAbilities();
           createEquipmentUI();
+          createAbilitiesUI();
         });
       }
     } else {
