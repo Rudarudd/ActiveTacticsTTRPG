@@ -45,9 +45,71 @@ let categoryStates = {
 // Master list of available items with quantity and quality
 let availableItems = {
 "Equipment": [
-    { name: "Cleaver Sword", description: "A massive sword.", category: "Equipment", type: "On-Hand", weaponCategory: "Melee - Heavy", crystalSlots: 2, quantity: 1, quality: "Rare" },
-    { name: "Leather Armor", description: "Basic protection.", category: "Equipment", type: "Chest", quantity: 1, quality: "Common" }
-  ],
+  //Weapons
+  {
+    name: "Cleaver Sword",
+    description: "A massive sword.",
+    category: "Equipment",
+    type: "On-Hand",
+    weaponCategory: "Melee - Heavy",
+    crystalSlots: 2,
+    quantity: 1,
+    quality: "Rare",
+    linkedStat: "STR",
+    damageDice: "1d8",
+    modifier: 0,
+    dualWield: false,
+    twoHanded: true,
+    statRequirements: {},
+    statbonuses: null
+  },
+  {
+  name: "Dagger",
+  description: "A small, sharp blade.",
+  category: "Equipment",
+  type: "Off-Hand",
+  weaponCategory: "Melee - Light",
+  crystalSlots: 1,
+  quantity: 1,
+  quality: "Common",
+  linkedStat: "DEX",
+  damageDice: "1d4",
+  modifier: 0,
+  dualWield: true,
+  twoHanded: false,
+  statRequirements: { DEX: 3 },
+  statbonuses: null
+},
+  //Armor
+  {
+  name: "Iron Plate",
+  description: "Heavy protective armor.",
+  category: "Equipment",
+  type: "Chest",
+  quantity: 1,
+  quality: "Uncommon",
+  crystalSlots: 1,
+  movementPenalty: -5,
+  defense: 5,
+  modifier: 0,
+  statRequirements: { STR: 5 },
+  statbonuses: { stat: "VIT", amount: 1 }
+},
+  {
+    name: "Leather Armor",
+    description: "Basic protection.",
+    category: "Equipment",
+    type: "Chest",
+    quantity: 1,
+    quality: "Common",
+    crystalSlots: 0,
+    movementPenalty: -5,
+    defense: 2,
+    modifier: 0,
+    statRequirements: {},
+    statbonuses: null
+  }
+],
   "Consumables": [
     { name: "Healing Potion", description: "Restores 20 HP.", category: "Consumables", quantity: 1, quality: "Common" }
   ],
@@ -2840,6 +2902,22 @@ function showAddEditEquipmentModal() {
       modalDiv.remove();
     });
 }
+//Defense total
+function calculateTotalDefense() {
+  let totalDefense = 0;
+  const armorSlots = ["Chest", "Helm", "Gloves", "Greaves"];
+  
+  armorSlots.forEach(slot => {
+    if (equippedItems[slot]) {
+      const item = equippedItems[slot];
+      const defense = parseInt(item.defense) || 0;
+      const modifier = parseInt(item.modifier) || 0;
+      totalDefense += defense + modifier;
+    }
+  });
+
+  return totalDefense;
+}
 // ### Stats UI ###
 function createStatsUI() {
   let statsContainer = select("#stats");
@@ -2942,6 +3020,19 @@ function createStatsUI() {
     .attribute("readonly", "true")
     .style("background-color", "#e0e0e0")
     .id("movementInput");
+
+  // Add Total Defense row
+  let defenseDiv = createDiv().parent(statsContainer).style("margin", "5px");
+  let defenseLabel = createSpan("Defense: ").parent(defenseDiv).style("cursor", "pointer");
+  defenseLabel.mouseClicked(() => showStatDescription("Defense", "Defense: Total defense from equipped armor."));
+  statLabelElements["Defense"] = defenseLabel;
+  let totalDefense = calculateTotalDefense();
+  let defenseInput = createInput(totalDefense.toString(), "text")
+    .parent(defenseDiv)
+    .style("width", "50px")
+    .attribute("readonly", "true")
+    .style("background-color", "#e0e0e0")
+    .id("defenseInput");
 
   // Stats with total or bonus display
   createStatInput("STR", "Strength", stat_str, statsContainer, "STR", true, false, true);
@@ -3275,7 +3366,8 @@ function createEquipmentUI() {
       } else if (slot === "Accessory 1" || slot === "Accessory 2") {
         return item.type === "Accessory";
       } else {
-        return item.defense && !item.weaponCategory;
+        // Allow armor items with defense (including 0) and no weaponCategory
+        return typeof item.defense !== "undefined" && !item.weaponCategory;
       }
     });
 
@@ -3288,7 +3380,6 @@ function createEquipmentUI() {
 
       // Check dualWield for On-Hand and Off-Hand slots
       if (slot === "On-Hand" || slot === "Off-Hand") {
-        // If the item is not dual-wieldable and is already equipped in the other slot, exclude it
         if (!item.dualWield) {
           let otherSlot = slot === "On-Hand" ? "Off-Hand" : "On-Hand";
           if (equippedItems[otherSlot] && equippedItems[otherSlot].name === item.name) {
@@ -3376,6 +3467,7 @@ function createEquipmentUI() {
       updateAbilities();
       createInventoryUI();
       createEquipmentUI();
+      createStatsUI();
     });
 
     let itemData = equippedItems[slot];
@@ -3389,7 +3481,7 @@ function createEquipmentUI() {
     if (itemData) {
       if (itemData.damageDice) {
         dmgDefText = `${itemData.damageDice}${itemData.modifier ? (itemData.modifier > 0 ? `+${itemData.modifier}` : itemData.modifier) : ""}`;
-      } else if (itemData.defense) {
+      } else if (typeof itemData.defense !== "undefined") {
         dmgDefText = `${itemData.defense}${itemData.modifier ? (itemData.modifier > 0 ? `+${itemData.modifier}` : itemData.modifier) : ""}`;
       }
     }
@@ -6703,11 +6795,12 @@ function createAbilitiesUI() {
       let tableWrapper = createDiv().parent(contentDiv).class("table-wrapper");
       let table = createElement("table").parent(tableWrapper).class("rules-table");
       let header = createElement("tr").parent(table);
-      createElement("th", "Name").parent(header).style("width", "20%");
+      createElement("th", "Name").parent(header).style("width", "15%");
       createElement("th", "ATG Cost").parent(header).style("width", "10%");
       createElement("th", "Stat Req").parent(header).style("width", "15%");
       createElement("th", "Point Cost").parent(header).style("width", "10%");
-      createElement("th", "Effect").parent(header).style("width", "25%");
+      createElement("th", "Effect").parent(header).style("width", "20%");
+      createElement("th", "MP Cost").parent(header).style("width", "10%"); // New column
       createElement("th", "Status").parent(header).style("width", "10%");
       createElement("th", "Actions").parent(header).style("width", "10%");
 
@@ -6719,16 +6812,15 @@ function createAbilitiesUI() {
           .style("cursor", "pointer")
           .style("color", "#0000EE")
           .style("text-decoration", "underline")
-          .mousePressed(() => showAbilityDescription(ability.name, ability.description || "No description provided."));
+          .mousePressed(() => showAbilityDescription(ability));
         createElement("td", String(ability.ATGCost)).parent(row);
         let statReqText = ability.statReq ? Object.entries(ability.statReq).map(([stat, val]) => `${val} ${stat}`).join(", ") : "-";
         createElement("td", statReqText).parent(row);
         createElement("td", category === "Crystals" ? "-" : String(ability.pointCost)).parent(row);
         let effectText = ability.effect.dice ? `${ability.effect.dice} - ${ability.effect.description}` : ability.effect.description;
-        let effectCell = createElement("td").parent(row);
-        createSpan(effectText)
-          .parent(effectCell)
-          .attribute("title", category === "Crystals" ? `MP Cost: ${ability.effect.mpCost || 0}` : "");
+        createElement("td", effectText).parent(row);
+        // Add MP Cost column
+        createElement("td", category === "Crystals" ? String(ability.effect.mpCost || 0) : "-").parent(row);
         let statusCell = createElement("td").parent(row);
         let actionCell = createElement("td").parent(row);
 
@@ -6819,103 +6911,7 @@ function createAbilitiesUI() {
     .parent(abilitiesContainer)
     .style("margin-top", "10px");
 }
-function getTotalStat(statName) {
-  let baseStat;
-  switch (statName) {
-    case "STR":
-      baseStat = stat_str;
-      break;
-    case "VIT":
-      baseStat = stat_vit;
-      break;
-    case "DEX":
-      baseStat = stat_dex;
-      break;
-    case "MAG":
-      baseStat = stat_mag;
-      break;
-    case "WIL":
-      baseStat = stat_wil;
-      break;
-    case "SPR":
-      baseStat = stat_spr;
-      break;
-    case "LCK":
-      baseStat = stat_lck;
-      break;
-    default:
-      return 0;
-  }
-  let bonuses = getstatbonuses();
-  return baseStat + (bonuses[statName] || 0);
-}
-
-function updateAbilities() {
-  characterAbilities = []; // Reset the abilities array
-
-  // Collect abilities from equipped crystals, checking stat requirements
-  for (let slot in equippedItems) {
-    let item = equippedItems[slot];
-    if (item && item.equippedCrystals) {
-      item.equippedCrystals.forEach(crystal => {
-        if (crystal && crystal.abilities) {
-          crystal.abilities.forEach(abilityName => {
-            // Find the ability in existingAbilities["Crystals"]
-            const ability = existingAbilities["Crystals"]?.find(a => a.name === abilityName);
-            if (ability) {
-              // Check if stat requirements are met
-              let meetsStats = meetsStatRequirements(crystal.statRequirements);
-              if (meetsStats && !characterAbilities.includes(abilityName)) {
-                characterAbilities.push(abilityName);
-              }
-            }
-          });
-        }
-      });
-    }
-  }
-
-  if (currentTab === "abilities") {
-    createAbilitiesUI();
-  }
-}
-
-  // Refresh the Abilities UI if it’s the active tab
-  if (currentTab === "abilities") {
-    createAbilitiesUI();
-  }
-  // Optionally, refresh the Abilities UI if it’s the active tab
-  if (currentTab === "abilities") {
-    createAbilitiesUI();
-  }
-function updateAbilities() {
-  console.log("Updating abilities...");
-  characterAbilities = []; // Reset the abilities array
-
-  // Collect abilities from equipped crystals
-  for (let slot in equippedItems) {
-    let item = equippedItems[slot];
-    if (item && item.equippedCrystals) {
-      item.equippedCrystals.forEach(crystal => {
-        if (crystal && crystal.abilities) {
-          crystal.abilities.forEach(ability => {
-            if (!characterAbilities.includes(ability)) {
-              characterAbilities.push(ability);
-            }
-          });
-        }
-      });
-    }
-  }
-
-  // Optionally, refresh the Abilities UI if it’s the active tab
-  if (currentTab === "abilities") {
-    createAbilitiesUI();
-  }
-
-  console.log("Updated characterAbilities:", characterAbilities);
-}
-function showAbilityDescription(name, description) {
+function showAbilityDescription(ability) {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv()
     .style("position", "fixed")
@@ -6929,8 +6925,31 @@ function showAbilityDescription(name, description) {
     .style("max-width", "400px")
     .style("word-wrap", "break-word");
 
-  createElement("h3", name).parent(modalDiv);
-  createP(description).parent(modalDiv);
+  createElement("h3", ability.name).parent(modalDiv);
+
+  // Description
+  createP(`Description: ${ability.description || "No description provided."}`).parent(modalDiv);
+
+  // ATG Cost
+  createP(`ATG Cost: ${ability.ATGCost || 0}`).parent(modalDiv);
+
+  // Stat Requirements
+  let statReqText = ability.statReq ? Object.entries(ability.statReq).map(([stat, val]) => `${val} ${stat}`).join(", ") : "None";
+  createP(`Stat Requirements: ${statReqText}`).parent(modalDiv);
+
+  // Point Cost (for non-crystal abilities)
+  let pointCostText = ability.pointCost ? ability.pointCost : "-";
+  createP(`Point Cost: ${pointCostText}`).parent(modalDiv);
+
+  // Effect Dice
+  createP(`Effect Dice: ${ability.effect.dice || "-"}`).parent(modalDiv);
+
+  // Effect Description
+  createP(`Effect Description: ${ability.effect.description || "-"}`).parent(modalDiv);
+
+  // MP Cost (for crystal abilities)
+  let mpCostText = ability.effect.mpCost !== undefined ? ability.effect.mpCost : "-";
+  createP(`MP Cost: ${mpCostText}`).parent(modalDiv);
 
   createButton("Close")
     .parent(modalDiv)
@@ -7081,6 +7100,22 @@ function showCreateCustomAbilityModal() {
     .attribute("placeholder", "e.g., Hits all enemies")
     .id("ability-effect-desc-input");
 
+  // Add MP Cost Field
+  let mpCostDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("MP Cost:").parent(mpCostDiv).style("display", "block");
+  let mpCostInput = createInput("0", "number")
+    .parent(mpCostDiv)
+    .style("width", "100%")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .attribute("min", "0")
+    .id("ability-mp-cost-input");
+  createSpan("Mana Points required to use this ability.")
+    .parent(mpCostDiv)
+    .style("font-size", "12px")
+    .style("color", "#666")
+    .style("display", "block");
+
   createButton("Add")
     .parent(buttonContainer)
     .style("margin", "5px")
@@ -7104,7 +7139,8 @@ function showCreateCustomAbilityModal() {
         pointCost: parseInt(pointInput.value()) || 1,
         effect: {
           dice: effectDiceInput.value().trim(),
-          description: effectDescInput.value().trim()
+          description: effectDescInput.value().trim(),
+          mpCost: parseInt(mpCostInput.value()) || 0 // Include MP cost
         }
       };
 
@@ -7281,6 +7317,20 @@ function showModifyAbilitiesModal() {
     .attribute("placeholder", "e.g., Hits all enemies")
     .id("ability-effect-desc-input");
 
+  // Add MP Cost Field
+  let mpCostDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("MP Cost:").parent(mpCostDiv).style("display", "block");
+  let mpCostInput = createInput("0", "number")
+    .parent(mpCostDiv)
+    .style("width", "100%")
+    .attribute("min", "0")
+    .id("ability-mp-cost-input");
+  createSpan("Mana Points required to use this ability.")
+    .parent(mpCostDiv)
+    .style("font-size", "12px")
+    .style("color", "#666")
+    .style("display", "block");
+
   // Populate Ability Dropdown
   function updateAbilityOptions() {
     let selectedCategory = categorySelect.value();
@@ -7312,6 +7362,7 @@ function showModifyAbilitiesModal() {
       pointInput.value("1");
       effectDiceInput.value("");
       effectDescInput.value("");
+      mpCostInput.value("0"); // Default MP cost
       return;
     }
 
@@ -7326,6 +7377,7 @@ function showModifyAbilitiesModal() {
     pointInput.value(ability.pointCost || 1);
     effectDiceInput.value(ability.effect.dice || "");
     effectDescInput.value(ability.effect.description || "");
+    mpCostInput.value(ability.effect.mpCost || "0"); // Load MP cost
   }
 
   categorySelect.changed(() => {
@@ -7373,7 +7425,8 @@ function showModifyAbilitiesModal() {
         pointCost: parseInt(pointInput.value()) || 1,
         effect: {
           dice: effectDiceInput.value().trim(),
-          description: effectDescInput.value().trim()
+          description: effectDescInput.value().trim(),
+          mpCost: parseInt(mpCostInput.value()) || 0 // Include MP cost
         }
       };
 
@@ -7461,7 +7514,6 @@ function showModifyAbilitiesModal() {
     .style("cursor", "pointer")
     .mousePressed(() => modalDiv.remove());
 }
-
 //Dice Roller
 function rollDice(diceStr, modifier = 0) {
   if (!diceStr || typeof diceStr !== "string") {
