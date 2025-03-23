@@ -1789,13 +1789,14 @@ function loadEquipmentData() {
   let penaltySelect = modalDiv.elt.querySelector('#equipment-penalty-select');
   let slotsSelect = modalDiv.elt.querySelector('#equipment-slots-select');
   let linkedStatSelect = modalDiv.elt.querySelector('#equipment-linked-stat-select');
-  let statbonusStatSelect = modalDiv.elt.querySelector('#equipment-statonus-stat-select');
-  let statbonusAmountInput = modalDiv.elt.querySelector('#equipment-statonus-amount-input');
+  let statbonusStatSelect = modalDiv.elt.querySelector('#equipment-statbonus-stat-select');
+  let statbonusAmountInput = modalDiv.elt.querySelector('#equipment-statbonus-amount-input');
   let statReq1Select = modalDiv.elt.querySelector('#equipment-statreq1-select');
   let statReq1Input = modalDiv.elt.querySelector('#equipment-statreq1-input');
   let statReq2Select = modalDiv.elt.querySelector('#equipment-statreq2-select');
   let statReq2Input = modalDiv.elt.querySelector('#equipment-statreq2-input');
-  let damageDiceInput = modalDiv.elt.querySelector('#equipment-damage-dice-input');
+  let numDiceInput = modalDiv.elt.querySelector('#equipment-num-dice-input');
+  let diceSidesInput = modalDiv.elt.querySelector('#equipment-dice-sides-input');
   let weaponModifierInput = modalDiv.elt.querySelector('#equipment-weapon-modifier-input');
   let defenseInput = modalDiv.elt.querySelector('#equipment-defense-input');
   let armorModifierInput = modalDiv.elt.querySelector('#equipment-armor-modifier-input');
@@ -1805,13 +1806,13 @@ function loadEquipmentData() {
   if (!nameInput || !qualitySelect || !descriptionInput || !penaltySelect || !slotsSelect ||
       !linkedStatSelect || !statbonusStatSelect || !statbonusAmountInput ||
       !statReq1Select || !statReq1Input || !statReq2Select || !statReq2Input ||
-      !damageDiceInput || !weaponModifierInput || !defenseInput || !armorModifierInput ||
+      !numDiceInput || !diceSidesInput || !weaponModifierInput || !defenseInput || !armorModifierInput ||
       !weaponCategorySelect) {
     console.error("One or more elements not found in loadEquipmentData:", {
       nameInput, qualitySelect, descriptionInput, penaltySelect, slotsSelect,
       linkedStatSelect, statbonusStatSelect, statbonusAmountInput,
       statReq1Select, statReq1Input, statReq2Select, statReq2Input,
-      damageDiceInput, weaponModifierInput, defenseInput, armorModifierInput,
+      numDiceInput, diceSidesInput, weaponModifierInput, defenseInput, armorModifierInput,
       weaponCategorySelect
     });
     return;
@@ -1830,7 +1831,8 @@ function loadEquipmentData() {
     statReq1Input.value = "";
     statReq2Select.value = "None";
     statReq2Input.value = "";
-    damageDiceInput.value = "";
+    numDiceInput.value = "1";
+    diceSidesInput.value = "6";
     weaponModifierInput.value = "0";
     defenseInput.value = "0";
     armorModifierInput.value = "0";
@@ -1852,7 +1854,18 @@ function loadEquipmentData() {
     statReq1Input.value = stats[0] ? statReqs[stats[0]] : "";
     statReq2Select.value = stats[1] || "None";
     statReq2Input.value = stats[1] ? statReqs[stats[1]] : "";
-    damageDiceInput.value = item.damageDice || "";
+    // Parse damageDice (e.g., "2d6") into numDice and diceSides
+    let numDice = 1;
+    let diceSides = 6;
+    if (item.damageDice) {
+      let parts = item.damageDice.split("d");
+      if (parts.length === 2) {
+        numDice = parseInt(parts[0]) || 1;
+        diceSides = parseInt(parts[1]) || 6;
+      }
+    }
+    numDiceInput.value = numDice;
+    diceSidesInput.value = diceSides;
     weaponModifierInput.value = item.modifier || 0;
     defenseInput.value = item.defense || 0;
     armorModifierInput.value = item.modifier || 0;
@@ -1879,7 +1892,18 @@ function loadEquipmentData() {
     statReq1Input.value = stats[0] ? statReqs[stats[0]] : "";
     statReq2Select.value = stats[1] || "None";
     statReq2Input.value = stats[1] ? statReqs[stats[1]] : "";
-    damageDiceInput.value = item.damageDice || "";
+    // Parse damageDice (e.g., "2d6") into numDice and diceSides
+    let numDice = 1;
+    let diceSides = 6;
+    if (item.damageDice) {
+      let parts = item.damageDice.split("d");
+      if (parts.length === 2) {
+        numDice = parseInt(parts[0]) || 1;
+        diceSides = parseInt(parts[1]) || 6;
+      }
+    }
+    numDiceInput.value = numDice;
+    diceSidesInput.value = diceSides;
     weaponModifierInput.value = item.modifier || 0;
     defenseInput.value = item.defense || 0;
     armorModifierInput.value = item.modifier || 0;
@@ -2148,18 +2172,28 @@ function showAddEditEquipmentModal() {
 
   let damageDiceDiv = createDiv().parent(contentWrapper).style("display", "block");
   createSpan("Damage Dice + Modifier (Weapons):").parent(damageDiceDiv).style("display", "block");
-  let damageDiceInput = createInput("", "text")
+  let numDiceInput = createInput("1", "number")
     .parent(damageDiceDiv)
-    .style("width", "80px")
+    .style("width", "40px")
     .style("margin-right", "5px")
-    .attribute("placeholder", "e.g., 2d6")
-    .id("equipment-damage-dice-input");
+    .attribute("min", "1")
+    .attribute("placeholder", "Num")
+    .id("equipment-num-dice-input");
+  createSpan("d").parent(damageDiceDiv).style("display", "inline-block").style("margin-right", "5px");
+  let diceSidesInput = createInput("6", "number")
+    .parent(damageDiceDiv)
+    .style("width", "40px")
+    .style("margin-right", "5px")
+    .attribute("min", "1")
+    .attribute("placeholder", "Sides")
+    .id("equipment-dice-sides-input");
   let weaponModifierInput = createInput("0", "number")
     .parent(damageDiceDiv)
     .style("width", "50px")
     .style("margin-bottom", "10px")
     .attribute("placeholder", "Mod")
     .id("equipment-weapon-modifier-input");
+  createSpan("e.g., 2d6 + 0").parent(damageDiceDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
 
   let defenseDiv = createDiv().parent(contentWrapper).style("display", "none");
   createSpan("Defense + Modifier (Armor):").parent(defenseDiv).style("display", "block");
@@ -2310,7 +2344,18 @@ function showAddEditEquipmentModal() {
       armorModifierInput.value(item.modifier || "0");
     } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
       linkedStatSelect.value(item.linkedStat || "STR");
-      damageDiceInput.value(item.damageDice || "");
+      // Parse damageDice (e.g., "2d6") into numDice and diceSides
+      let numDice = 1;
+      let diceSides = 6;
+      if (item.damageDice) {
+        let parts = item.damageDice.split("d");
+        if (parts.length === 2) {
+          numDice = parseInt(parts[0]) || 1;
+          diceSides = parseInt(parts[1]) || 6;
+        }
+      }
+      numDiceInput.value(numDice);
+      diceSidesInput.value(diceSides);
       weaponModifierInput.value(item.modifier || "0");
       weaponCategorySelect.value(item.weaponCategory || "Melee - Heavy");
       dualWieldCheckbox.checked(item.dualWield || false);
@@ -2412,7 +2457,9 @@ function showAddEditEquipmentModal() {
       eq.modifier = parseInt(armorModifierInput.value()) || 0;
     } else if (["On-Hand", "Off-Hand"].includes(selectedType)) {
       eq.linkedStat = linkedStatSelect.value();
-      eq.damageDice = damageDiceInput.value().trim();
+      let numDice = parseInt(numDiceInput.value()) || 1;
+      let diceSides = parseInt(diceSidesInput.value()) || 6;
+      eq.damageDice = `${numDice}d${diceSides}`; // Construct XdX format
       eq.modifier = parseInt(weaponModifierInput.value()) || 0;
       eq.weaponCategory = weaponCategorySelect.value();
     }
@@ -2626,7 +2673,7 @@ function showAddEditEquipmentModal() {
         inventory.forEach((invItem, invIdx) => {
           if (invItem.name === originalName && invItem.category === "Equipment") {
             let equippedCrystals = invItem.equippedCrystals || Array(eqObj.crystalSlots || 0).fill(null);
-            inventory[invIdx] = { ...eqObj, equippedCrystals };
+            inventory[invIdx] = { ...eqObj, quantity: invItem.quantity, equippedCrystals };
           }
         });
 
@@ -3188,7 +3235,6 @@ function createEquipmentUI() {
       .style("background", "#f2f2f2");
   });
 
-  // Check if a two-handed weapon is equipped in either hand
   let twoHandedInOnHand = equippedItems["On-Hand"] && equippedItems["On-Hand"].twoHanded;
   let twoHandedInOffHand = equippedItems["Off-Hand"] && equippedItems["Off-Hand"].twoHanded;
   let disableOnHand = twoHandedInOffHand;
@@ -3218,32 +3264,57 @@ function createEquipmentUI() {
     let itemName = item ? item.name : "None";
     itemSelect.option("None", "None");
 
-    // Populate dropdown with available items and currently equipped items
     let availableItems = availableEquipment[slot] || [];
     let equippedItemsList = Object.values(equippedItems).filter(eq => eq && eq.category === "Equipment");
-    let equippedNames = equippedItemsList.map(eq => eq.name);
-    // Add equipped items that aren't already in availableItems (e.g., quantity = 0 in inventory)
     let uniqueEquippedItems = equippedItemsList.filter(eq => !availableItems.some(item => item.name === eq.name));
     let dropdownItems = [...availableItems, ...uniqueEquippedItems];
 
-    dropdownItems.forEach(item => {
-      // Prevent the same accessory from being equipped in both slots
+    let filteredDropdownItems = dropdownItems.filter(item => {
+      if (slot === "On-Hand" || slot === "Off-Hand") {
+        return item.weaponCategory;
+      } else if (slot === "Accessory 1" || slot === "Accessory 2") {
+        return item.type === "Accessory";
+      } else {
+        return item.defense && !item.weaponCategory;
+      }
+    });
+
+    filteredDropdownItems = filteredDropdownItems.filter(item => {
+      let inventoryItem = inventory.find(i => i.name === item.name && i.category === item.category);
+      let inventoryQty = inventoryItem ? (inventoryItem.quantity || 1) : 0;
+      let equippedCountExcludingCurrent = Object.values(equippedItems)
+        .filter(eq => eq && eq.name === item.name && eq.category === item.category && eq !== equippedItems[slot])
+        .length;
+
+      // Check dualWield for On-Hand and Off-Hand slots
+      if (slot === "On-Hand" || slot === "Off-Hand") {
+        // If the item is not dual-wieldable and is already equipped in the other slot, exclude it
+        if (!item.dualWield) {
+          let otherSlot = slot === "On-Hand" ? "Off-Hand" : "On-Hand";
+          if (equippedItems[otherSlot] && equippedItems[otherSlot].name === item.name) {
+            return false; // Item is already equipped in the other slot and not dual-wieldable
+          }
+        }
+      }
+
+      // Ensure inventory quantity supports another instance
+      return inventoryQty > equippedCountExcludingCurrent;
+    });
+
+    filteredDropdownItems.forEach(item => {
       let isAlreadyEquipped = false;
       if (slot === "Accessory 1" && equippedItems["Accessory 2"] && equippedItems["Accessory 2"].name === item.name) {
         isAlreadyEquipped = true;
       } else if (slot === "Accessory 2" && equippedItems["Accessory 1"] && equippedItems["Accessory 1"].name === item.name) {
         isAlreadyEquipped = true;
       }
-      // For On-Hand and Off-Hand, allow the same weapon to be equipped (dual-wield)
       if (!isAlreadyEquipped) {
         itemSelect.option(item.name, item.name);
       }
     });
 
-    // Set the dropdown value to the equipped item's name
     itemSelect.value(itemName);
 
-    // Disable the dropdown if the opposite hand has a two-handed weapon
     if ((slot === "On-Hand" && disableOnHand) || (slot === "Off-Hand" && disableOffHand)) {
       itemSelect.elt.disabled = true;
       itemSelect.style("background", "#e0e0e0");
@@ -3256,7 +3327,6 @@ function createEquipmentUI() {
       let selectedName = itemSelect.value();
       console.log(`Selected item in ${slot}: ${selectedName}`);
       if (selectedName === "None") {
-        // Unequip the item
         if (equippedItems[slot]) {
           let unequippedItem = equippedItems[slot];
           let inventoryItem = inventory.find(i => i.name === unequippedItem.name && i.category === unequippedItem.category);
@@ -3268,45 +3338,33 @@ function createEquipmentUI() {
           equippedItems[slot] = null;
         }
       } else {
-        // Equip the selected item
-        let selectedItem = dropdownItems.find(item => item.name === selectedName);
+        let selectedItem = filteredDropdownItems.find(item => item.name === selectedName);
         console.log(`Found selectedItem:`, selectedItem);
         if (selectedItem && canWieldItem(selectedItem)) {
-          let inventoryItem = inventory.find(i => i.name === selectedItem.name && i.category === selectedItem.category);
-          if (inventoryItem) {
-            // Decrease inventory quantity if the item is in the inventory
-            inventoryItem.quantity = (inventoryItem.quantity || 1) - 1;
-            if (inventoryItem.quantity <= 0) {
-              let inventoryIdx = inventory.findIndex(i => i.name === selectedItem.name && i.category === selectedItem.category);
-              inventory.splice(inventoryIdx, 1);
-            }
-          }
-          // Preserve equipped crystals if any
           equippedItems[slot] = {
             ...selectedItem,
             equippedCrystals: equippedItems[slot]?.equippedCrystals || Array(selectedItem.crystalSlots || 0).fill(null)
           };
-          // Handle Two-Handed logic
           if (selectedItem.twoHanded) {
             let otherSlot = slot === "On-Hand" ? "Off-Hand" : slot === "Off-Hand" ? "On-Hand" : null;
             if (otherSlot && equippedItems[otherSlot]) {
-              let unequippedItem = equippedItems[otherSlot].name;
-              let otherInventoryItem = inventory.find(i => i.name === unequippedItem && i.category === "Equipment");
+              let unequippedItem = equippedItems[otherSlot];
+              let otherInventoryItem = inventory.find(i => i.name === unequippedItem.name && i.category === "Equipment");
               if (otherInventoryItem) {
                 otherInventoryItem.quantity = (otherInventoryItem.quantity || 1) + 1;
               } else {
-                inventory.push({ ...equippedItems[otherSlot], quantity: 1 });
+                inventory.push({ ...unequippedItem, quantity: 1 });
               }
               equippedItems[otherSlot] = null;
               showConfirmationModal(
-                `Equipped ${selectedItem.name} in ${slot}, unequipped ${unequippedItem} from ${otherSlot} as ${selectedItem.name} is two-handed.`,
+                `Equipped ${selectedItem.name} in ${slot}, unequipped ${unequippedItem.name} from ${otherSlot} as ${selectedItem.name} is two-handed.`,
                 () => {},
                 true
               );
             }
           }
         } else {
-          let errorMessage = selectedItem ? `Cannot equip ${selectedName}: stat requirements not met.` : `Cannot equip ${selectedName}: item not found.`;
+          let errorMessage = selectedItem ? `Cannot equip ${selectedName}: stat requirements not met.` : `Cannot equip ${selectedName}: item not found or insufficient quantity.`;
           showConfirmationModal(errorMessage, () => {}, true);
           itemSelect.value(equippedItems[slot] ? equippedItems[slot].name : "None");
           return;
@@ -3329,13 +3387,51 @@ function createEquipmentUI() {
 
     let dmgDefText = "-";
     if (itemData) {
-      if (itemData.damageDice) dmgDefText = `${itemData.damageDice}${itemData.modifier ? (itemData.modifier > 0 ? `+${itemData.modifier}` : itemData.modifier) : ""}`;
-      else if (itemData.defense) dmgDefText = `${itemData.defense}${itemData.modifier ? (itemData.modifier > 0 ? `+${itemData.modifier}` : itemData.modifier) : ""}`;
+      if (itemData.damageDice) {
+        dmgDefText = `${itemData.damageDice}${itemData.modifier ? (itemData.modifier > 0 ? `+${itemData.modifier}` : itemData.modifier) : ""}`;
+      } else if (itemData.defense) {
+        dmgDefText = `${itemData.defense}${itemData.modifier ? (itemData.modifier > 0 ? `+${itemData.modifier}` : itemData.modifier) : ""}`;
+      }
     }
-    createElement("td", dmgDefText)
+    let dmgDefCell = createElement("td")
       .parent(row)
       .style("border", "1px solid #ccc")
       .style("padding", "5px");
+    if (itemData && itemData.damageDice) {
+      createSpan(dmgDefText)
+        .parent(dmgDefCell)
+        .style("cursor", "pointer")
+        .style("color", "blue")
+        .style("text-decoration", "underline")
+        .mousePressed(() => {
+          if (current_stamina < 25) {
+            showConfirmationModal(
+              "Not enough stamina to attack! You need at least 25 stamina.",
+              () => {},
+              true
+            );
+            return;
+          }
+          let previousATG = current_ATG;
+          current_stamina -= 25;
+          if (staminaATGLink) {
+            current_ATG += 25;
+            if (typeof max_ATG !== "undefined" && current_ATG > max_ATG) {
+              current_ATG = max_ATG;
+            }
+          }
+          let rollResult = rollDice(itemData.damageDice, itemData.modifier || 0);
+          let atgMessage = staminaATGLink ? `ATG: ${previousATG} → ${current_ATG}` : `ATG: ${current_ATG}`;
+          showConfirmationModal(
+            `${rollResult.display}\nWeapon: ${itemData.name}\nStamina: ${current_stamina}\n${atgMessage}`,
+            () => {},
+            true
+          );
+          redraw();
+        });
+    } else {
+      dmgDefCell.html(dmgDefText);
+    }
 
     createElement("td", itemData && itemData.movementPenalty !== undefined ? itemData.movementPenalty.toString() : "-")
       .parent(row)
@@ -5602,8 +5698,22 @@ function createInventoryUI() {
 
   inventoryCategories.forEach(category => {
     let items = itemsByCategory[category];
+    let equippedItemsInCategory = Object.values(equippedItems).filter(item => item && item.category === category);
+
+    let allItemsMap = new Map();
+    items.forEach(item => {
+      allItemsMap.set(item.name, item);
+    });
+    equippedItemsInCategory.forEach(item => {
+      if (!allItemsMap.has(item.name)) {
+        allItemsMap.set(item.name, item);
+      }
+    });
+    let uniqueItems = Array.from(allItemsMap.values());
+    let totalItemsCount = uniqueItems.length;
+
     let categoryDiv = createDiv().parent(categoryContainer).class("expandable-section").style("margin-bottom", "10px");
-    let categoryHeader = createElement("h3", `${category} (${items.length})`)
+    let categoryHeader = createElement("h3", `${category} (${totalItemsCount})`)
       .parent(categoryDiv);
 
     let contentDiv = createDiv().parent(categoryDiv).class("content");
@@ -5627,10 +5737,22 @@ function createInventoryUI() {
 
     if (category === "Equipment") {
       let equipmentByType = {};
+      let typeItemsMap = new Map();
+
       items.forEach(item => {
         const type = item.type || "Miscellaneous";
         if (!equipmentByType[type]) equipmentByType[type] = [];
-        equipmentByType[type].push(item);
+        if (!typeItemsMap.has(type)) typeItemsMap.set(type, new Map());
+        typeItemsMap.get(type).set(item.name, item);
+      });
+
+      equippedItemsInCategory.forEach(item => {
+        const type = item.type || "Miscellaneous";
+        if (!equipmentByType[type]) equipmentByType[type] = [];
+        if (!typeItemsMap.has(type)) typeItemsMap.set(type, new Map());
+        if (!typeItemsMap.get(type).has(item.name)) {
+          typeItemsMap.get(type).set(item.name, item);
+        }
       });
 
       if (Object.keys(equipmentByType).length === 0) {
@@ -5640,7 +5762,7 @@ function createInventoryUI() {
           .style("padding", "5px");
       } else {
         Object.keys(equipmentByType).sort().forEach(type => {
-          let typeItems = equipmentByType[type];
+          let typeItems = Array.from(typeItemsMap.get(type).values());
           let typeDiv = createDiv().parent(contentDiv).class("expandable-section").style("margin-left", "10px").style("margin-bottom", "5px");
           let typeHeader = createElement("h4", `${type} (${typeItems.length})`)
             .parent(typeDiv);
@@ -5686,26 +5808,45 @@ function createInventoryUI() {
               .mousePressed(() => showEquipmentDescription(category + "-" + idx, item, false));
             createElement("td", item.description || "-").parent(row);
             let quantityCell = createElement("td").parent(row);
-            let qtyInput = createInput((item.quantity || 1).toString(), "number")
+            let inventoryItem = inventory.find(i => i.name === item.name && i.category === item.category);
+            let inventoryQty = inventoryItem ? (inventoryItem.quantity || 1) : 0;
+            let qtyInput = createInput(inventoryQty.toString(), "number")
               .parent(quantityCell)
               .attribute("min", "1")
               .style("width", "50px")
-              .value((item.quantity || 1).toString());
+              .value(inventoryQty.toString());
             qtyInput.changed(function() {
               let newQuantity = parseInt(this.value()) || 1;
-              console.log(`Updating ${item.name} quantity from ${item.quantity} to ${newQuantity}`);
+              console.log(`Attempting to update ${item.name} quantity to ${newQuantity}`);
+
+              // Calculate the number of equipped instances
+              let equippedQty = Object.values(equippedItems).filter(eq => eq && eq.name === item.name && eq.category === item.category).length;
+              let equippedSlots = Object.keys(equippedItems)
+                .filter(slot => equippedItems[slot] && equippedItems[slot].name === item.name && equippedItems[slot].category === item.category);
+
+              // Prevent lowering quantity below the number of equipped instances
+              if (newQuantity < equippedQty) {
+                showConfirmationModal(
+                  `Cannot reduce quantity below ${equippedQty} because ${equippedQty} instance(s) are currently equipped in ${equippedSlots.join(", ")}.`,
+                  () => {},
+                  true
+                );
+                this.value(inventoryQty.toString()); // Revert to the original quantity
+                return;
+              }
+
               let inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === item.category);
               if (inventoryIdx !== -1) {
                 inventory[inventoryIdx].quantity = newQuantity;
-                console.log("Updated inventory at index", inventoryIdx, ":", JSON.stringify(inventory, null, 2));
-                localStorage.setItem('inventory', JSON.stringify(inventory));
-                nameSpan.html(`${item.name}`);
-                this.value(newQuantity.toString());
-                createInventoryUI();
-                createEquipmentUI();
               } else {
-                console.error(`Item ${item.name} not found in inventory!`);
+                inventory.push({ ...item, quantity: newQuantity });
               }
+              console.log("Updated inventory:", JSON.stringify(inventory, null, 2));
+              localStorage.setItem('inventory', JSON.stringify(inventory));
+              nameSpan.html(`${item.name}`);
+              this.value(newQuantity.toString());
+              createInventoryUI();
+              createEquipmentUI();
             });
             createElement("td", item.quality || "Common").parent(row);
             let actionCell = createElement("td").parent(row);
@@ -5725,6 +5866,11 @@ function createInventoryUI() {
                         return;
                       }
                     }
+                    Object.keys(equippedItems).forEach(slot => {
+                      if (equippedItems[slot] && equippedItems[slot].name === item.name) {
+                        equippedItems[slot] = null;
+                      }
+                    });
                     inventory.splice(inventoryIdx, 1);
                     localStorage.setItem('inventory', JSON.stringify(inventory));
                     updateAvailableEquipment();
@@ -5751,7 +5897,7 @@ function createInventoryUI() {
       createElement("th", "Quality").parent(header).style("width", "15%");
       createElement("th", "Actions").parent(header).style("width", "20%");
 
-      if (items.length === 0) {
+      if (items.length === 0 && equippedItemsInCategory.length === 0) {
         let row = createElement("tr").parent(table);
         createElement("td", "No items in this category.")
           .parent(row)
@@ -5759,7 +5905,18 @@ function createInventoryUI() {
           .style("color", "#666")
           .style("padding", "5px");
       } else {
-        items.forEach((item, idx) => {
+        let allItemsMap = new Map();
+        items.forEach(item => {
+          allItemsMap.set(item.name, item);
+        });
+        equippedItemsInCategory.forEach(item => {
+          if (!allItemsMap.has(item.name)) {
+            allItemsMap.set(item.name, item);
+          }
+        });
+        let allItems = Array.from(allItemsMap.values());
+
+        allItems.forEach((item, idx) => {
           let row = createElement("tr").parent(table);
           let nameCell = createElement("td").parent(row);
           let nameSpan = createSpan(item.name)
@@ -5770,26 +5927,45 @@ function createInventoryUI() {
             .mousePressed(() => showEquipmentDescription(category + "-" + idx, item, false));
           createElement("td", item.description || "-").parent(row);
           let quantityCell = createElement("td").parent(row);
-          let qtyInput = createInput((item.quantity || 1).toString(), "number")
+          let inventoryItem = inventory.find(i => i.name === item.name && i.category === item.category);
+          let inventoryQty = inventoryItem ? (inventoryItem.quantity || 1) : 0;
+          let qtyInput = createInput(inventoryQty.toString(), "number")
             .parent(quantityCell)
             .attribute("min", "1")
             .style("width", "50px")
-            .value((item.quantity || 1).toString());
+            .value(inventoryQty.toString());
           qtyInput.changed(function() {
             let newQuantity = parseInt(this.value()) || 1;
-            console.log(`Updating ${item.name} quantity from ${item.quantity} to ${newQuantity}`);
+            console.log(`Attempting to update ${item.name} quantity to ${newQuantity}`);
+
+            // Calculate the number of equipped instances
+            let equippedQty = Object.values(equippedItems).filter(eq => eq && eq.name === item.name && eq.category === item.category).length;
+            let equippedSlots = Object.keys(equippedItems)
+              .filter(slot => equippedItems[slot] && equippedItems[slot].name === item.name && equippedItems[slot].category === item.category);
+
+            // Prevent lowering quantity below the number of equipped instances
+            if (newQuantity < equippedQty) {
+              showConfirmationModal(
+                `Cannot reduce quantity below ${equippedQty} because ${equippedQty} instance(s) are currently equipped in ${equippedSlots.join(", ")}.`,
+                () => {},
+                true
+              );
+              this.value(inventoryQty.toString()); // Revert to the original quantity
+              return;
+            }
+
             let inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === item.category);
             if (inventoryIdx !== -1) {
               inventory[inventoryIdx].quantity = newQuantity;
-              console.log("Updated inventory at index", inventoryIdx, ":", JSON.stringify(inventory, null, 2));
-              localStorage.setItem('inventory', JSON.stringify(inventory));
-              nameSpan.html(`${item.name}`);
-              this.value(newQuantity.toString());
-              createInventoryUI();
-              createEquipmentUI();
             } else {
-              console.error(`Item ${item.name} not found in inventory!`);
+              inventory.push({ ...item, quantity: newQuantity });
             }
+            console.log("Updated inventory:", JSON.stringify(inventory, null, 2));
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+            nameSpan.html(`${item.name}`);
+            this.value(newQuantity.toString());
+            createInventoryUI();
+            createEquipmentUI();
           });
           createElement("td", item.quality || "Common").parent(row);
           let actionCell = createElement("td").parent(row);
@@ -5809,6 +5985,11 @@ function createInventoryUI() {
                       return;
                     }
                   }
+                  Object.keys(equippedItems).forEach(slot => {
+                    if (equippedItems[slot] && equippedItems[slot].name === item.name) {
+                      equippedItems[slot] = null;
+                    }
+                  });
                   inventory.splice(inventoryIdx, 1);
                   localStorage.setItem('inventory', JSON.stringify(inventory));
                   updateAvailableEquipment();
@@ -7282,7 +7463,7 @@ function showModifyAbilitiesModal() {
 }
 
 //Dice Roller
-function rollDice(diceStr) {
+function rollDice(diceStr, modifier = 0) {
   if (!diceStr || typeof diceStr !== "string") {
     return { total: 0, rolls: [], display: "No dice specified" };
   }
@@ -7300,6 +7481,11 @@ function rollDice(diceStr) {
     total += roll;
   }
 
-  const display = `Rolled ${diceStr}: [${rolls.join(", ")}] = ${total}`;
+  // Add the modifier to the total
+  total += modifier;
+
+  // Format the display string, including the modifier if it exists
+  const modifierText = modifier !== 0 ? ` ${modifier > 0 ? "+" : ""}${modifier}` : "";
+  const display = `Rolled ${diceStr}${modifierText}: [${rolls.join(", ")}]${modifierText} = ${total}`;
   return { total, rolls, display };
 }
