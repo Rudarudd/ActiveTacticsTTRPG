@@ -44,87 +44,187 @@ let categoryStates = {
 
 // Master list of available items with quantity and quality
 let availableItems = {
-"Equipment": [
-  //Weapons
-  {
-    name: "Cleaver Sword",
-    description: "A massive sword.",
-    category: "Equipment",
-    type: "On-Hand",
-    weaponCategory: "Melee - Heavy",
-    crystalSlots: 2,
-    quantity: 1,
-    quality: "Rare",
-    linkedStat: "STR",
-    damageDice: "1d8",
-    modifier: 0,
-    dualWield: false,
-    twoHanded: true,
-    statRequirements: {},
-    statbonuses: null
-  },
-  {
-  name: "Dagger",
-  description: "A small, sharp blade.",
-  category: "Equipment",
-  type: "Off-Hand",
-  weaponCategory: "Melee - Light",
-  crystalSlots: 1,
-  quantity: 1,
-  quality: "Common",
-  linkedStat: "DEX",
-  damageDice: "1d4",
-  modifier: 0,
-  dualWield: true,
-  twoHanded: false,
-  statRequirements: { DEX: 3 },
-  statbonuses: null
-},
-  //Armor
-  {
-  name: "Iron Plate",
-  description: "Heavy protective armor.",
-  category: "Equipment",
-  type: "Chest",
-  quantity: 1,
-  quality: "Uncommon",
-  crystalSlots: 1,
-  movementPenalty: -5,
-  defense: 5,
-  modifier: 0,
-  statRequirements: { STR: 5 },
-  statbonuses: { stat: "VIT", amount: 1 }
-},
-  {
-    name: "Leather Armor",
-    description: "Basic protection.",
-    category: "Equipment",
-    type: "Chest",
-    quantity: 1,
-    quality: "Common",
-    crystalSlots: 0,
-    movementPenalty: -5,
-    defense: 2,
-    modifier: 0,
-    statRequirements: {},
-    statbonuses: null
-  }
-],
+  "Equipment": [
+    // Melee - Heavy (typically STR-based, higher damage, often two-handed)
+    {
+      name: "Greatsword",
+      description: "A large, heavy sword designed for powerful strikes.",
+      category: "Equipment",
+      type: "On-Hand",
+      weaponCategory: "Melee - Heavy",
+      crystalSlots: 2,
+      quantity: 1,
+      quality: "Common",
+      linkedStat: "STR",
+      damageDice: "2d6",
+      modifier: 0,
+      dualWield: false,
+      twoHanded: true,
+      statRequirements: { STR: 5 },
+      statbonuses: null
+    },
+    // Melee - Balanced (STR or DEX, moderate damage, versatile)
+    {
+      name: "Longsword",
+      description: "A well-balanced sword suitable for most fighters.",
+      category: "Equipment",
+      type: "On-Hand",
+      weaponCategory: "Melee - Balanced",
+      crystalSlots: 1,
+      quantity: 1,
+      quality: "Common",
+      linkedStat: "STR",
+      damageDice: "1d8",
+      modifier: 1,
+      dualWield: true,
+      twoHanded: false,
+      statRequirements: { STR: 3, DEX: 2}, 
+      statbonuses: null
+    },
+    // Melee - Light (DEX-based, lower damage, often dual-wieldable)
+    {
+      name: "Dagger",
+      description: "A small, sharp blade for quick strikes.",
+      category: "Equipment",
+      type: "Off-Hand",
+      weaponCategory: "Melee - Light",
+      crystalSlots: 0,
+      quantity: 1,
+      quality: "Common",
+      linkedStat: "DEX",
+      damageDice: "1d4",
+      modifier: 0,
+      dualWield: true,
+      twoHanded: false,
+      statRequirements: { DEX: 2 },
+      statbonuses: null
+    },
+    // Ranged - Short (DEX-based, short range, moderate damage)
+    {
+      name: "Shortbow",
+      description: "A compact bow for short-range combat.",
+      category: "Equipment",
+      type: "On-Hand",
+      weaponCategory: "Ranged - Short",
+      crystalSlots: 1,
+      quantity: 1,
+      quality: "Common",
+      linkedStat: "DEX",
+      damageDice: "1d6",
+      modifier: 0,
+      dualWield: false,
+      twoHanded: true,
+      statRequirements: { DEX: 3 },
+      statbonuses: null
+    },
+    // Magical - Offensive (MAG-based, magical damage)
+    {
+      name: "Fire Staff",
+      description: "A staff imbued with fire magic.",
+      category: "Equipment",
+      type: "On-Hand",
+      weaponCategory: "Magical - Offensive",
+      crystalSlots: 2,
+      quantity: 1,
+      quality: "Uncommon",
+      linkedStat: "MAG",
+      damageDice: "1d6",
+      modifier: 2,
+      dualWield: false,
+      twoHanded: true,
+      statRequirements: { MAG: 4 },
+      statbonuses: { stat: "MAG", amount: 1 }
+    },
+    // Chest Armor
+    {
+      name: "Leather Armor",
+      description: "Light armor made of tanned leather.",
+      category: "Equipment",
+      type: "Chest",
+      quantity: 1,
+      quality: "Common",
+      crystalSlots: 0,
+      movementPenalty: 0,
+      defense: 2,
+      modifier: 0,
+      statRequirements: {},
+      statbonuses: null
+    },
+    {
+      name: "Chainmail",
+      description: "A shirt of interlocking metal rings.",
+      category: "Equipment",
+      type: "Chest",
+      quantity: 1,
+      quality: "Uncommon",
+      crystalSlots: 1,
+      movementPenalty: -5,
+      defense: 4,
+      modifier: 0,
+      statRequirements: { STR: 3 },
+      statbonuses: null
+    },
+    // Helm
+    {
+      name: "Leather Cap",
+      description: "A simple cap made of leather.",
+      category: "Equipment",
+      type: "Helm",
+      quantity: 1,
+      quality: "Common",
+      crystalSlots: 0,
+      movementPenalty: 0,
+      defense: 1,
+      modifier: 0,
+      statRequirements: {},
+      statbonuses: null
+    },
+    // Gloves
+    {
+      name: "Leather Gloves",
+      description: "Gloves made of soft leather.",
+      category: "Equipment",
+      type: "Gloves",
+      quantity: 1,
+      quality: "Common",
+      crystalSlots: 0,
+      movementPenalty: 0,
+      defense: 1,
+      modifier: 0,
+      statRequirements: {},
+      statbonuses: null
+    },
+    // Greaves
+    {
+      name: "Leather Boots",
+      description: "Sturdy boots made of leather.",
+      category: "Equipment",
+      type: "Greaves",
+      quantity: 1,
+      quality: "Common",
+      crystalSlots: 0,
+      movementPenalty: 0,
+      defense: 1,
+      modifier: 0,
+      statRequirements: {},
+      statbonuses: null
+    }
+  ],
   "Consumables": [
     { name: "Healing Potion", description: "Restores 20 HP.", category: "Consumables", quantity: 1, quality: "Common" }
   ],
-   
   "Materials": [
-    { name: "Rope", description: "100ft of rope.", category: "Materials", quantity: 1, quality: "Uncommon" },
+    { name: "Rope", description: "100ft of rope.", category: "Materials", quantity: 1, quality: "Uncommon" }
   ],
   "Crystals": [
-    { name: "Fire Crystal", description: "Grants the ability to cast Fire.", category: "Crystals", statbonuses: { MAG: 2 }, abilities: ["Fire"], statRequirements: { MAG: 5 }, quantity: 1, quality: "Rare" },
-    { name: "Heal Crystal", description: "Grants the ability to cast Cure.", category: "Crystals", statbonuses: { WIL: 1 }, abilities: ["Cure"], statRequirements: { WIL: 3 }, quantity: 1, quality: "Rare" }
+    { name: "Fire Crystal", description: "Grants the ability to cast Fire.", category: "Crystals", statbonuses: { MAG: 2 }, abilities: ["Fire"], statReq: { MAG: 5 }, quantity: 1, quality: "Rare" },
+    { name: "Heal Crystal", description: "Grants the ability to cast Cure.", category: "Crystals", statbonuses: { WIL: 1 }, abilities: ["Cure"], statReq: { WIL: 3 }, quantity: 1, quality: "Rare" }
   ],
   "Miscellaneous": [
     { name: "Old Key", description: "Rusty but functional.", category: "Miscellaneous", quantity: 1, quality: "Poor" }
   ]
 };
+
 // Create a pristine copy of the initial availableItems
 let pristineAvailableItems = JSON.parse(JSON.stringify(availableItems));
 
