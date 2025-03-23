@@ -35,6 +35,7 @@ header button {
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
+  overflow-x: auto; /* Allow horizontal scrolling if content overflows */
 }
 
 /* Tabs styling */
@@ -69,6 +70,7 @@ header button {
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
+  overflow-x: auto; /* Allow horizontal scrolling if content overflows */
 }
 
 .tabcontent {
@@ -117,8 +119,15 @@ header button {
   border: 1px solid #ccc;
 }
 
+/* Table wrapper to allow horizontal scrolling */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto; /* Enable horizontal scrolling for the table */
+}
+
 .rules-table {
   width: 100%;
+  min-width: 600px; /* Ensure table doesn’t shrink too much on small screens */
   border-collapse: collapse;
   margin-bottom: 20px;
 }
@@ -128,6 +137,37 @@ header button {
   border: 1px solid #ccc;
   padding: 8px;
   text-align: left;
+}
+
+/* Reduce padding on smaller screens */
+@media (max-width: 600px) {
+  .rules-table th,
+  .rules-table td {
+    padding: 4px; /* Smaller padding for better fit */
+    font-size: 12px; /* Smaller font size */
+  }
+
+  /* Adjust column widths to prioritize essential columns */
+  .rules-table th:nth-child(1), /* Item Name */
+  .rules-table td:nth-child(1) {
+    width: 25%;
+  }
+  .rules-table th:nth-child(2), /* Description */
+  .rules-table td:nth-child(2) {
+    width: 30%;
+  }
+  .rules-table th:nth-child(3), /* Quantity */
+  .rules-table td:nth-child(3) {
+    width: 15%;
+  }
+  .rules-table th:nth-child(4), /* Quality */
+  .rules-table td:nth-child(4) {
+    width: 15%;
+  }
+  .rules-table th:nth-child(5), /* Actions */
+  .rules-table td:nth-child(5) {
+    width: 15%;
+  }
 }
 
 .rules-table th {
@@ -157,6 +197,15 @@ header button {
   font-size: 14px;
 }
 
+/* Adjust input size on smaller screens */
+@media (max-width: 600px) {
+  .resource-input {
+    flex: 0 0 40px;
+    width: 40px;
+    font-size: 12px;
+  }
+}
+
 .resource-button {
   flex: 0 0 auto;
   min-width: 60px;
@@ -164,10 +213,28 @@ header button {
   font-size: 14px;
 }
 
+/* Adjust button size on smaller screens */
+@media (max-width: 600px) {
+  .resource-button {
+    min-width: 50px;
+    padding: 2px 4px;
+    font-size: 12px;
+  }
+}
+
 .resource-button.small-button {
   min-width: 25px;
   padding: 2px 4px;
   font-size: 12px;
+}
+
+/* Adjust small button size on smaller screens */
+@media (max-width: 600px) {
+  .resource-button.small-button {
+    min-width: 20px;
+    padding: 1px 3px;
+    font-size: 10px;
+  }
 }
 
 /* Style for category headers in the Items and Abilities tables */
@@ -202,7 +269,8 @@ header button {
 /* Style for the collapsible content */
 .expandable-section .content {
   max-height: 0;
-  overflow: hidden;
+  overflow-x: auto; /* Allow horizontal scrolling */
+  overflow-y: hidden; /* Preserve vertical collapse animation */
   transition: max-height 0.3s ease; /* Smooth height transition */
 }
 
