@@ -1469,6 +1469,33 @@ function canWieldItem(item) {
   }
   return true; // All requirements met
 }
+function updateAbilities() {
+  console.log("Updating abilities...");
+  characterAbilities = []; // Reset the abilities array
+
+  // Collect abilities from equipped crystals
+  for (let slot in equippedItems) {
+    let item = equippedItems[slot];
+    if (item && item.equippedCrystals) {
+      item.equippedCrystals.forEach(crystal => {
+        if (crystal && crystal.abilities) {
+          crystal.abilities.forEach(ability => {
+            if (!characterAbilities.includes(ability)) {
+              characterAbilities.push(ability);
+            }
+          });
+        }
+      });
+    }
+  }
+
+  // Optionally, refresh the Abilities UI if it’s the active tab
+  if (currentTab === "abilities") {
+    createAbilitiesUI();
+  }
+
+  console.log("Updated characterAbilities:", characterAbilities);
+}
 function showConfirmationModal(message, onConfirm, isError = false) {
   if (modalDiv) modalDiv.remove();
   modalDiv = createDiv()
@@ -3641,6 +3668,22 @@ function showModifyCrystalsModal() {
     .style("color", "#666")
     .style("display", "block");
 
+  let qualityDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Quality:").parent(qualityDiv).style("display", "block");
+  let qualitySelect = createSelect()
+    .parent(qualityDiv)
+    .style("width", "100%")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .id("crystal-quality-select");
+  ["Common", "Uncommon", "Rare", "Epic", "Legendary"].forEach(q => qualitySelect.option(q));
+  qualitySelect.value("Common");
+  createSpan("The rarity or quality of the crystal.")
+    .parent(qualityDiv)
+    .style("font-size", "12px")
+    .style("color", "#666")
+    .style("display", "block");
+
   let descDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Description:").parent(descDiv).style("display", "block");
   let descriptionInput = createElement("textarea")
@@ -3756,6 +3799,7 @@ function showModifyCrystalsModal() {
     if (idx === -1) {
       nameInput.value("");
       descriptionInput.value("");
+      qualitySelect.value("Common");
       statSelect.value("None");
       amountInput.value("0");
       statReqSelect.value("None");
@@ -3784,11 +3828,12 @@ function showModifyCrystalsModal() {
 
     nameInput.value(item.name || "");
     descriptionInput.value(item.description || "");
+    qualitySelect.value(item.quality || "Common");
     let statbonuses = item.statbonuses || {};
     let stat = Object.keys(statbonuses).length > 0 ? Object.keys(statbonuses)[0] : "None";
     statSelect.value(stat);
     amountInput.value(stat !== "None" && statbonuses[stat] ? statbonuses[stat] : "0");
-    let statReqs = item.statRequirements || {};
+    let statReqs = item.statReq || {};
     let reqStat = Object.keys(statReqs).length > 0 ? Object.keys(statReqs)[0] : "None";
     statReqSelect.value(reqStat);
     statReqInput.value(reqStat !== "None" && statReqs[reqStat] ? statReqs[reqStat] : "0");
@@ -3798,12 +3843,8 @@ function showModifyCrystalsModal() {
   // Event Listeners
   crystalSelect.changed(() => {
     updateCrystalOptions();
-    loop();
-    redraw();
-    noLoop();
-    setTimeout(loadCrystalData, 0);
+    loadCrystalData();
   });
-  crystalSelect.changed(loadCrystalData);
   updateCrystalOptions();
   updateAbilityOptions();
 
@@ -3822,11 +3863,11 @@ function showModifyCrystalsModal() {
       name: newName,
       description: descriptionInput.value(),
       category: "Crystals",
+      quality: qualitySelect.value(),
       statbonuses: stat !== "None" ? { [stat]: amount } : {},
-      statRequirements: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
+      statReq: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
       abilities: abilitySelect.value() ? [abilitySelect.value()] : [],
-      quantity: preservedQuantity,
-      quality: "Common"
+      quantity: preservedQuantity
     };
   }
 
@@ -3882,13 +3923,19 @@ function showModifyCrystalsModal() {
           updateAbilities();
           createInventoryUI();
           createEquipmentUI();
+          createStatsUI();
+          createAbilitiesUI();
           successMessage.html("Crystal Added to Inventory");
           successMessage.style("display", "block");
           contentWrapper.elt.scrollTop = 0;
+          // Refresh the dropdown and select the new crystal
+          updateCrystalOptions();
           let newFilteredInventory = inventory.filter(item => item.category === "Crystals");
           let newFilteredIdx = newFilteredInventory.findIndex(i => i.name === crystalObj.name);
           if (newFilteredIdx !== -1) {
-            crystalSelect.value(newFilteredIdx.toString());
+            setTimeout(() => {
+              crystalSelect.value(newFilteredIdx.toString());
+            }, 0);
           }
         } else {
           errorMessage.html("Invalid crystal selection.");
@@ -3917,13 +3964,19 @@ function showModifyCrystalsModal() {
         updateAbilities();
         createInventoryUI();
         createEquipmentUI();
+        createStatsUI();
+        createAbilitiesUI();
         successMessage.html("Crystal Added to Inventory");
         successMessage.style("display", "block");
         contentWrapper.elt.scrollTop = 0;
+        // Refresh the dropdown and select the new crystal
+        updateCrystalOptions();
         let newFilteredInventory = inventory.filter(item => item.category === "Crystals");
         let newFilteredIdx = newFilteredInventory.findIndex(i => i.name === crystalObj.name);
         if (newFilteredIdx !== -1) {
-          crystalSelect.value(newFilteredIdx.toString());
+          setTimeout(() => {
+            crystalSelect.value(newFilteredIdx.toString());
+          }, 0);
         }
       } else {
         errorMessage.html("Please select an available crystal or 'Add New' to add.");
@@ -4005,6 +4058,19 @@ function showModifyCrystalsModal() {
             inventory[invIdx] = { ...crystalObj, quantity: invItem.quantity || 1 };
           }
         });
+
+        // Update equipped crystals with the same name
+        for (let slot in equippedItems) {
+          let equipped = equippedItems[slot];
+          if (equipped && equipped.equippedCrystals) {
+            equipped.equippedCrystals = equipped.equippedCrystals.map(crystal => {
+              if (crystal && crystal.name === originalName) {
+                return { ...crystalObj, quantity: crystal.quantity };
+              }
+              return crystal;
+            });
+          }
+        }
       }
 
       localStorage.setItem('inventory', JSON.stringify(inventory));
@@ -4012,9 +4078,13 @@ function showModifyCrystalsModal() {
       updateAbilities();
       createInventoryUI();
       createEquipmentUI();
+      createStatsUI();
+      createAbilitiesUI();
       successMessage.html("Crystal Updated in Master List and Inventory");
       successMessage.style("display", "block");
       contentWrapper.elt.scrollTop = 0;
+      // Refresh the dropdown after saving
+      updateCrystalOptions();
     });
 
   // REMOVE => Remove crystal from master list and inventory
@@ -4065,10 +4135,25 @@ function showModifyCrystalsModal() {
       showConfirmationModal(
         `Remove the crystal from the master list? "${item.name}"`,
         () => {
+          // Unequip from all slots in equippedItems
+          for (let slot in equippedItems) {
+            let equipped = equippedItems[slot];
+            if (equipped && equipped.equippedCrystals) {
+              equipped.equippedCrystals = equipped.equippedCrystals.map(crystal => {
+                if (crystal && crystal.name === item.name) {
+                  return null;
+                }
+                return crystal;
+              });
+            }
+          }
+
+          // Remove from inventory if it exists there
           if (isInInventory) {
             inventory.splice(inventory.indexOf(item), 1);
           }
 
+          // Remove from availableItems["Crystals"]
           if (availableItems["Crystals"]) {
             availableItems["Crystals"] = availableItems["Crystals"].filter(
               i => i.name !== item.name
@@ -4080,6 +4165,9 @@ function showModifyCrystalsModal() {
           updateAbilities();
           createInventoryUI();
           createEquipmentUI();
+          createStatsUI();
+          createAbilitiesUI();
+          updateCrystalOptions(); // Refresh the dropdown after removal
           modalDiv.remove();
         }
       );
@@ -5880,8 +5968,8 @@ function createInventoryUI() {
             }
           });
 
-          let tableWrapper = createDiv().parent(typeContentDiv).class("table-wrapper");
-          let table = createElement("table").parent(tableWrapper).class("rules-table");
+          let tableWrapper = createDiv().parent(typeContentDiv).class("table-wrapper").style("overflow-x", "auto");
+let table = createElement("table").parent(tableWrapper).class("rules-table");
           let header = createElement("tr").parent(table);
           createElement("th", "Item Name").parent(header).style("width", "20%");
           createElement("th", "Description").parent(header).style("width", "30%");
