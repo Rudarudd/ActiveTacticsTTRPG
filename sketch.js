@@ -217,22 +217,18 @@ let availableItems = {
     { name: "Rope", description: "100ft of rope.", category: "Materials", quantity: 1, quality: "Uncommon" }
   ],
 "Crystals": [
-    // Existing Crystals (renamed statReq to statRequirements)
-    { name: "Fire Crystal", description: "Grants the ability to cast Fire.", category: "Crystals", statbonuses: { MAG: 2 }, abilities: ["Fire"], statRequirements: { MAG: 5 }, quantity: 1, quality: "Rare" },
-    { name: "Heal Crystal", description: "Grants the ability to cast Cure.", category: "Crystals", statbonuses: { WIL: 1 }, abilities: ["Cure"], statRequirements: { WIL: 3 }, quantity: 1, quality: "Rare" },
-    // New Common Crystals (Basic effects, low stat requirements)
-    { name: "Ice Crystal", description: "Grants the ability to cast Ice.", category: "Crystals", statbonuses: { MAG: 1 }, abilities: ["Ice"], statRequirements: { MAG: 3 }, quantity: 1, quality: "Common" },
-    { name: "Wind Crystal", description: "Grants the ability to cast Gust.", category: "Crystals", statbonuses: { DEX: 1 }, abilities: ["Gust"], statRequirements: { DEX: 2 }, quantity: 1, quality: "Common" },
-    { name: "Light Crystal", description: "Grants the ability to cast Flash.", category: "Crystals", statbonuses: { SPR: 1 }, abilities: ["Flash"], statRequirements: { SPR: 2 }, quantity: 1, quality: "Common" },
-    // New Uncommon Crystals (Moderate effects, some stat requirements)
-    { name: "Thunder Crystal", description: "Grants the ability to cast Thunder.", category: "Crystals", statbonuses: { MAG: 2 }, abilities: ["Thunder"], statRequirements: { MAG: 5 }, quantity: 1, quality: "Uncommon" },
-    { name: "Shield Crystal", description: "Grants the ability to cast Shield.", category: "Crystals", statbonuses: { WIL: 1 }, abilities: ["Shield"], statRequirements: { WIL: 4 }, quantity: 1, quality: "Uncommon" },
-    { name: "Haste Crystal", description: "Grants the ability to cast Haste.", category: "Crystals", statbonuses: { DEX: 1 }, abilities: ["Haste"], statRequirements: { DEX: 3 }, quantity: 1, quality: "Uncommon" },
-    // New Rare Crystals (Powerful effects, higher stat requirements)
-    { name: "Blizzard Crystal", description: "Grants the ability to cast Blizzard.", category: "Crystals", statbonuses: { MAG: 3 }, abilities: ["Blizzard"], statRequirements: { MAG: 7 }, quantity: 1, quality: "Rare" },
-    { name: "Regen Crystal", description: "Grants the ability to cast Regen.", category: "Crystals", statbonuses: { WIL: 2 }, abilities: ["Regen"], statRequirements: { WIL: 6 }, quantity: 1, quality: "Rare" },
-    { name: "Invisibility Crystal", description: "Grants the ability to cast Invisibility.", category: "Crystals", statbonuses: { DEX: 2 }, abilities: ["Invisibility"], statRequirements: { DEX: 5 }, quantity: 1, quality: "Rare" }
-  ],
+  { name: "Fire Crystal", description: "A glowing crystal imbued with the power of fire.", category: "Crystals", statbonuses: { MAG: 2 }, abilities: ["Fire"], statRequirements: { MAG: 5 }, quantity: 1, quality: "Rare" },
+  { name: "Heal Crystal", description: "A soothing crystal that radiates healing energy.", category: "Crystals", statbonuses: { WIL: 1 }, abilities: ["Cure"], statRequirements: { WIL: 3 }, quantity: 1, quality: "Rare" },
+  { name: "Ice Crystal", description: "A frosty crystal that chills the air around it.", category: "Crystals", statbonuses: { MAG: 1 }, abilities: ["Ice"], statRequirements: { MAG: 3 }, quantity: 1, quality: "Common" },
+  { name: "Wind Crystal", description: "A breezy crystal that hums with the power of the wind.", category: "Crystals", statbonuses: { DEX: 1 }, abilities: ["Gust"], statRequirements: { DEX: 2 }, quantity: 1, quality: "Common" },
+  { name: "Light Crystal", description: "A radiant crystal that emits a soft, blinding light.", category: "Crystals", statbonuses: { SPR: 1 }, abilities: ["Flash"], statRequirements: { SPR: 2 }, quantity: 1, quality: "Common" },
+  { name: "Thunder Crystal", description: "A crackling crystal charged with lightning energy.", category: "Crystals", statbonuses: { MAG: 2 }, abilities: ["Thunder"], statRequirements: { MAG: 5 }, quantity: 1, quality: "Uncommon" },
+  { name: "Shield Crystal", description: "A sturdy crystal that projects a protective aura.", category: "Crystals", statbonuses: { WIL: 1 }, abilities: ["Shield"], statRequirements: { WIL: 4 }, quantity: 1, quality: "Uncommon" },
+  { name: "Haste Crystal", description: "A shimmering crystal that vibrates with speed.", category: "Crystals", statbonuses: { DEX: 1 }, abilities: ["Haste"], statRequirements: { DEX: 3 }, quantity: 1, quality: "Uncommon" },
+  { name: "Blizzard Crystal", description: "A rare crystal that summons a freezing storm.", category: "Crystals", statbonuses: { MAG: 3 }, abilities: ["Blizzard"], statRequirements: { MAG: 7 }, quantity: 1, quality: "Rare" },
+  { name: "Regen Crystal", description: "A rare crystal that pulses with regenerative energy.", category: "Crystals", statbonuses: { WIL: 2 }, abilities: ["Regen"], statRequirements: { WIL: 6 }, quantity: 1, quality: "Rare" },
+  { name: "Invisibility Crystal", description: "A rare crystal that cloaks the user in shadows.", category: "Crystals", statbonuses: { DEX: 2 }, abilities: ["Invisibility"], statRequirements: { DEX: 5 }, quantity: 1, quality: "Rare" }
+],
   "Miscellaneous": [
     { name: "Old Key", description: "Rusty but functional.", category: "Miscellaneous", quantity: 1, quality: "Poor" }
   ]
@@ -343,21 +339,21 @@ let availableAbilities = {
     { name: "Gunblade Shot", ATGCost: 50, statReq: { DEX: 10 }, pointCost: 1, effect: { dice: "1d6", description: "Ranged attack in Ranged mode" } }
   ],
 "Crystals": [
-  // Existing Abilities
-  { name: "Fire", ATGCost: 25, statReq: { MAG: 5 }, effect: { dice: "2d6", description: "Elemental fire damage", mpCost: 5 } },
-  { name: "Cure", ATGCost: 25, statReq: { WIL: 3 }, effect: { dice: "1d8", description: "Heals the user", mpCost: 3 } },
+  // Existing Abilities (description removed, effect.description enhanced)
+  { name: "Fire", ATGCost: 25, statReq: { MAG: 5 }, effect: { dice: "2d6", description: "Deals elemental fire damage to a single target", mpCost: 5 } },
+  { name: "Cure", ATGCost: 25, statReq: { WIL: 3 }, effect: { dice: "1d8", description: "Heals the user or an ally", mpCost: 3 } },
   // New Common Abilities
-  { name: "Ice", ATGCost: 25, statReq: { MAG: 3 }, effect: { dice: "2d6", description: "Elemental ice damage", mpCost: 5 } },
-  { name: "Gust", ATGCost: 20, statReq: { DEX: 2 }, effect: { dice: "1d6", description: "Elemental wind damage, pushes target back 10 ft", mpCost: 4 } },
-  { name: "Flash", ATGCost: 20, statReq: { SPR: 2 }, effect: { dice: "", description: "Blinds the target for 1 turn", mpCost: 3 } },
+  { name: "Ice", ATGCost: 25, statReq: { MAG: 3 }, effect: { dice: "2d6", description: "Deals elemental ice damage to a single target", mpCost: 5 } },
+  { name: "Gust", ATGCost: 20, statReq: { DEX: 2 }, effect: { dice: "1d6", description: "Deals elemental wind damage and pushes the target back 10 ft", mpCost: 4 } },
+  { name: "Flash", ATGCost: 20, statReq: { SPR: 2 }, effect: { dice: "", description: "Blinds the target for 1 turn, reducing their accuracy", mpCost: 3 } },
   // New Uncommon Abilities
-  { name: "Thunder", ATGCost: 30, statReq: { MAG: 5 }, effect: { dice: "3d6", description: "Elemental lightning damage", mpCost: 8 } },
-  { name: "Shield", ATGCost: 25, statReq: { WIL: 4 }, effect: { dice: "", description: "Grants +3 defense for 3 turns", mpCost: 6 } },
-  { name: "Haste", ATGCost: 20, statReq: { DEX: 3 }, effect: { dice: "", description: "Grants +2 DEX for 3 turns", mpCost: 5 } },
+  { name: "Thunder", ATGCost: 30, statReq: { MAG: 5 }, effect: { dice: "3d6", description: "Deals elemental lightning damage to a single target", mpCost: 8 } },
+  { name: "Shield", ATGCost: 25, statReq: { WIL: 4 }, effect: { dice: "", description: "Grants +3 defense to the user for 3 turns", mpCost: 6 } },
+  { name: "Haste", ATGCost: 20, statReq: { DEX: 3 }, effect: { dice: "", description: "Grants +2 DEX to the user for 3 turns", mpCost: 5 } },
   // New Rare Abilities
-  { name: "Blizzard", ATGCost: 40, statReq: { MAG: 7 }, effect: { dice: "4d6", description: "Elemental ice damage to all enemies", mpCost: 12 } },
-  { name: "Regen", ATGCost: 30, statReq: { WIL: 6 }, effect: { dice: "1d4", description: "Heals the target each turn for 3 turns", mpCost: 10 } },
-  { name: "Invisibility", ATGCost: 35, statReq: { DEX: 5 }, effect: { dice: "", description: "Grants +5 evasion for 3 turns", mpCost: 8 } }
+  { name: "Blizzard", ATGCost: 40, statReq: { MAG: 7 }, effect: { dice: "4d6", description: "Deals elemental ice damage to all enemies", mpCost: 12 } },
+  { name: "Regen", ATGCost: 30, statReq: { WIL: 6 }, effect: { dice: "1d4", description: "Heals the user or an ally each turn for 3 turns", mpCost: 10 } },
+  { name: "Invisibility", ATGCost: 35, statReq: { DEX: 5 }, effect: { dice: "", description: "Grants +5 evasion to the user for 3 turns", mpCost: 8 } }
 ]
 };
 // Create a pristine copy of the initial availableAbilities
@@ -7023,17 +7019,19 @@ function createAbilitiesUI() {
         .parent(contentDiv)
         .style("color", "#666");
     } else {
-      let tableWrapper = createDiv().parent(contentDiv).class("table-wrapper");
+      let tableWrapper = createDiv().parent(contentDiv).class("table-wrapper").style("overflow-x", "auto");
       let table = createElement("table").parent(tableWrapper).class("rules-table");
       let header = createElement("tr").parent(table);
-      createElement("th", "Name").parent(header).style("width", "15%");
-      createElement("th", "ATG Cost").parent(header).style("width", "10%");
-      createElement("th", "Stat Req").parent(header).style("width", "15%");
-      createElement("th", "Point Cost").parent(header).style("width", "10%");
-      createElement("th", "Effect").parent(header).style("width", "20%");
-      createElement("th", "MP Cost").parent(header).style("width", "10%"); // New column
-      createElement("th", "Status").parent(header).style("width", "10%");
-      createElement("th", "Actions").parent(header).style("width", "10%");
+      createElement("th", "Name").parent(header).style("width", "20%");
+      createElement("th", "ATG Cost").parent(header).style("width", "15%");
+      createElement("th", "Stat Req").parent(header).style("width", "20%");
+      createElement("th", "Point Cost").parent(header).style("width", "15%");
+      createElement("th", "Effect").parent(header).style("width", "30%");
+      if (category === "Crystals") {
+        createElement("th", "MP Cost").parent(header).style("width", "15%");
+      }
+      createElement("th", "Status").parent(header).style("width", "15%");
+      createElement("th", "Actions").parent(header).style("width", "15%");
 
       abilities.forEach(ability => {
         let row = createElement("tr").parent(table);
@@ -7050,8 +7048,9 @@ function createAbilitiesUI() {
         createElement("td", category === "Crystals" ? "-" : String(ability.pointCost)).parent(row);
         let effectText = ability.effect.dice ? `${ability.effect.dice} - ${ability.effect.description}` : ability.effect.description;
         createElement("td", effectText).parent(row);
-        // Add MP Cost column
-        createElement("td", category === "Crystals" ? String(ability.effect.mpCost || 0) : "-").parent(row);
+        if (category === "Crystals") {
+          createElement("td", String(ability.effect.mpCost || 0)).parent(row);
+        }
         let statusCell = createElement("td").parent(row);
         let actionCell = createElement("td").parent(row);
 
@@ -7158,29 +7157,18 @@ function showAbilityDescription(ability) {
 
   createElement("h3", ability.name).parent(modalDiv);
 
-  // Description
-  createP(`Description: ${ability.description || "No description provided."}`).parent(modalDiv);
+  // Use Effect Description instead of Ability Description
+  createP(`Effect: ${ability.effect.dice ? ability.effect.dice + " - " : ""}${ability.effect.description || "No effect description provided."}`).parent(modalDiv);
 
-  // ATG Cost
   createP(`ATG Cost: ${ability.ATGCost || 0}`).parent(modalDiv);
 
-  // Stat Requirements
   let statReqText = ability.statReq ? Object.entries(ability.statReq).map(([stat, val]) => `${val} ${stat}`).join(", ") : "None";
   createP(`Stat Requirements: ${statReqText}`).parent(modalDiv);
 
-  // Point Cost (for non-crystal abilities)
   let pointCostText = ability.pointCost ? ability.pointCost : "-";
   createP(`Point Cost: ${pointCostText}`).parent(modalDiv);
 
-  // Effect Dice
-  createP(`Effect Dice: ${ability.effect.dice || "-"}`).parent(modalDiv);
-
-  // Effect Description
-  createP(`Effect Description: ${ability.effect.description || "-"}`).parent(modalDiv);
-
-  // MP Cost (for crystal abilities)
-  let mpCostText = ability.effect.mpCost !== undefined ? ability.effect.mpCost : "-";
-  createP(`MP Cost: ${mpCostText}`).parent(modalDiv);
+  createP(`MP Cost: ${ability.effect.mpCost !== undefined ? ability.effect.mpCost : "-"}`).parent(modalDiv);
 
   createButton("Close")
     .parent(modalDiv)
@@ -7254,17 +7242,6 @@ function showCreateCustomAbilityModal() {
     .attribute("placeholder", "e.g., Cleave")
     .id("ability-name-input");
 
-  let descDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
-  createSpan("Description:").parent(descDiv).style("display", "block");
-  let descriptionInput = createElement("textarea")
-    .parent(descDiv)
-    .style("width", "100%")
-    .style("height", "60px")
-    .style("border", "1px solid #ccc")
-    .style("box-sizing", "border-box")
-    .attribute("placeholder", "Describe the ability...")
-    .id("ability-description-input");
-
   let categoryDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Weapon Category:").parent(categoryDiv).style("display", "block");
   let categorySelect = createSelect()
@@ -7331,7 +7308,6 @@ function showCreateCustomAbilityModal() {
     .attribute("placeholder", "e.g., Hits all enemies")
     .id("ability-effect-desc-input");
 
-  // Add MP Cost Field
   let mpCostDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("MP Cost:").parent(mpCostDiv).style("display", "block");
   let mpCostInput = createInput("0", "number")
@@ -7364,14 +7340,13 @@ function showCreateCustomAbilityModal() {
 
       let newAbility = {
         name: nameInput.value().trim(),
-        description: descriptionInput.value().trim(),
         ATGCost: parseInt(atgInput.value()) || 0,
         statReq: {},
         pointCost: parseInt(pointInput.value()) || 1,
         effect: {
           dice: effectDiceInput.value().trim(),
           description: effectDescInput.value().trim(),
-          mpCost: parseInt(mpCostInput.value()) || 0 // Include MP cost
+          mpCost: parseInt(mpCostInput.value()) || 0
         }
       };
 
@@ -7493,15 +7468,6 @@ function showModifyAbilitiesModal() {
     .attribute("placeholder", "e.g., Cleave")
     .id("ability-name-input");
 
-  let descDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
-  createSpan("Description:").parent(descDiv).style("display", "block");
-  let descriptionInput = createElement("textarea")
-    .parent(descDiv)
-    .style("width", "100%")
-    .style("height", "60px")
-    .attribute("placeholder", "Describe the ability...")
-    .id("ability-description-input");
-
   let statReqDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Stat Requirements (e.g., STR 10):").parent(statReqDiv).style("display", "block");
   let statReqInputs = {};
@@ -7548,7 +7514,6 @@ function showModifyAbilitiesModal() {
     .attribute("placeholder", "e.g., Hits all enemies")
     .id("ability-effect-desc-input");
 
-  // Add MP Cost Field
   let mpCostDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("MP Cost:").parent(mpCostDiv).style("display", "block");
   let mpCostInput = createInput("0", "number")
@@ -7587,20 +7552,18 @@ function showModifyAbilitiesModal() {
     let idx = parseInt(abilitySelect.value());
     if (idx === -1) {
       nameInput.value("");
-      descriptionInput.value("");
       for (let stat in statReqInputs) statReqInputs[stat].value("0");
       atgInput.value("0");
       pointInput.value("1");
       effectDiceInput.value("");
       effectDescInput.value("");
-      mpCostInput.value("0"); // Default MP cost
+      mpCostInput.value("0");
       return;
     }
 
     let selectedCategory = categorySelect.value();
     let ability = existingAbilities[selectedCategory][idx];
     nameInput.value(ability.name || "");
-    descriptionInput.value(ability.description || "");
     for (let stat in statReqInputs) {
       statReqInputs[stat].value(ability.statReq && ability.statReq[stat] ? ability.statReq[stat] : "0");
     }
@@ -7608,7 +7571,7 @@ function showModifyAbilitiesModal() {
     pointInput.value(ability.pointCost || 1);
     effectDiceInput.value(ability.effect.dice || "");
     effectDescInput.value(ability.effect.description || "");
-    mpCostInput.value(ability.effect.mpCost || "0"); // Load MP cost
+    mpCostInput.value(ability.effect.mpCost || "0");
   }
 
   categorySelect.changed(() => {
@@ -7650,14 +7613,13 @@ function showModifyAbilitiesModal() {
 
       let updatedAbility = {
         name: nameInput.value().trim(),
-        description: descriptionInput.value().trim(),
         ATGCost: parseInt(atgInput.value()) || 0,
         statReq: {},
         pointCost: parseInt(pointInput.value()) || 1,
         effect: {
           dice: effectDiceInput.value().trim(),
           description: effectDescInput.value().trim(),
-          mpCost: parseInt(mpCostInput.value()) || 0 // Include MP cost
+          mpCost: parseInt(mpCostInput.value()) || 0
         }
       };
 
