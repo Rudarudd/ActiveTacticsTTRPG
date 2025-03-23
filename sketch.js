@@ -56,7 +56,6 @@ let availableItems = {
     { name: "Rope", description: "100ft of rope.", category: "Materials", quantity: 1, quality: "Uncommon" },
   ],
   "Crystals": [
-    { name: "Green Crystal", description: "Casts Cure.", category: "Crystals", quantity: 1, quality: "Uncommon" },
     { name: "Fire Crystal", description: "Grants the ability to cast Fire.", category: "Crystals", statbonuses: { MAG: 2 }, abilities: ["Fire"], statRequirements: { MAG: 5 }, quantity: 1, quality: "Rare" },
     { name: "Heal Crystal", description: "Grants the ability to cast Cure.", category: "Crystals", statbonuses: { WIL: 1 }, abilities: ["Cure"], statRequirements: { WIL: 3 }, quantity: 1, quality: "Rare" }
   ],
@@ -167,6 +166,10 @@ let availableAbilities = {
   "Hybrid": [
     { name: "Gunblade Slash", ATGCost: 50, statReq: { STR: 8, DEX: 8 }, pointCost: 1, effect: { dice: "1d8", description: "Melee attack in Melee mode" } },
     { name: "Gunblade Shot", ATGCost: 50, statReq: { DEX: 10 }, pointCost: 1, effect: { dice: "1d6", description: "Ranged attack in Ranged mode" } }
+  ],
+  "Crystals": [
+    { name: "Fire", ATGCost: 25, statReq: { MAG: 5 }, effect: { dice: "2d6", description: "Elemental fire damage", mpCost: 5 } },
+    { name: "Cure", ATGCost: 25, statReq: { WIL: 3 }, effect: { dice: "1d8", description: "Heals the user", mpCost: 3 } }
   ]
 };
 // Create a pristine copy of the initial availableAbilities
@@ -184,7 +187,8 @@ const weaponCategories = [
   "Magical - Offensive",
   "Magical - Support",
   "Shields",
-  "Hybrid"
+  "Hybrid",
+  "Crystals"
 ];
 
 // Resource Tab Setup
@@ -3377,7 +3381,7 @@ function showModifyCrystalsModal() {
     .style("justify-content", "space-between")
     .style("gap", "5px");
 
-  createElement("h3", "Manage Crystals").parent(contentWrapper);
+  createElement("h3", "Modify Crystals").parent(contentWrapper);
 
   let successMessage = createP("")
     .parent(contentWrapper)
@@ -3391,10 +3395,16 @@ function showModifyCrystalsModal() {
     .style("display", "none")
     .style("margin-bottom", "10px");
 
+  // Fields
   let crystalSelectDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Crystal:").parent(crystalSelectDiv).style("display", "block");
-  let crystalSelect = createSelect().parent(crystalSelectDiv).style("width", "100%");
-  createSpan("Select a crystal to edit or 'Add New' to create one.")
+  let crystalSelect = createSelect()
+    .parent(crystalSelectDiv)
+    .style("width", "100%")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .id("crystal-select");
+  createSpan("Select a crystal to edit or choose 'Add New' to create one.")
     .parent(crystalSelectDiv)
     .style("font-size", "12px")
     .style("color", "#666")
@@ -3405,102 +3415,206 @@ function showModifyCrystalsModal() {
   let nameInput = createInput("")
     .parent(nameDiv)
     .style("width", "100%")
-    .attribute("placeholder", "e.g., Fire Crystal");
-  createSpan("The crystal’s unique identifier.").parent(nameDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .attribute("placeholder", "e.g., Fire Crystal")
+    .id("crystal-name-input");
+  createSpan("The crystal’s unique identifier.")
+    .parent(nameDiv)
+    .style("font-size", "12px")
+    .style("color", "#666")
+    .style("display", "block");
 
   let descDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Description:").parent(descDiv).style("display", "block");
-  let descInput = createElement("textarea")
+  let descriptionInput = createElement("textarea")
     .parent(descDiv)
     .style("width", "100%")
     .style("height", "60px")
-    .attribute("placeholder", "Describe the crystal...");
-  createSpan("What the crystal does or its lore.").parent(descDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .attribute("placeholder", "Describe the crystal...")
+    .id("crystal-description-input");
+  createSpan("What the crystal does or its lore.")
+    .parent(descDiv)
+    .style("font-size", "12px")
+    .style("color", "#666")
+    .style("display", "block");
 
   let statbonusDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Stat Bonus:").parent(statbonusDiv).style("display", "inline-block").style("width", "100px");
-  let statSelect = createSelect().parent(statbonusDiv).style("width", "80px").style("margin-right", "5px");
+  let statSelect = createSelect()
+    .parent(statbonusDiv)
+    .style("width", "80px")
+    .style("margin-right", "5px")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .id("stat-bonus-select");
   ["None", "STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statSelect.option(stat));
-  let amountInput = createInput("0", "number").parent(statbonusDiv).style("width", "50px");
-  createSpan("Stat to boost (e.g., MAG) and amount.").parent(statbonusDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
+  let amountInput = createInput("0", "number")
+    .parent(statbonusDiv)
+    .style("width", "50px")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .id("stat-bonus-amount");
+  createSpan("Stat to boost (e.g., MAG) and amount.")
+    .parent(statbonusDiv)
+    .style("font-size", "12px")
+    .style("color", "#666")
+    .style("display", "block");
 
   let statReqDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
   createSpan("Stat Requirement:").parent(statReqDiv).style("display", "inline-block").style("width", "100px");
-  let statReqSelect = createSelect().parent(statReqDiv).style("width", "80px").style("margin-right", "5px");
+  let statReqSelect = createSelect()
+    .parent(statReqDiv)
+    .style("width", "80px")
+    .style("margin-right", "5px")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .id("stat-req-select");
   ["None", "STR", "VIT", "DEX", "MAG", "WIL", "SPR", "LCK"].forEach(stat => statReqSelect.option(stat));
-  let statReqInput = createInput("0", "number").parent(statReqDiv).style("width", "50px");
-  createSpan("Minimum stat needed to equip (e.g., 5 MAG).").parent(statReqDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
+  let statReqInput = createInput("0", "number")
+    .parent(statReqDiv)
+    .style("width", "50px")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .id("stat-req-amount");
+  createSpan("Minimum stat needed to equip (e.g., 5 MAG).")
+    .parent(statReqDiv)
+    .style("font-size", "12px")
+    .style("color", "#666")
+    .style("display", "block");
 
-  let abilitiesDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
-  createSpan("Abilities:").parent(abilitiesDiv).style("display", "inline-block").style("width", "100px");
-  let abilitiesInput = createInput("")
-    .parent(abilitiesDiv)
-    .style("width", "180px")
-    .attribute("placeholder", "e.g., Fire, Cure");
-  createSpan("Skills granted (comma-separated).").parent(abilitiesDiv).style("font-size", "12px").style("color", "#666").style("display", "block");
+  let abilityDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Ability:").parent(abilityDiv).style("display", "block");
+  let abilitySelect = createSelect()
+    .parent(abilityDiv)
+    .style("width", "100%")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .id("crystal-ability-select");
+  createSpan("The ability granted by this crystal.")
+    .parent(abilityDiv)
+    .style("font-size", "12px")
+    .style("color", "#666")
+    .style("display", "block");
 
+  // Populate the crystal dropdown
   function updateCrystalOptions() {
-    let crystalsFromInventory = inventory.filter(item => item.category === "Crystals");
-    let crystalsFromAvailable = (availableItems["Crystals"] || []).filter(item => 
-      !crystalsFromInventory.some(invItem => invItem.name === item.name)
+    let prevValue = crystalSelect.value();
+    let filteredInventory = inventory.filter(item => item.category === "Crystals");
+    let filteredAvailable = (availableItems["Crystals"] || []).filter(item =>
+      !filteredInventory.some(i => i.name === item.name)
     );
+
     crystalSelect.html("");
     crystalSelect.option("Add New", -1);
-    crystalsFromInventory.forEach((crystal, idx) => crystalSelect.option(`[Inventory] ${crystal.name}`, idx));
-    crystalsFromAvailable.forEach((crystal, idx) => crystalSelect.option(`[Available] ${crystal.name}`, crystalsFromInventory.length + idx));
-  }
 
-  function loadCrystalData() {
-    let idx = parseInt(crystalSelect.value());
-    let crystalsFromInventory = inventory.filter(item => item.category === "Crystals");
-    let crystalsFromAvailable = (availableItems["Crystals"] || []).filter(item => 
-      !crystalsFromInventory.some(invItem => invItem.name === item.name)
-    );
+    filteredInventory.forEach((item, idx) => {
+      crystalSelect.option(`[Inventory] ${item.name}`, idx);
+    });
+    filteredAvailable.forEach((item, idx) => {
+      crystalSelect.option(`[Available] ${item.name}`, filteredInventory.length + idx);
+    });
 
-    if (idx === -1) {
-      nameInput.value("");
-      descInput.value("");
-      statSelect.value("None");
-      amountInput.value(0);
-      statReqSelect.value("None");
-      statReqInput.value(0);
-      abilitiesInput.value("");
-    } else if (idx < crystalsFromInventory.length) {
-      let crystal = crystalsFromInventory[idx];
-      nameInput.value(crystal.name || "");
-      descInput.value(crystal.description || "");
-      let statbonuses = crystal.statbonuses || {};
-      let stat = Object.keys(statbonuses).length > 0 ? Object.keys(statbonuses)[0] : "None";
-      statSelect.value(stat);
-      amountInput.value(stat !== "None" && statbonuses[stat] ? statbonuses[stat] : 0);
-      let statReqs = crystal.statRequirements || {};
-      let reqStat = Object.keys(statReqs).length > 0 ? Object.keys(statReqs)[0] : "None";
-      statReqSelect.value(reqStat);
-      statReqInput.value(reqStat !== "None" && statReqs[reqStat] ? statReqs[reqStat] : 0);
-      abilitiesInput.value(crystal.abilities && Array.isArray(crystal.abilities) ? crystal.abilities.join(", ") : "");
+    if (prevValue !== null && crystalSelect.elt.querySelector(`option[value="${prevValue}"]`)) {
+      crystalSelect.value(prevValue);
     } else {
-      let availableIdx = idx - crystalsFromInventory.length;
-      if (availableIdx >= 0 && availableIdx < crystalsFromAvailable.length) {
-        let crystal = crystalsFromAvailable[availableIdx];
-        nameInput.value(crystal.name || "");
-        descInput.value(crystal.description || "");
-        let statbonuses = crystal.statbonuses || {};
-        let stat = Object.keys(statbonuses).length > 0 ? Object.keys(statbonuses)[0] : "None";
-        statSelect.value(stat);
-        amountInput.value(stat !== "None" && statbonuses[stat] ? statbonuses[stat] : 0);
-        let statReqs = crystal.statRequirements || {};
-        let reqStat = Object.keys(statReqs).length > 0 ? Object.keys(statReqs)[0] : "None";
-        statReqSelect.value(reqStat);
-        statReqInput.value(reqStat !== "None" && statReqs[reqStat] ? statReqs[reqStat] : 0);
-        abilitiesInput.value(crystal.abilities && Array.isArray(crystal.abilities) ? crystal.abilities.join(", ") : "");
-      }
+      crystalSelect.value(-1);
     }
   }
 
+  // Populate the ability dropdown
+  function updateAbilityOptions() {
+    abilitySelect.html("");
+    abilitySelect.option("None", "");
+    const crystalAbilities = existingAbilities["Crystals"] || [];
+    crystalAbilities.forEach(ability => {
+      abilitySelect.option(ability.name, ability.name);
+    });
+  }
+
+  // Load from selected crystal
+  function loadCrystalData() {
+    let idx = parseInt(crystalSelect.value());
+    if (idx === -1) {
+      nameInput.value("");
+      descriptionInput.value("");
+      statSelect.value("None");
+      amountInput.value("0");
+      statReqSelect.value("None");
+      statReqInput.value("0");
+      abilitySelect.value("");
+      return;
+    }
+
+    let filteredInventory = inventory.filter(item => item.category === "Crystals");
+    let filteredAvailable = (availableItems["Crystals"] || []).filter(item =>
+      !filteredInventory.some(i => i.name === item.name)
+    );
+
+    let item;
+    if (idx < filteredInventory.length) {
+      item = filteredInventory[idx];
+    } else {
+      let availableIdx = idx - filteredInventory.length;
+      if (availableIdx >= 0 && availableIdx < filteredAvailable.length) {
+        item = filteredAvailable[availableIdx];
+      } else {
+        console.log("Invalid index:", idx);
+        return;
+      }
+    }
+
+    nameInput.value(item.name || "");
+    descriptionInput.value(item.description || "");
+    let statbonuses = item.statbonuses || {};
+    let stat = Object.keys(statbonuses).length > 0 ? Object.keys(statbonuses)[0] : "None";
+    statSelect.value(stat);
+    amountInput.value(stat !== "None" && statbonuses[stat] ? statbonuses[stat] : "0");
+    let statReqs = item.statRequirements || {};
+    let reqStat = Object.keys(statReqs).length > 0 ? Object.keys(statReqs)[0] : "None";
+    statReqSelect.value(reqStat);
+    statReqInput.value(reqStat !== "None" && statReqs[reqStat] ? statReqs[reqStat] : "0");
+    abilitySelect.value(item.abilities && item.abilities.length > 0 ? item.abilities[0] : "");
+  }
+
+  // Event Listeners
+  crystalSelect.changed(() => {
+    updateCrystalOptions();
+    loop();
+    redraw();
+    noLoop();
+    setTimeout(loadCrystalData, 0);
+  });
   crystalSelect.changed(loadCrystalData);
   updateCrystalOptions();
+  updateAbilityOptions();
 
-  // ADD => Add to inventory and master list
+  // Helper: Build crystal object from form
+  function buildCrystalObject() {
+    let newName = nameInput.value().trim();
+    let existingItem = inventory.find(i => i.name === newName && i.category === "Crystals");
+    let preservedQuantity = existingItem ? (existingItem.quantity || 1) : 1;
+
+    let stat = statSelect.value();
+    let amount = parseInt(amountInput.value()) || 0;
+    let reqStat = statReqSelect.value();
+    let reqAmount = parseInt(statReqInput.value()) || 0;
+
+    return {
+      name: newName,
+      description: descriptionInput.value(),
+      category: "Crystals",
+      statbonuses: stat !== "None" ? { [stat]: amount } : {},
+      statRequirements: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
+      abilities: abilitySelect.value() ? [abilitySelect.value()] : [],
+      quantity: preservedQuantity,
+      quality: "Common"
+    };
+  }
+
+  // ADD => Add to inventory and update master list with form data
   createButton("Add")
     .parent(buttonContainer)
     .style("margin", "5px")
@@ -3511,94 +3625,95 @@ function showModifyCrystalsModal() {
     .style("border-radius", "3px")
     .style("cursor", "pointer")
     .mousePressed(() => {
-      let idx = parseInt(crystalSelect.value());
-      let crystalsFromInventory = inventory.filter(item => item.category === "Crystals");
-      let crystalsFromAvailable = (availableItems["Crystals"] || []).filter(item => 
-        !crystalsFromInventory.some(invItem => invItem.name === item.name)
-      );
+      successMessage.html("");
+      successMessage.style("display", "none");
+      errorMessage.html("");
+      errorMessage.style("display", "none");
 
-      if (idx === -1) {
-        let name = nameInput.value().trim();
-        let desc = descInput.value().trim();
-        let stat = statSelect.value();
-        let amount = parseInt(amountInput.value()) || 0;
-        let reqStat = statReqSelect.value();
-        let reqAmount = parseInt(statReqInput.value()) || 0;
-        let abilities = abilitiesInput.value().split(",").map(a => a.trim()).filter(a => a);
-
-        if (!name || !desc) {
-          errorMessage.html("Please provide a name and description.");
-          errorMessage.style("display", "block");
-          successMessage.style("display", "none");
-          return;
-        }
-
-        if (inventory.some(item => item.name === name && item.category === "Crystals")) {
-          errorMessage.html(`A crystal with the name "${name}" already exists in inventory.`);
-          errorMessage.style("display", "block");
-          successMessage.style("display", "none");
-          return;
-        }
-
-        if (availableItems["Crystals"] && availableItems["Crystals"].some(item => item.name === name)) {
-          errorMessage.html(`A crystal with the name "${name}" already exists in available items.`);
-          errorMessage.style("display", "block");
-          successMessage.style("display", "none");
-          return;
-        }
-
-        let crystal = {
-          name,
-          description: desc,
-          category: "Crystals",
-          statbonuses: stat !== "None" ? { [stat]: amount } : {},
-          statRequirements: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
-          abilities: abilities.length > 0 ? abilities : [],
-          quantity: 1,
-          quality: "Common"
-        };
-
-        inventory.push(crystal);
-        // Add to availableItems to preserve it after deletion
-        if (!availableItems["Crystals"]) {
-          availableItems["Crystals"] = [];
-        }
-        availableItems["Crystals"].push({ ...crystal });
-        console.log("Added crystal to availableItems['Crystals']:", availableItems["Crystals"]);
-      } else if (idx >= crystalsFromInventory.length) {
-        let availableIdx = idx - crystalsFromInventory.length;
-        if (availableIdx < 0 || availableIdx >= crystalsFromAvailable.length) {
-          errorMessage.html("Invalid available crystal selected.");
-          errorMessage.style("display", "block");
-          successMessage.style("display", "none");
-          return;
-        }
-        let crystal = crystalsFromAvailable[availableIdx];
-        if (inventory.some(item => item.name === crystal.name && item.category === "Crystals")) {
-          errorMessage.html(`Crystal "${crystal.name}" already exists in inventory. Use Save to update it.`);
-          errorMessage.style("display", "block");
-          successMessage.style("display", "none");
-          return;
-        }
-        inventory.push({ ...crystal, quantity: 1 });
-      } else {
-        errorMessage.html("Please select 'Add New' to add a new crystal or an available crystal.");
+      let crystalObj = buildCrystalObject();
+      if (!crystalObj.name) {
+        errorMessage.html("Please provide a name for the crystal.");
         errorMessage.style("display", "block");
-        successMessage.style("display", "none");
+        contentWrapper.elt.scrollTop = 0;
         return;
       }
 
-      localStorage.setItem('inventory', JSON.stringify(inventory));
-      updateAvailableEquipment();
-      createEquipmentUI();
-      if (typeof createInventoryUI === "function") createInventoryUI();
-      successMessage.html("Crystal Added to Inventory");
-      successMessage.style("display", "block");
-      errorMessage.style("display", "none");
-      crystalSelect.value("-1");
-      updateCrystalOptions();
-      loadCrystalData();
-      contentWrapper.elt.scrollTop = 0;
+      let idx = parseInt(crystalSelect.value());
+      let filteredInventory = inventory.filter(item => item.category === "Crystals");
+      let filteredAvailable = (availableItems["Crystals"] || []).filter(item =>
+        !filteredInventory.some(i => i.name === item.name)
+      );
+
+      if (idx >= filteredInventory.length && idx < filteredInventory.length + filteredAvailable.length) {
+        let availIdx = idx - filteredInventory.length;
+        if (availIdx >= 0 && availIdx < filteredAvailable.length) {
+          let selectedItem = filteredAvailable[availIdx];
+          if (inventory.some(i => i.name === crystalObj.name && i.category === "Crystals")) {
+            errorMessage.html(`This crystal is already in your inventory. Use 'Save' to update it.`);
+            errorMessage.style("display", "block");
+            contentWrapper.elt.scrollTop = 0;
+            return;
+          }
+          let masterIdx = availableItems["Crystals"].findIndex(e => e.name === selectedItem.name);
+          if (masterIdx !== -1) {
+            availableItems["Crystals"][masterIdx] = crystalObj;
+          } else {
+            availableItems["Crystals"].push(crystalObj);
+          }
+          inventory.push(crystalObj);
+          localStorage.setItem('inventory', JSON.stringify(inventory));
+          updateAvailableEquipment();
+          updateAbilities();
+          createInventoryUI();
+          createEquipmentUI();
+          successMessage.html("Crystal Added to Inventory");
+          successMessage.style("display", "block");
+          contentWrapper.elt.scrollTop = 0;
+          let newFilteredInventory = inventory.filter(item => item.category === "Crystals");
+          let newFilteredIdx = newFilteredInventory.findIndex(i => i.name === crystalObj.name);
+          if (newFilteredIdx !== -1) {
+            crystalSelect.value(newFilteredIdx.toString());
+          }
+        } else {
+          errorMessage.html("Invalid crystal selection.");
+          errorMessage.style("display", "block");
+          contentWrapper.elt.scrollTop = 0;
+        }
+      } else if (idx === -1) {
+        if (inventory.some(i => i.name === crystalObj.name && i.category === "Crystals")) {
+          errorMessage.html(`A crystal with the name "${crystalObj.name}" already exists in your inventory.`);
+          errorMessage.style("display", "block");
+          contentWrapper.elt.scrollTop = 0;
+          return;
+        }
+        let duplicateInMaster = availableItems["Crystals"]?.findIndex(e => e.name === crystalObj.name);
+        if (duplicateInMaster !== undefined && duplicateInMaster !== -1) {
+          errorMessage.html(`A crystal with the name "${crystalObj.name}" already exists in the master list.`);
+          errorMessage.style("display", "block");
+          contentWrapper.elt.scrollTop = 0;
+          return;
+        }
+        inventory.push(crystalObj);
+        if (!availableItems["Crystals"]) availableItems["Crystals"] = [];
+        availableItems["Crystals"].push({ ...crystalObj });
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+        updateAvailableEquipment();
+        updateAbilities();
+        createInventoryUI();
+        createEquipmentUI();
+        successMessage.html("Crystal Added to Inventory");
+        successMessage.style("display", "block");
+        contentWrapper.elt.scrollTop = 0;
+        let newFilteredInventory = inventory.filter(item => item.category === "Crystals");
+        let newFilteredIdx = newFilteredInventory.findIndex(i => i.name === crystalObj.name);
+        if (newFilteredIdx !== -1) {
+          crystalSelect.value(newFilteredIdx.toString());
+        }
+      } else {
+        errorMessage.html("Please select an available crystal or 'Add New' to add.");
+        errorMessage.style("display", "block");
+        contentWrapper.elt.scrollTop = 0;
+      }
     });
 
   // SAVE => Update master list and inventory
@@ -3612,111 +3727,77 @@ function showModifyCrystalsModal() {
     .style("border-radius", "3px")
     .style("cursor", "pointer")
     .mousePressed(() => {
-      let idx = parseInt(crystalSelect.value());
-      if (idx === -1) {
-        errorMessage.html("Please select a crystal to edit.");
+      successMessage.html("");
+      successMessage.style("display", "none");
+      errorMessage.html("");
+      errorMessage.style("display", "none");
+
+      let crystalObj = buildCrystalObject();
+      if (!crystalObj.name) {
+        errorMessage.html("Please provide a name for the crystal.");
         errorMessage.style("display", "block");
-        successMessage.style("display", "none");
+        contentWrapper.elt.scrollTop = 0;
         return;
       }
 
-      let crystalsFromInventory = inventory.filter(item => item.category === "Crystals");
-      let crystalsFromAvailable = (availableItems["Crystals"] || []).filter(item => 
-        !crystalsFromInventory.some(invItem => invItem.name === item.name)
+      let idx = parseInt(crystalSelect.value());
+      let filteredInventory = inventory.filter(item => item.category === "Crystals");
+      let filteredAvailable = (availableItems["Crystals"] || []).filter(item =>
+        !filteredInventory.some(i => i.name === item.name)
       );
 
-      let crystal, originalName, inventoryIdx, availableItemIdx = -1;
-      let isFromAvailableItems = false;
+      let originalName = idx === -1 ? null : (idx < filteredInventory.length ? filteredInventory[idx].name : filteredAvailable[idx - filteredInventory.length].name);
 
-      if (idx < crystalsFromInventory.length) {
-        crystal = crystalsFromInventory[idx];
-        originalName = crystal.name;
-        inventoryIdx = inventory.indexOf(crystal);
+      let duplicateIdx = (availableItems["Crystals"] || []).findIndex(e => e.name === crystalObj.name);
+      if (duplicateIdx !== -1 && (originalName === null || originalName !== crystalObj.name)) {
+        errorMessage.html(`A crystal with the name "${crystalObj.name}" already exists in the master list.`);
+        errorMessage.style("display", "block");
+        contentWrapper.elt.scrollTop = 0;
+        return;
+      }
+
+      // Update the master list
+      if (idx === -1) {
+        if (!availableItems["Crystals"]) availableItems["Crystals"] = [];
+        availableItems["Crystals"].push(crystalObj);
       } else {
-        let availableIdx = idx - crystalsFromInventory.length;
-        if (availableIdx < 0 || availableIdx >= crystalsFromAvailable.length) {
-          errorMessage.html("Invalid crystal selected.");
-          errorMessage.style("display", "block");
-          successMessage.style("display", "none");
-          return;
-        }
-        crystal = crystalsFromAvailable[availableIdx];
-        originalName = crystal.name;
-        inventoryIdx = inventory.findIndex(i => i.name === crystal.name && i.category === "Crystals");
-        isFromAvailableItems = true;
-        availableItemIdx = availableItems["Crystals"].findIndex(i => i.name === originalName);
-      }
-
-      let newName = nameInput.value().trim();
-      let newDesc = descInput.value().trim();
-      let stat = statSelect.value();
-      let amount = parseInt(amountInput.value()) || 0;
-      let reqStat = statReqSelect.value();
-      let reqAmount = parseInt(statReqInput.value()) || 0;
-      let abilities = abilitiesInput.value().split(",").map(a => a.trim()).filter(a => a);
-
-      if (!newName || !newDesc) {
-        errorMessage.html("Please provide a name and description.");
-        errorMessage.style("display", "block");
-        successMessage.style("display", "none");
-        return;
-      }
-
-      if (newName !== crystal.name && inventory.some(item => item.name === newName && item.category === "Crystals" && item !== crystal)) {
-        errorMessage.html(`A crystal with the name "${newName}" already exists in inventory.`);
-        errorMessage.style("display", "block");
-        successMessage.style("display", "none");
-        return;
-      }
-
-      if (newName !== crystal.name && availableItems["Crystals"] && availableItems["Crystals"].some(item => item.name === newName && item !== crystal)) {
-        errorMessage.html(`A crystal with the name "${newName}" already exists in available items.`);
-        errorMessage.style("display", "block");
-        successMessage.style("display", "none");
-        return;
-      }
-
-      let updatedCrystal = {
-        name: newName,
-        description: newDesc,
-        category: "Crystals",
-        statbonuses: stat !== "None" ? { [stat]: amount } : {},
-        statRequirements: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
-        abilities: abilities.length > 0 ? abilities : [],
-        quantity: crystal.quantity || 1,
-        quality: crystal.quality || "Common"
-      };
-
-      if (isFromAvailableItems && availableItemIdx !== -1) {
-        availableItems["Crystals"][availableItemIdx] = updatedCrystal;
-        if (inventoryIdx !== -1) inventory.splice(inventoryIdx, 1); // Remove duplicate if it exists
-      } else {
-        inventory[inventoryIdx] = updatedCrystal;
-        if (originalName && availableItems["Crystals"]) {
-          let availableIdx = availableItems["Crystals"].findIndex(i => i.name === originalName);
-          if (availableIdx !== -1) availableItems["Crystals"][availableIdx] = { ...updatedCrystal };
-        }
-        for (let slot in equippedItems) {
-          let item = equippedItems[slot];
-          if (item && item.equippedCrystals) {
-            item.equippedCrystals = item.equippedCrystals.map(c => (c && c.name === crystal.name ? updatedCrystal : c));
+        let item;
+        if (idx < filteredInventory.length) {
+          item = filteredInventory[idx];
+        } else {
+          let availIdx = idx - filteredInventory.length;
+          if (availIdx >= 0 && availIdx < filteredAvailable.length) {
+            item = filteredAvailable[availIdx];
+          } else {
+            errorMessage.html("Invalid crystal selection.");
+            errorMessage.style("display", "block");
+            contentWrapper.elt.scrollTop = 0;
+            return;
           }
         }
+        let masterIdx = (availableItems["Crystals"] || []).findIndex(e => e.name === item.name);
+        if (masterIdx !== -1) {
+          availableItems["Crystals"][masterIdx] = crystalObj;
+        } else {
+          if (!availableItems["Crystals"]) availableItems["Crystals"] = [];
+          availableItems["Crystals"].push(crystalObj);
+        }
+
+        // Update existing crystals in inventory with the same name
+        inventory.forEach((invItem, invIdx) => {
+          if (invItem.name === originalName && invItem.category === "Crystals") {
+            inventory[invIdx] = { ...crystalObj, quantity: invItem.quantity || 1 };
+          }
+        });
       }
 
       localStorage.setItem('inventory', JSON.stringify(inventory));
-      updatestatbonusesDisplay();
-      updateResourcesBasedOnStats();
+      updateAvailableEquipment();
       updateAbilities();
+      createInventoryUI();
       createEquipmentUI();
-      if (typeof createInventoryUI === "function") createInventoryUI();
-
-      successMessage.html("Crystal Updated");
+      successMessage.html("Crystal Updated in Master List and Inventory");
       successMessage.style("display", "block");
-      errorMessage.style("display", "none");
-      crystalSelect.value("-1");
-      updateCrystalOptions();
-      loadCrystalData();
       contentWrapper.elt.scrollTop = 0;
     });
 
@@ -3731,66 +3812,58 @@ function showModifyCrystalsModal() {
     .style("border-radius", "3px")
     .style("cursor", "pointer")
     .mousePressed(() => {
+      successMessage.html("");
+      successMessage.style("display", "none");
+      errorMessage.html("");
+      errorMessage.style("display", "none");
+
       let idx = parseInt(crystalSelect.value());
       if (idx === -1) {
         errorMessage.html("Please select a crystal to remove.");
         errorMessage.style("display", "block");
-        successMessage.style("display", "none");
+        contentWrapper.elt.scrollTop = 0;
         return;
       }
 
-      let crystalsFromInventory = inventory.filter(item => item.category === "Crystals");
-      let crystalsFromAvailable = (availableItems["Crystals"] || []).filter(item => 
-        !crystalsFromInventory.some(invItem => invItem.name === item.name)
+      let filteredInventory = inventory.filter(item => item.category === "Crystals");
+      let filteredAvailable = (availableItems["Crystals"] || []).filter(item =>
+        !filteredInventory.some(i => i.name === item.name)
       );
 
-      let crystal;
-      let isInInventory = idx < crystalsFromInventory.length;
+      let item;
+      let isInInventory = idx < filteredInventory.length;
       if (isInInventory) {
-        // Crystal is in inventory
-        crystal = crystalsFromInventory[idx];
+        item = filteredInventory[idx];
       } else {
-        // Crystal is in availableItems["Crystals"]
-        let availableIdx = idx - crystalsFromInventory.length;
-        if (availableIdx < 0 || availableIdx >= crystalsFromAvailable.length) {
-          errorMessage.html("Invalid crystal selected.");
+        let availableIdx = idx - filteredInventory.length;
+        if (availableIdx >= 0 && availableIdx < filteredAvailable.length) {
+          item = filteredAvailable[availableIdx];
+        } else {
+          errorMessage.html("Invalid crystal selected for removal.");
           errorMessage.style("display", "block");
-          successMessage.style("display", "none");
+          contentWrapper.elt.scrollTop = 0;
           return;
         }
-        crystal = crystalsFromAvailable[availableIdx];
       }
 
       showConfirmationModal(
-        `Remove the crystal from the master list? "${crystal.name}"`,
+        `Remove the crystal from the master list? "${item.name}"`,
         () => {
-          // Unequip from all slots in equippedItems
-          for (let slot in equippedItems) {
-            let item = equippedItems[slot];
-            if (item && item.equippedCrystals) {
-              item.equippedCrystals = item.equippedCrystals.map(c => (c && c.name === crystal.name ? null : c));
-            }
-          }
-
-          // Remove from inventory if it exists there
           if (isInInventory) {
-            inventory.splice(inventory.indexOf(crystal), 1);
+            inventory.splice(inventory.indexOf(item), 1);
           }
 
-          // Remove from availableItems["Crystals"]
           if (availableItems["Crystals"]) {
             availableItems["Crystals"] = availableItems["Crystals"].filter(
-              i => i.name !== crystal.name
+              i => i.name !== item.name
             );
-            console.log(`After removal, availableItems["Crystals"]:`, availableItems["Crystals"]);
           }
 
           localStorage.setItem('inventory', JSON.stringify(inventory));
-          updatestatbonusesDisplay();
-          updateResourcesBasedOnStats();
+          updateAvailableEquipment();
           updateAbilities();
+          createInventoryUI();
           createEquipmentUI();
-          if (typeof createInventoryUI === "function") createInventoryUI();
           modalDiv.remove();
         }
       );
@@ -5444,21 +5517,15 @@ function createInventoryUI() {
     .mousePressed(() => {
       showConfirmationModal("Are you sure you want to restore the default equipment list? This will reset the master list and unequip all items.", () => {
         console.log("Restoring default equipment list");
-        // Clear equipped items
         for (let slot in equippedItems) {
           equippedItems[slot] = null;
         }
-
-        // Restore the master list to the pristine default
         availableItems["Equipment"] = JSON.parse(JSON.stringify(pristineAvailableItems["Equipment"]));
-
-        // Add default equipment to inventory (if not already present)
         availableItems["Equipment"].forEach(item => {
           if (!inventory.some(i => i.name === item.name && i.category === "Equipment")) {
             inventory.push({ ...item, quantity: 1 });
           }
         });
-
         console.log("Restored default equipment list:", availableItems["Equipment"]);
         localStorage.setItem('inventory', JSON.stringify(inventory));
         updateAvailableEquipment();
@@ -5472,17 +5539,14 @@ function createInventoryUI() {
     .mousePressed(() => {
       showConfirmationModal("Are you sure you want to restore the default items list? This will reset the master list.", () => {
         console.log("Restoring default items list");
-        // Restore the master list to the pristine default for each item category
         ["Consumables", "Materials", "Crystals", "Quest Items", "Miscellaneous"].forEach(cat => {
           availableItems[cat] = JSON.parse(JSON.stringify(pristineAvailableItems[cat] || []));
-          // Add default items to inventory (if not already present)
           availableItems[cat].forEach(item => {
             if (!inventory.some(i => i.name === item.name && i.category === cat)) {
               inventory.push({ ...item, quantity: 1 });
             }
           });
         });
-
         console.log("Restored default items list:", {
           Consumables: availableItems["Consumables"],
           Materials: availableItems["Materials"],
@@ -5510,26 +5574,28 @@ function createInventoryUI() {
 
   inventoryCategories.forEach(category => {
     let items = itemsByCategory[category];
-    let categoryDiv = createDiv().parent(categoryContainer).style("margin-bottom", "10px");
+    let categoryDiv = createDiv().parent(categoryContainer).class("expandable-section").style("margin-bottom", "10px");
     let categoryHeader = createElement("h3", `${category} (${items.length})`)
-      .parent(categoryDiv)
-      .style("cursor", "pointer")
-      .style("margin", "0")
-      .style("background", "#f2f2f2")
-      .style("padding", "5px");
+      .parent(categoryDiv);
 
-    let contentDiv = createDiv().parent(categoryDiv);
-    contentDiv.style("display", categoryStates[category] ? "block" : "none");
+    let contentDiv = createDiv().parent(categoryDiv).class("content");
+    // Restore the previous state (expanded or collapsed)
+    if (categoryStates[category]) {
+      categoryHeader.addClass("expanded");
+      contentDiv.addClass("expanded");
+    }
 
-    // Toggle visibility and class for arrow indicator
+    // Toggle collapse/expand on click
     categoryHeader.mousePressed(() => {
-      const isVisible = contentDiv.style("display") === "block";
-      categoryStates[category] = !isVisible;
-      contentDiv.style("display", isVisible ? "none" : "block");
-      if (isVisible) {
-        categoryHeader.elt.classList.remove("expanded");
+      let isExpanded = categoryHeader.hasClass("expanded");
+      if (isExpanded) {
+        categoryHeader.removeClass("expanded");
+        contentDiv.removeClass("expanded");
+        categoryStates[category] = false;
       } else {
-        categoryHeader.elt.classList.add("expanded");
+        categoryHeader.addClass("expanded");
+        contentDiv.addClass("expanded");
+        categoryStates[category] = true;
       }
     });
 
@@ -5542,16 +5608,42 @@ function createInventoryUI() {
       });
 
       if (Object.keys(equipmentByType).length === 0) {
-        createP("No equipment items in this category.").parent(contentDiv).style("color", "#666").style("padding", "5px");
+        createP("No equipment items in this category.")
+          .parent(contentDiv)
+          .style("color", "#666")
+          .style("padding", "5px");
       } else {
         Object.keys(equipmentByType).sort().forEach(type => {
           let typeItems = equipmentByType[type];
-          let typeDiv = createDiv().parent(contentDiv).style("margin-left", "10px").style("margin-bottom", "5px");
-          createElement("h4", `${type} (${typeItems.length})`)
-            .parent(typeDiv)
-            .style("margin", "5px 0");
+          // Create a collapsible subsection for each type
+          let typeDiv = createDiv().parent(contentDiv).class("expandable-section").style("margin-left", "10px").style("margin-bottom", "5px");
+          let typeHeader = createElement("h4", `${type} (${typeItems.length})`)
+            .parent(typeDiv);
 
-          let table = createElement("table").parent(typeDiv).class("rules-table");
+          let typeContentDiv = createDiv().parent(typeDiv).class("content");
+
+          // Restore the previous state for the subsection
+          let typeStateKey = `${category}-${type}`;
+          if (categoryStates[typeStateKey]) {
+            typeHeader.addClass("expanded");
+            typeContentDiv.addClass("expanded");
+          }
+
+          // Toggle collapse/expand on click for the subsection
+          typeHeader.mousePressed(() => {
+            let isExpanded = typeHeader.hasClass("expanded");
+            if (isExpanded) {
+              typeHeader.removeClass("expanded");
+              typeContentDiv.removeClass("expanded");
+              categoryStates[typeStateKey] = false;
+            } else {
+              typeHeader.addClass("expanded");
+              typeContentDiv.addClass("expanded");
+              categoryStates[typeStateKey] = true;
+            }
+          });
+
+          let table = createElement("table").parent(typeContentDiv).class("rules-table");
           let header = createElement("tr").parent(table);
           createElement("th", "Item Name").parent(header).style("width", "20%");
           createElement("th", "Description").parent(header).style("width", "30%");
@@ -5599,32 +5691,25 @@ function createInventoryUI() {
               .mousePressed(() => {
                 let inventoryIdx = inventory.findIndex(i => i.name === item.name && i.category === item.category);
                 if (inventoryIdx !== -1) {
-                  // Check if the item is a Crystal and is equipped
-                  if (item.category === "Crystals") {
-                    let isEquipped = Object.values(equippedItems).some(equipped => 
-                      equipped && equipped.equippedCrystals && equipped.equippedCrystals.some(c => c && c.name === item.name)
-                    );
-                    if (isEquipped) {
-                      showConfirmationModal(`${item.name} is currently equipped as a crystal. Unequip it before deleting.`, () => {}, true);
-                      return;
-                    }
-                  }
-
-                  // Proceed with deletion confirmation
-                  showConfirmationModal(
-                    `Are you sure you want to delete ${item.name}?`,
-                    () => {
-                      inventory.splice(inventoryIdx, 1);
-                      localStorage.setItem('inventory', JSON.stringify(inventory));
-                      updateAvailableEquipment();
-                      createInventoryUI();
-                      createEquipmentUI();
-                      // If the Modify Equipment modal is open, refresh its dropdown
-                      if (modalDiv && modalDiv.elt && document.body.contains(modalDiv.elt)) {
-                        updateEquipmentOptions();
+                  showConfirmationModal(`Are you sure you want to delete ${item.name}?`, () => {
+                    if (item.category === "Crystals") {
+                      let isEquipped = Object.values(equippedItems).some(equipped =>
+                        equipped && equipped.equippedCrystals && equipped.equippedCrystals.some(c => c && c.name === item.name)
+                      );
+                      if (isEquipped) {
+                        showConfirmationModal(`${item.name} is currently equipped as a crystal. Unequip it before deleting.`, () => {}, true);
+                        return;
                       }
                     }
-                  );
+                    inventory.splice(inventoryIdx, 1);
+                    localStorage.setItem('inventory', JSON.stringify(inventory));
+                    updateAvailableEquipment();
+                    createInventoryUI();
+                    createEquipmentUI();
+                    if (modalDiv && modalDiv.elt && document.body.contains(modalDiv.elt)) {
+                      updateEquipmentOptions();
+                    }
+                  });
                 } else {
                   console.error(`Item ${item.name} not found in inventory for deletion!`);
                 }
@@ -5691,7 +5776,7 @@ function createInventoryUI() {
               if (inventoryIdx !== -1) {
                 showConfirmationModal(`Are you sure you want to delete ${item.name}?`, () => {
                   if (item.category === "Crystals") {
-                    let isEquipped = Object.values(equippedItems).some(equipped => 
+                    let isEquipped = Object.values(equippedItems).some(equipped =>
                       equipped && equipped.equippedCrystals && equipped.equippedCrystals.some(c => c && c.name === item.name)
                     );
                     if (isEquipped) {
@@ -5704,7 +5789,6 @@ function createInventoryUI() {
                   updateAvailableEquipment();
                   createInventoryUI();
                   createEquipmentUI();
-                  // If the Modify Equipment modal is open, refresh its dropdown
                   if (modalDiv && modalDiv.elt && document.body.contains(modalDiv.elt)) {
                     updateEquipmentOptions();
                   }
@@ -6253,11 +6337,74 @@ function unlearnAbility(category, ability) {
     createAbilitiesUI();
   }
 }
+//Use Crystal Ability
+function useCrystalAbility(abilityName) {
+  const ability = existingAbilities["Crystals"].find(a => a.name === abilityName);
+  if (!ability) {
+    showConfirmationModal("Crystal ability not found.", () => {}, true);
+    return;
+  }
 
-// Use a Crystal ability
-function useCrystalAbility(ability) {
-  console.log(`Used Crystal ability: ${ability}`);
-  // Add game logic here later
+  if (!characterAbilities.includes(abilityName)) {
+    showConfirmationModal("Cannot use this ability: Crystal not equipped.", () => {}, true);
+    return;
+  }
+
+  let equippedCrystal = null;
+  for (let slot in equippedItems) {
+    let item = equippedItems[slot];
+    if (item && item.equippedCrystals) {
+      equippedCrystal = item.equippedCrystals.find(crystal =>
+        crystal && crystal.abilities && crystal.abilities.includes(abilityName)
+      );
+      if (equippedCrystal) break;
+    }
+  }
+
+  if (!equippedCrystal) {
+    showConfirmationModal("Cannot use this ability: Crystal not equipped.", () => {}, true);
+    return;
+  }
+
+  if (!meetsStatRequirements(equippedCrystal.statRequirements)) {
+    showConfirmationModal("Cannot use this ability: Crystal stat requirements not met.", () => {}, true);
+    return;
+  }
+
+  if (!meetsStatRequirements(ability.statReq)) {
+    showConfirmationModal("Cannot use this ability: Ability stat requirements not met.", () => {}, true);
+    return;
+  }
+
+  // Check ATG cost
+  let atgCost = ability.ATGCost || 0;
+  if (current_ATG < atgCost) {
+    showConfirmationModal("Not enough ATG to use this ability.", () => {}, true);
+    return;
+  }
+
+  // Check MP cost
+  let mpCost = ability.effect.mpCost || 0;
+  if (current_mp < mpCost) {
+    showConfirmationModal("Not enough MP to use this ability.", () => {}, true);
+    return;
+  }
+
+  // Deduct resources if applicable
+  if (atgCost > 0) {
+    current_ATG -= atgCost;
+  }
+  if (mpCost > 0) {
+    current_mp -= mpCost;
+  }
+
+  const rollResult = rollDice(ability.effect.dice);
+  showConfirmationModal(
+    `${rollResult.display}\nEffect: ${ability.effect.description}\nATG Cost: ${atgCost}\nMP Cost: ${mpCost}`,
+    () => {},
+    true
+  );
+  redraw();
 }
 
 // Use a weapon-specific ability
@@ -6267,13 +6414,20 @@ function useAbility(ability, category) {
     showConfirmationModal("Cannot use this ability: Wrong weapon equipped.", () => {}, true);
     return;
   }
-  if (current_ATG >= ability.ATGCost) {
-    current_ATG -= ability.ATGCost;
-    console.log(`Used weapon ability: ${ability.name}. Effect: ${ability.effect}`);
-    // Add actual effect implementation here later
-  } else {
+  if (current_ATG < ability.ATGCost) {
     showConfirmationModal("Not enough ATG to use this ability.", () => {}, true);
+    return;
   }
+  if (ability.ATGCost > 0) {
+    current_ATG -= ability.ATGCost;
+  }
+  const rollResult = rollDice(ability.effect.dice);
+  showConfirmationModal(
+    `${rollResult.display}\nEffect: ${ability.effect.description}\nATG Cost: ${ability.ATGCost}`,
+    () => {},
+    true
+  );
+  redraw();
 }
 function createAbilitiesUI() {
   let abilitiesContainer = select("#abilities");
@@ -6318,40 +6472,9 @@ function createAbilitiesUI() {
       );
     });
 
-  // Crystal Spells Section
-  createElement("h3", "Crystal Spells").parent(abilitiesContainer);
-  if (characterAbilities.length === 0) {
-    createP("No Crystal Spells equipped.").parent(abilitiesContainer);
-  } else {
-    let crystalTable = createElement("table").parent(abilitiesContainer).class("rules-table");
-    let header = createElement("tr").parent(crystalTable);
-    createElement("th", "Ability").parent(header).style("width", "30%");
-    createElement("th", "Effect").parent(header).style("width", "50%");
-    createElement("th", "Actions").parent(header).style("width", "20%");
-
-    characterAbilities.forEach(ability => {
-      let row = createElement("tr").parent(crystalTable);
-      createElement("td", ability).parent(row);
-      createElement("td", "Effect description here").parent(row);
-      let actionCell = createElement("td").parent(row);
-      let useButton = createButton("Use")
-        .parent(actionCell)
-        .class("resource-button small-button");
-      setButtonDisabled(useButton, false);
-      useButton.mousePressed(() => useCrystalAbility(ability));
-    });
-  }
-
-  // Weapon-Specific Abilities Header
-  createElement("h3", "Weapon-Specific Abilities").parent(abilitiesContainer);
-  createP("Note: 'Use' requires the correct weapon category equipped; 'Learn' is always available if stats and points suffice.")
-    .parent(abilitiesContainer)
-    .style("color", "red")
-    .style("margin-bottom", "10px");
-
-  // Display all weapon categories
+  // Display all ability categories (including Crystals)
   weaponCategories.forEach(category => {
-    let categoryDiv = createDiv().parent(abilitiesContainer).style("margin-bottom", "20px");
+    let categoryDiv = createDiv().parent(abilitiesContainer).class("expandable-section").style("margin-bottom", "20px");
     let categoryHeader = createElement("h4", `${category}`)
       .parent(categoryDiv)
       .style("cursor", "pointer")
@@ -6359,8 +6482,19 @@ function createAbilitiesUI() {
       .style("background", "#f2f2f2")
       .style("padding", "5px");
 
-    let contentDiv = createDiv().parent(categoryDiv);
-    contentDiv.style("display", "block");
+    let contentDiv = createDiv().parent(categoryDiv).class("content");
+
+    // Toggle collapse/expand on click
+    categoryHeader.mousePressed(() => {
+      let isExpanded = categoryHeader.hasClass("expanded");
+      if (isExpanded) {
+        categoryHeader.removeClass("expanded");
+        contentDiv.removeClass("expanded");
+      } else {
+        categoryHeader.addClass("expanded");
+        contentDiv.addClass("expanded");
+      }
+    });
 
     let abilities = existingAbilities[category] || [];
     if (abilities.length === 0) {
@@ -6390,81 +6524,102 @@ function createAbilitiesUI() {
         createElement("td", String(ability.ATGCost)).parent(row);
         let statReqText = ability.statReq ? Object.entries(ability.statReq).map(([stat, val]) => `${val} ${stat}`).join(", ") : "-";
         createElement("td", statReqText).parent(row);
-        createElement("td", String(ability.pointCost)).parent(row);
+        createElement("td", category === "Crystals" ? "-" : String(ability.pointCost)).parent(row);
         let effectText = ability.effect.dice ? `${ability.effect.dice} - ${ability.effect.description}` : ability.effect.description;
-        createElement("td", effectText).parent(row);
-
-        let isLearned = isAbilityLearned(category, ability.name);
+        let effectCell = createElement("td").parent(row);
+        createSpan(effectText)
+          .parent(effectCell)
+          .attribute("title", category === "Crystals" ? `MP Cost: ${ability.effect.mpCost || 0}` : "");
         let statusCell = createElement("td").parent(row);
-        let reasons = [];
-        let meetsStats = meetsStatRequirements(ability.statReq);
-        let hasEnoughPoints = abilityPoints >= ability.pointCost;
-
-        if (!meetsStats) reasons.push("Stats too low");
-        if (!hasEnoughPoints) reasons.push("Not enough points");
-
-        if (isLearned) {
-          // Make "Learned" clickable to unlearn
-          createSpan("Learned")
-            .parent(statusCell)
-            .style("cursor", "pointer")
-            .style("color", "#0000EE")
-            .style("text-decoration", "underline")
-            .mousePressed(() => {
-              showConfirmationModal(
-                `Are you sure you want to unlearn "${ability.name}"?`,
-                () => {
-                  unlearnAbility(category, ability);
-                }
-              );
-            });
-        } else {
-          statusCell.html(reasons.length > 0 ? reasons.join(", ") : "Not Learned");
-        }
-
         let actionCell = createElement("td").parent(row);
-        if (isLearned) {
-          let equippedCategory = getEquippedWeaponCategory();
-          let canUse = equippedCategory === category;
+
+        if (category === "Crystals") {
+          let isEquipped = characterAbilities.includes(ability.name);
+          let meetsStats = true;
+          let canUse = isEquipped && meetsStats;
+
+          if (isEquipped) {
+            statusCell.html("Equipped");
+          } else {
+            statusCell.html("Not Equipped");
+          }
+
           let useButton = createButton("Use")
             .parent(actionCell)
             .class("resource-button small-button");
           setButtonDisabled(useButton, !canUse);
           useButton.mousePressed(() => {
             if (canUse) {
-              useAbility(ability, category);
+              useCrystalAbility(ability.name);
             } else {
-              showConfirmationModal("Cannot use this ability: Wrong weapon equipped.", () => {}, true);
+              showConfirmationModal(
+                "Cannot use this ability: Crystal not equipped or stat requirements not met.",
+                () => {},
+                true
+              );
             }
           });
         } else {
-          let canLearn = meetsStats && hasEnoughPoints;
-          let learnButton = createButton("Learn")
-            .parent(actionCell)
-            .class("resource-button small-button");
-          setButtonDisabled(learnButton, !canLearn);
-          learnButton.mousePressed(() => {
-            learnAbility(category, ability);
-          });
+          let isLearned = isAbilityLearned(category, ability.name);
+          let reasons = [];
+          let meetsStats = meetsStatRequirements(ability.statReq);
+          let hasEnoughPoints = abilityPoints >= ability.pointCost;
+
+          if (!meetsStats) reasons.push("Stats too low");
+          if (!hasEnoughPoints) reasons.push("Not enough points");
+
+          if (isLearned) {
+            createSpan("Learned")
+              .parent(statusCell)
+              .style("cursor", "pointer")
+              .style("color", "#0000EE")
+              .style("text-decoration", "underline")
+              .attribute("title", "Click to unlearn this ability")
+              .mousePressed(() => {
+                showConfirmationModal(
+                  `Are you sure you want to unlearn "${ability.name}"?`,
+                  () => {
+                    unlearnAbility(category, ability);
+                  }
+                );
+              });
+          } else {
+            statusCell.html(reasons.length > 0 ? reasons.join(", ") : "Not Learned");
+          }
+
+          if (isLearned) {
+            let equippedCategory = getEquippedWeaponCategory();
+            let canUse = equippedCategory === category;
+            let useButton = createButton("Use")
+              .parent(actionCell)
+              .class("resource-button small-button");
+            setButtonDisabled(useButton, !canUse);
+            useButton.mousePressed(() => {
+              if (canUse) {
+                useAbility(ability, category);
+              } else {
+                showConfirmationModal("Cannot use this ability: Wrong weapon equipped.", () => {}, true);
+              }
+            });
+          } else {
+            let canLearn = meetsStats && hasEnoughPoints;
+            let learnButton = createButton("Learn")
+              .parent(actionCell)
+              .class("resource-button small-button");
+            setButtonDisabled(learnButton, !canLearn);
+            learnButton.mousePressed(() => {
+              learnAbility(category, ability);
+            });
+          }
         }
       });
     }
   });
 
-  // Available Ability Points
   createP(`Available Ability Points: ${abilityPoints}`)
     .parent(abilitiesContainer)
     .style("margin-top", "10px");
 }
-
-function meetsStatRequirements(statReq) {
-  if (!statReq) return true;
-  for (let [stat, required] of Object.entries(statReq)) {
-    if (getTotalStat(stat) < required) return false;
-  }
-  return true;
-}
-
 function getTotalStat(statName) {
   let baseStat;
   switch (statName) {
@@ -6499,15 +6654,21 @@ function getTotalStat(statName) {
 function updateAbilities() {
   characterAbilities = []; // Reset the abilities array
 
-  // Collect abilities from equipped crystals
+  // Collect abilities from equipped crystals, checking stat requirements
   for (let slot in equippedItems) {
     let item = equippedItems[slot];
     if (item && item.equippedCrystals) {
       item.equippedCrystals.forEach(crystal => {
         if (crystal && crystal.abilities) {
-          crystal.abilities.forEach(ability => {
-            if (!characterAbilities.includes(ability)) {
-              characterAbilities.push(ability);
+          crystal.abilities.forEach(abilityName => {
+            // Find the ability in existingAbilities["Crystals"]
+            const ability = existingAbilities["Crystals"]?.find(a => a.name === abilityName);
+            if (ability) {
+              // Check if stat requirements are met
+              let meetsStats = meetsStatRequirements(crystal.statRequirements);
+              if (meetsStats && !characterAbilities.includes(abilityName)) {
+                characterAbilities.push(abilityName);
+              }
             }
           });
         }
@@ -6515,11 +6676,19 @@ function updateAbilities() {
     }
   }
 
-  // Optionally, refresh the Abilities UI if it’s the active tab
   if (currentTab === "abilities") {
     createAbilitiesUI();
   }
 }
+
+  // Refresh the Abilities UI if it’s the active tab
+  if (currentTab === "abilities") {
+    createAbilitiesUI();
+  }
+  // Optionally, refresh the Abilities UI if it’s the active tab
+  if (currentTab === "abilities") {
+    createAbilitiesUI();
+  }
 function updateAbilities() {
   console.log("Updating abilities...");
   characterAbilities = []; // Reset the abilities array
@@ -7095,33 +7264,24 @@ function showModifyAbilitiesModal() {
 }
 
 //Dice Roller
-function executeEffect(effect) {
-  let result = "";
-  let roll = effect.dice ? rollDice(effect.dice) : 0;
-  let total = roll;
-
-  // For now, we'll log the effect description and dice roll
-  // Later, you can parse the description to determine targets and effects
-  result = `Rolled ${effect.dice} for ${total} - ${effect.description}`;
-  
-  // Example: If description includes "Hits all enemies", apply damage
-  if (effect.description.toLowerCase().includes("hits all enemies")) {
-    enemies.forEach(enemy => {
-      let damage = Math.max(total - enemy.def, 0);
-      enemy.hp -= damage;
-      result += ` Dealt ${damage} damage to enemy (HP: ${enemy.hp}).`;
-    });
-  } else if (effect.description.toLowerCase().includes("single target")) {
-    let enemy = enemies[0];
-    let damage = Math.max(total - enemy.def, 0);
-    enemy.hp -= damage;
-    result += ` Dealt ${damage} damage to enemy (HP: ${enemy.hp}).`;
-  } else if (effect.description.toLowerCase().includes("heals all allies")) {
-    allies.forEach(ally => {
-      ally.hp = Math.min(ally.hp + total, ally.max_hp);
-      result += ` Healed ally for ${total} (HP: ${ally.hp}/${ally.max_hp}).`;
-    });
+function rollDice(diceStr) {
+  if (!diceStr || typeof diceStr !== "string") {
+    return { total: 0, rolls: [], display: "No dice specified" };
   }
 
-  return result;
+  const [numDice, sides] = diceStr.split("d").map(Number);
+  if (isNaN(numDice) || isNaN(sides) || numDice <= 0 || sides <= 0) {
+    return { total: 0, rolls: [], display: "Invalid dice format" };
+  }
+
+  const rolls = [];
+  let total = 0;
+  for (let i = 0; i < numDice; i++) {
+    const roll = Math.floor(Math.random() * sides) + 1;
+    rolls.push(roll);
+    total += roll;
+  }
+
+  const display = `Rolled ${diceStr}: [${rolls.join(", ")}] = ${total}`;
+  return { total, rolls, display };
 }
