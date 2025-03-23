@@ -3174,12 +3174,11 @@ function createEquipmentUI() {
     .style("margin-top", "5px")
     .style("margin-bottom", "10px");
 
+  let tableWrapper = createDiv().parent(equipmentContainerDiv).class("table-wrapper");
   let equipmentTable = createElement("table")
-    .parent(equipmentContainerDiv)
+    .parent(tableWrapper)
     .id("equipmentTable")
-    .style("width", "100%")
-    .style("border-collapse", "collapse")
-    .style("margin-top", "10px");
+    .class("rules-table");
   let headerRow = createElement("tr").parent(equipmentTable);
   ["Slot", "Name", "Requirements", "Damage/Defense", "Mov. Penalty", "Crystal Slots", "Stat Bonus", "Linked Stat", "Weapon Category"].forEach((header) => {
     createElement("th", header)
@@ -3218,58 +3217,86 @@ function createEquipmentUI() {
     let item = equippedItems[slot];
     let itemName = item ? item.name : "None";
     itemSelect.option("None", "None");
-    let availableItems = availableEquipment[slot];
-    if (availableItems) {
-      availableItems.forEach(item => {
-        // Prevent the same accessory from being equipped in both slots
-        let isAlreadyEquipped = false;
-        if (slot === "Accessory 1" && equippedItems["Accessory 2"] && equippedItems["Accessory 2"].name === item.name) {
-          isAlreadyEquipped = true;
-        } else if (slot === "Accessory 2" && equippedItems["Accessory 1"] && equippedItems["Accessory 1"].name === item.name) {
-          isAlreadyEquipped = true;
-        }
-        // For On-Hand and Off-Hand, also check if the item is already equipped in the other slot
-        if (slot === "On-Hand" && equippedItems["Off-Hand"] && equippedItems["Off-Hand"].name === item.name) {
-          isAlreadyEquipped = true;
-        } else if (slot === "Off-Hand" && equippedItems["On-Hand"] && equippedItems["On-Hand"].name === item.name) {
-          isAlreadyEquipped = true;
-        }
-        // Only add the item to the dropdown if there's enough quantity remaining
-        let equippedCount = Object.values(equippedItems).filter(eq => eq && eq.name === item.name).length;
-        let inventoryItem = inventory.find(i => i.name === item.name && i.category === "Equipment");
-        let totalQuantity = inventoryItem ? (inventoryItem.quantity || 1) : 1;
-        let remainingQuantity = totalQuantity - equippedCount;
-        if (!isAlreadyEquipped || remainingQuantity > 0) {
-          itemSelect.option(item.name, item.name);
-        }
-      });
-    }
+
+    // Populate dropdown with available items and currently equipped items
+    let availableItems = availableEquipment[slot] || [];
+    let equippedItemsList = Object.values(equippedItems).filter(eq => eq && eq.category === "Equipment");
+    let equippedNames = equippedItemsList.map(eq => eq.name);
+    // Add equipped items that aren't already in availableItems (e.g., quantity = 0 in inventory)
+    let uniqueEquippedItems = equippedItemsList.filter(eq => !availableItems.some(item => item.name === eq.name));
+    let dropdownItems = [...availableItems, ...uniqueEquippedItems];
+
+    dropdownItems.forEach(item => {
+      // Prevent the same accessory from being equipped in both slots
+      let isAlreadyEquipped = false;
+      if (slot === "Accessory 1" && equippedItems["Accessory 2"] && equippedItems["Accessory 2"].name === item.name) {
+        isAlreadyEquipped = true;
+      } else if (slot === "Accessory 2" && equippedItems["Accessory 1"] && equippedItems["Accessory 1"].name === item.name) {
+        isAlreadyEquipped = true;
+      }
+      // For On-Hand and Off-Hand, allow the same weapon to be equipped (dual-wield)
+      if (!isAlreadyEquipped) {
+        itemSelect.option(item.name, item.name);
+      }
+    });
+
+    // Set the dropdown value to the equipped item's name
     itemSelect.value(itemName);
 
     // Disable the dropdown if the opposite hand has a two-handed weapon
     if ((slot === "On-Hand" && disableOnHand) || (slot === "Off-Hand" && disableOffHand)) {
       itemSelect.elt.disabled = true;
-      itemSelect.style("background", "#e0e0e0"); // Gray out the dropdown
+      itemSelect.style("background", "#e0e0e0");
     } else {
       itemSelect.elt.disabled = false;
-      itemSelect.style("background", "white"); // Re-enable the dropdown
+      itemSelect.style("background", "white");
     }
 
     itemSelect.changed(() => {
       let selectedName = itemSelect.value();
       console.log(`Selected item in ${slot}: ${selectedName}`);
       if (selectedName === "None") {
-        equippedItems[slot] = null;
+        // Unequip the item
+        if (equippedItems[slot]) {
+          let unequippedItem = equippedItems[slot];
+          let inventoryItem = inventory.find(i => i.name === unequippedItem.name && i.category === unequippedItem.category);
+          if (inventoryItem) {
+            inventoryItem.quantity = (inventoryItem.quantity || 1) + 1;
+          } else {
+            inventory.push({ ...unequippedItem, quantity: 1 });
+          }
+          equippedItems[slot] = null;
+        }
       } else {
-        let selectedItem = availableItems.find(item => item.name === selectedName);
+        // Equip the selected item
+        let selectedItem = dropdownItems.find(item => item.name === selectedName);
         console.log(`Found selectedItem:`, selectedItem);
         if (selectedItem && canWieldItem(selectedItem)) {
-          equippedItems[slot] = { ...selectedItem, equippedCrystals: equippedItems[slot]?.equippedCrystals || Array(selectedItem.crystalSlots || 0).fill(null) };
+          let inventoryItem = inventory.find(i => i.name === selectedItem.name && i.category === selectedItem.category);
+          if (inventoryItem) {
+            // Decrease inventory quantity if the item is in the inventory
+            inventoryItem.quantity = (inventoryItem.quantity || 1) - 1;
+            if (inventoryItem.quantity <= 0) {
+              let inventoryIdx = inventory.findIndex(i => i.name === selectedItem.name && i.category === selectedItem.category);
+              inventory.splice(inventoryIdx, 1);
+            }
+          }
+          // Preserve equipped crystals if any
+          equippedItems[slot] = {
+            ...selectedItem,
+            equippedCrystals: equippedItems[slot]?.equippedCrystals || Array(selectedItem.crystalSlots || 0).fill(null)
+          };
           // Handle Two-Handed logic
           if (selectedItem.twoHanded) {
             let otherSlot = slot === "On-Hand" ? "Off-Hand" : slot === "Off-Hand" ? "On-Hand" : null;
             if (otherSlot && equippedItems[otherSlot]) {
               let unequippedItem = equippedItems[otherSlot].name;
+              let otherInventoryItem = inventory.find(i => i.name === unequippedItem && i.category === "Equipment");
+              if (otherInventoryItem) {
+                otherInventoryItem.quantity = (otherInventoryItem.quantity || 1) + 1;
+              } else {
+                inventory.push({ ...equippedItems[otherSlot], quantity: 1 });
+              }
               equippedItems[otherSlot] = null;
               showConfirmationModal(
                 `Equipped ${selectedItem.name} in ${slot}, unequipped ${unequippedItem} from ${otherSlot} as ${selectedItem.name} is two-handed.`,
@@ -3289,6 +3316,7 @@ function createEquipmentUI() {
       updatestatbonusesDisplay();
       updateResourcesBasedOnStats();
       updateAbilities();
+      createInventoryUI();
       createEquipmentUI();
     });
 
@@ -5579,13 +5607,11 @@ function createInventoryUI() {
       .parent(categoryDiv);
 
     let contentDiv = createDiv().parent(categoryDiv).class("content");
-    // Restore the previous state (expanded or collapsed)
     if (categoryStates[category]) {
       categoryHeader.addClass("expanded");
       contentDiv.addClass("expanded");
     }
 
-    // Toggle collapse/expand on click
     categoryHeader.mousePressed(() => {
       let isExpanded = categoryHeader.hasClass("expanded");
       if (isExpanded) {
@@ -5615,21 +5641,18 @@ function createInventoryUI() {
       } else {
         Object.keys(equipmentByType).sort().forEach(type => {
           let typeItems = equipmentByType[type];
-          // Create a collapsible subsection for each type
           let typeDiv = createDiv().parent(contentDiv).class("expandable-section").style("margin-left", "10px").style("margin-bottom", "5px");
           let typeHeader = createElement("h4", `${type} (${typeItems.length})`)
             .parent(typeDiv);
 
           let typeContentDiv = createDiv().parent(typeDiv).class("content");
 
-          // Restore the previous state for the subsection
           let typeStateKey = `${category}-${type}`;
           if (categoryStates[typeStateKey]) {
             typeHeader.addClass("expanded");
             typeContentDiv.addClass("expanded");
           }
 
-          // Toggle collapse/expand on click for the subsection
           typeHeader.mousePressed(() => {
             let isExpanded = typeHeader.hasClass("expanded");
             if (isExpanded) {
@@ -5643,7 +5666,8 @@ function createInventoryUI() {
             }
           });
 
-          let table = createElement("table").parent(typeContentDiv).class("rules-table");
+          let tableWrapper = createDiv().parent(typeContentDiv).class("table-wrapper");
+          let table = createElement("table").parent(tableWrapper).class("rules-table");
           let header = createElement("tr").parent(table);
           createElement("th", "Item Name").parent(header).style("width", "20%");
           createElement("th", "Description").parent(header).style("width", "30%");
@@ -5718,7 +5742,8 @@ function createInventoryUI() {
         });
       }
     } else {
-      let table = createElement("table").parent(contentDiv).class("rules-table");
+      let tableWrapper = createDiv().parent(contentDiv).class("table-wrapper");
+      let table = createElement("table").parent(tableWrapper).class("rules-table");
       let header = createElement("tr").parent(table);
       createElement("th", "Item Name").parent(header).style("width", "20%");
       createElement("th", "Description").parent(header).style("width", "30%");
@@ -6435,9 +6460,8 @@ function createAbilitiesUI() {
     console.error("No #abilities div found in HTML!");
     return;
   }
-  abilitiesContainer.html(""); // Clear existing content
+  abilitiesContainer.html("");
 
-  // Header
   createElement("h2", "Abilities").parent(abilitiesContainer);
   createSpan("View and manage your abilities from Crystal and equipped weapons.")
     .parent(abilitiesContainer)
@@ -6446,7 +6470,6 @@ function createAbilitiesUI() {
     .style("display", "block")
     .style("margin-bottom", "10px");
 
-  // Buttons Row
   let buttonRow = createDiv().parent(abilitiesContainer).class("resource-row");
   createButton("Create Custom Ability")
     .parent(buttonRow)
@@ -6472,19 +6495,13 @@ function createAbilitiesUI() {
       );
     });
 
-  // Display all ability categories (including Crystals)
   weaponCategories.forEach(category => {
     let categoryDiv = createDiv().parent(abilitiesContainer).class("expandable-section").style("margin-bottom", "20px");
     let categoryHeader = createElement("h4", `${category}`)
-      .parent(categoryDiv)
-      .style("cursor", "pointer")
-      .style("margin", "0")
-      .style("background", "#f2f2f2")
-      .style("padding", "5px");
+      .parent(categoryDiv);
 
     let contentDiv = createDiv().parent(categoryDiv).class("content");
 
-    // Toggle collapse/expand on click
     categoryHeader.mousePressed(() => {
       let isExpanded = categoryHeader.hasClass("expanded");
       if (isExpanded) {
@@ -6502,7 +6519,8 @@ function createAbilitiesUI() {
         .parent(contentDiv)
         .style("color", "#666");
     } else {
-      let table = createElement("table").parent(contentDiv).class("rules-table");
+      let tableWrapper = createDiv().parent(contentDiv).class("table-wrapper");
+      let table = createElement("table").parent(tableWrapper).class("rules-table");
       let header = createElement("tr").parent(table);
       createElement("th", "Name").parent(header).style("width", "20%");
       createElement("th", "ATG Cost").parent(header).style("width", "10%");
