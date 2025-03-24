@@ -28,7 +28,7 @@ function setButtonDisabled(button, isDisabled) {
   button.elt.disabled = isDisabled;
 }
 //Character Name
-let characterName = "Unnamed Character"; // Default name
+let characterName = "Enter Name"; // Default name
 
 //Talent Point Pool
 let totalTalentPoints = 0; // Total Talent Points based on level
@@ -390,6 +390,19 @@ let resetButton, staminaATGLink = false, staminaATGLinkButton;
 
 // Setup Function
 function setup() {
+  // Load the last saved character from localStorage if it exists
+  let savedData = localStorage.getItem("characterData");
+  if (savedData) {
+    try {
+      let characterData = JSON.parse(savedData);
+      restoreCharacterData(characterData);
+      console.log("Loaded last saved character from localStorage.");
+    } catch (e) {
+      console.error("Error loading character from localStorage:", e.message);
+      // Optionally clear localStorage if the data is corrupted
+      localStorage.removeItem("characterData");
+    }
+  }
   let resourceBarsContainer = select("#resource-bars");
   if (!resourceBarsContainer) {
     console.error("No #resource-bars div found in HTML!");
@@ -478,7 +491,7 @@ window.addEventListener('scroll', () => {
   }
 });
 function createTopUI() {
-  // Character Name Input
+// Character Name Input
   let nameInput = select("#characterName");
   if (nameInput) {
     nameInput.value(characterName);
@@ -488,6 +501,19 @@ function createTopUI() {
     });
   } else {
     console.error("Character Name input (#characterName) not found in HTML!");
+  }
+
+  // New Button
+  let newButton = select("#newBtn");
+  if (newButton) {
+    newButton.mousePressed(() => {
+      showConfirmationModal(
+        "Are you sure you want to start a new character? Any unsaved changes will be lost.",
+        resetToDefaultCharacter
+      );
+    });
+  } else {
+    console.error("New button (#newBtn) not found in HTML!");
   }
 
   // Save Button
@@ -513,8 +539,6 @@ function createTopUI() {
     .style("display", "none")
     .id("character-file-input");
   fileInput.elt.addEventListener("change", handleFileLoad);
-
-  // Full-screen button is already handled in your existing code
 }
   // Fullscreen Button
   const fullscreenBtn = document.getElementById("fullscreenBtn");
@@ -533,7 +557,78 @@ function createTopUI() {
     resizeCanvasForFullscreen();
   });
 }
+function resetToDefaultCharacter() {
+  // Reset all character data to default values
+  // Core character data
+  characterName = "Enter Name";
+  level = 1;
+  exp = 1;
+  movement = 65;
 
+  // Stats
+  stat_str = 1;
+  stat_vit = 1;
+  stat_dex = 1;
+  stat_mag = 1;
+  stat_wil = 1;
+  stat_spr = 1;
+  stat_lck = 1;
+  statbonusElements = {};
+
+  // Resource Bar settings
+  max_hp = 25;
+  current_hp = 25;
+  max_mp = 10;
+  current_mp = 10;
+  max_stamina = 100;
+  current_stamina = 100;
+  max_ATG = 100;
+  current_ATG = 0;
+
+  // Talent and Ability Points
+  totalTalentPoints = 0;
+  spentTalentPoints = 0;
+  totalAbilityPoints = 2;
+  spentAbilityPoints = 0;
+  abilityPoints = totalAbilityPoints - spentAbilityPoints;
+
+  // Equipment and Inventory
+  equippedItems = {};
+  inventory = [];
+
+  // Abilities
+  learnedAbilities = {};
+  existingAbilities = JSON.parse(JSON.stringify(pristineAvailableAbilities));
+
+  // Additional Attributes
+  lockToLevel = true;
+  attributeLinkMapping = {};
+  statLinkMapping = {};
+
+  // Traits
+  traits = [];
+  maxTraits = 3;
+  existingTraits = [...defaultTraits];
+
+  // Talents
+  talents = [];
+  existingTalents = [...defaultTalents];
+
+  // Clear localStorage
+  localStorage.removeItem("characterData");
+
+  // Refresh the UI
+  let nameInput = select("#characterName");
+  if (nameInput) {
+    nameInput.value(characterName);
+  }
+  createStatsUI();
+  createInventoryUI();
+  createEquipmentUI();
+  createAbilitiesUI();
+  createTraitsUI();
+  createTalentsUI();
+}
 // Resize canvas when entering/exiting fullscreen
 function resizeCanvasForFullscreen() {
   let resourceBarsContainer = select("#resource-bars");
