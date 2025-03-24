@@ -572,7 +572,6 @@ function saveCharacter() {
     existingAbilities: existingAbilities,
     lockToLevel: lockToLevel,
     additionalAttributes: additionalAttributes || [],
-    // Add Resource Bar settings
     max_hp: max_hp,
     current_hp: current_hp,
     max_mp: max_mp,
@@ -581,8 +580,14 @@ function saveCharacter() {
     current_stamina: current_stamina,
     max_ATG: max_ATG,
     current_ATG: current_ATG,
-    // Add additional attributes assignments
-    attributeLinkMapping: attributeLinkMapping || {}
+    attributeLinkMapping: attributeLinkMapping || {},
+    // Traits data
+    traits: traits || [],
+    maxTraits: maxTraits || 3,
+    existingTraits: existingTraits || [],
+    // Talents data
+    talents: talents || [],
+    existingTalents: existingTalents || []
   };
 
   // Show a modal to prompt for the file name
@@ -776,15 +781,26 @@ function restoreCharacterData(characterData) {
     }
   }
 
+  // Restore Traits data
+  traits = characterData.traits || [];
+  maxTraits = characterData.maxTraits || 3;
+  existingTraits = characterData.existingTraits || [...defaultTraits];
+
+  // Restore Talents data
+  talents = characterData.talents || [];
+  existingTalents = characterData.existingTalents || [...defaultTalents];
+
   // Refresh the UI
   let nameInput = select("#characterName");
   if (nameInput) {
     nameInput.value(characterName);
   }
-  createStatsUI(); // This will refresh the dropdowns via createAdditionalAttributesUI
+  createStatsUI();
   createInventoryUI();
   createEquipmentUI();
   createAbilitiesUI();
+  createTraitsUI();
+  createTalentsUI(); // Refresh the Talents tab UI
 }
 function updateTypeVisibility() {
   if (typeof updating === 'undefined' || updating) return; // Prevent recursion
