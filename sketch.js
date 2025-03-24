@@ -27,6 +27,8 @@ let statbonusElements = {};
 function setButtonDisabled(button, isDisabled) {
   button.elt.disabled = isDisabled;
 }
+//Character Name
+let characterName = "Unnamed Character"; // Default name
 
 //Talent Point Pool
 let totalTalentPoints = 0; // Total Talent Points based on level
@@ -421,6 +423,7 @@ function setup() {
   updateAvailableEquipment();
   createEquipmentUI();
   createInventoryUI();
+  createTopUI();
 
   // Tab functionality
   const tablinks = document.querySelectorAll(".tablink");
@@ -474,7 +477,46 @@ window.addEventListener('scroll', () => {
     }
   }
 });
-  // Simplified fullscreen button functionality using p5.js fullscreen()
+function createTopUI() {
+  // Character Name Input
+  let nameInput = select("#characterName");
+  if (nameInput) {
+    nameInput.value(characterName);
+    nameInput.input(() => {
+      characterName = nameInput.value().trim() || "Unnamed Character";
+      nameInput.value(characterName);
+    });
+  } else {
+    console.error("Character Name input (#characterName) not found in HTML!");
+  }
+
+  // Save Button
+  let saveButton = select("#saveBtn");
+  if (saveButton) {
+    saveButton.mousePressed(saveCharacter);
+  } else {
+    console.error("Save button (#saveBtn) not found in HTML!");
+  }
+
+  // Load Button
+  let loadButton = select("#loadBtn");
+  if (loadButton) {
+    loadButton.mousePressed(loadCharacter);
+  } else {
+    console.error("Load button (#loadBtn) not found in HTML!");
+  }
+
+  // Create a hidden file input for loading character data
+  let fileInput = createInput("")
+    .attribute("type", "file")
+    .attribute("accept", ".json")
+    .style("display", "none")
+    .id("character-file-input");
+  fileInput.elt.addEventListener("change", handleFileLoad);
+
+  // Full-screen button is already handled in your existing code
+}
+  // Fullscreen Button
   const fullscreenBtn = document.getElementById("fullscreenBtn");
   const appWrapper = document.getElementById("app-wrapper");
   fullscreenBtn.addEventListener("click", () => {
@@ -504,6 +546,245 @@ function resizeCanvasForFullscreen() {
 // Update windowResized to handle general resizing
 function windowResized() {
   resizeCanvasForFullscreen();
+}
+function saveCharacter() {
+  // Gather all character data
+  let characterData = {
+    characterName: characterName,
+    level: level,
+    exp: exp,
+    stat_str: stat_str,
+    stat_vit: stat_vit,
+    stat_dex: stat_dex,
+    stat_mag: stat_mag,
+    stat_wil: stat_wil,
+    stat_spr: stat_spr,
+    stat_lck: stat_lck,
+    movement: movement,
+    totalTalentPoints: totalTalentPoints,
+    spentTalentPoints: spentTalentPoints,
+    totalAbilityPoints: totalAbilityPoints,
+    spentAbilityPoints: spentAbilityPoints,
+    abilityPoints: abilityPoints,
+    equippedItems: equippedItems,
+    inventory: inventory,
+    learnedAbilities: learnedAbilities,
+    existingAbilities: existingAbilities,
+    lockToLevel: lockToLevel,
+    additionalAttributes: additionalAttributes || [],
+    // Add Resource Bar settings
+    max_hp: max_hp,
+    current_hp: current_hp,
+    max_mp: max_mp,
+    current_mp: current_mp,
+    max_stamina: max_stamina,
+    current_stamina: current_stamina,
+    max_ATG: max_ATG,
+    current_ATG: current_ATG,
+    // Add additional attributes assignments
+    attributeLinkMapping: attributeLinkMapping || {}
+  };
+
+  // Show a modal to prompt for the file name
+  if (modalDiv) modalDiv.remove();
+  modalDiv = createDiv()
+    .style("position", "fixed")
+    .style("top", "50%")
+    .style("left", "50%")
+    .style("transform", "translate(-50%, -50%)")
+    .style("background", "#fff")
+    .style("padding", "20px")
+    .style("border", "2px solid #000")
+    .style("z-index", "1000")
+    .style("max-width", "400px")
+    .style("word-wrap", "break-word")
+    .style("box-shadow", "0 4px 8px rgba(0,0,0,0.2)");
+
+  createElement("h3", "Save Character Data").parent(modalDiv)
+    .style("margin-top", "0")
+    .style("margin-bottom", "10px");
+
+  let fileNameDiv = createDiv().parent(modalDiv).style("margin-bottom", "10px");
+  createSpan("File name:").parent(fileNameDiv).style("display", "block");
+  let fileNameInput = createInput(`${characterName || "character"}-data.json`)
+    .parent(fileNameDiv)
+    .style("width", "100%")
+    .style("border", "1px solid #ccc")
+    .style("padding", "5px")
+    .style("box-sizing", "border-box");
+
+  let buttonContainer = createDiv()
+    .parent(modalDiv)
+    .style("display", "flex")
+    .style("justify-content", "space-between")
+    .style("margin-top", "15px");
+
+  createButton("Save")
+    .parent(buttonContainer)
+    .style("padding", "5px 15px")
+    .style("background-color", "#4CAF50")
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
+    .mousePressed(() => {
+      let fileName = fileNameInput.value().trim();
+      if (!fileName) {
+        fileName = `${characterName || "character"}-data.json`;
+      }
+      if (!fileName.endsWith(".json")) {
+        fileName += ".json";
+      }
+
+      try {
+        // Convert character data to JSON string
+        const jsonString = JSON.stringify(characterData, null, 2);
+
+        // Create a Blob with the JSON data
+        const blob = new Blob([jsonString], { type: "application/json" });
+
+        // Create a temporary URL for the Blob
+        const url = URL.createObjectURL(blob);
+
+        // Create a temporary <a> element to trigger the download
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+
+        // Clean up
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Optionally, still save to localStorage as a fallback
+        localStorage.setItem("characterData", jsonString);
+
+        modalDiv.remove();
+        showConfirmationModal("Character saved to file successfully!", () => {}, true);
+      } catch (e) {
+        modalDiv.remove();
+        showConfirmationModal("Error saving character: " + e.message, () => {}, true);
+      }
+    });
+
+  createButton("Cancel")
+    .parent(buttonContainer)
+    .style("padding", "5px 15px")
+    .style("background-color", "#ccc")
+    .style("color", "black")
+    .style("border", "none")
+    .style("border-radius", "3px")
+    .style("cursor", "pointer")
+    .mousePressed(() => {
+      modalDiv.remove();
+    });
+}
+
+function loadCharacter() {
+  let fileInput = select("#character-file-input");
+  if (fileInput) {
+    fileInput.elt.click(); // Trigger the file picker dialog
+  } else {
+    showConfirmationModal("File input not found.", () => {}, true);
+  }
+}
+
+function handleFileLoad(evt) {
+  const file = evt.target.files[0];
+  if (!file) {
+    // If no file is selected, fall back to localStorage
+    let savedData = localStorage.getItem("characterData");
+    if (!savedData) {
+      showConfirmationModal("No saved character found in localStorage.", () => {}, true);
+      return;
+    }
+    try {
+      let characterData = JSON.parse(savedData);
+      restoreCharacterData(characterData);
+      showConfirmationModal("Character loaded from localStorage successfully!", () => {}, true);
+    } catch (e) {
+      showConfirmationModal("Error loading character from localStorage: " + e.message, () => {}, true);
+    }
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    try {
+      const characterData = JSON.parse(event.target.result);
+      restoreCharacterData(characterData);
+      // Optionally, save to localStorage as well
+      localStorage.setItem("characterData", JSON.stringify(characterData));
+      showConfirmationModal("Character loaded from file successfully!", () => {}, true);
+    } catch (e) {
+      showConfirmationModal("Error loading character from file: " + e.message, () => {}, true);
+    }
+  };
+  reader.onerror = function() {
+    showConfirmationModal("Error reading file.", () => {}, true);
+  };
+  reader.readAsText(file);
+
+  // Reset the file input to allow re-selecting the same file
+  evt.target.value = "";
+}
+
+function restoreCharacterData(characterData) {
+  // Restore character data
+  characterName = characterData.characterName || "Unnamed Character";
+  level = characterData.level || 1;
+  exp = characterData.exp || 0;
+  stat_str = characterData.stat_str || 1;
+  stat_vit = characterData.stat_vit || 1;
+  stat_dex = characterData.stat_dex || 1;
+  stat_mag = characterData.stat_mag || 1;
+  stat_wil = characterData.stat_wil || 1;
+  stat_spr = characterData.stat_spr || 1;
+  stat_lck = characterData.stat_lck || 1;
+  movement = characterData.movement || 30;
+  totalTalentPoints = characterData.totalTalentPoints || 1;
+  spentTalentPoints = characterData.spentTalentPoints || 0;
+  totalAbilityPoints = characterData.totalAbilityPoints || 2;
+  spentAbilityPoints = characterData.spentAbilityPoints || 0;
+  abilityPoints = characterData.abilityPoints || (totalAbilityPoints - spentAbilityPoints);
+  equippedItems = characterData.equippedItems || {};
+  inventory = characterData.inventory || [];
+  learnedAbilities = characterData.learnedAbilities || {};
+  existingAbilities = characterData.existingAbilities || JSON.parse(JSON.stringify(pristineAvailableAbilities));
+  lockToLevel = characterData.lockToLevel !== undefined ? characterData.lockToLevel : true;
+  additionalAttributes = characterData.additionalAttributes || [];
+
+  // Restore Resource Bar settings
+  max_hp = characterData.max_hp || 25;
+  current_hp = characterData.current_hp || max_hp;
+  max_mp = characterData.max_mp || 10;
+  current_mp = characterData.current_mp || max_mp;
+  max_stamina = characterData.max_stamina || 100;
+  current_stamina = characterData.current_stamina || max_stamina;
+  max_ATG = characterData.max_ATG || 100;
+  current_ATG = characterData.current_ATG || 0;
+
+  // Restore additional attributes assignments
+  attributeLinkMapping = characterData.attributeLinkMapping || {};
+  // Rebuild statLinkMapping (reverse mapping) from attributeLinkMapping
+  statLinkMapping = {};
+  for (let skillName in attributeLinkMapping) {
+    let stat = attributeLinkMapping[skillName];
+    if (stat !== "None") {
+      statLinkMapping[stat] = skillName;
+    }
+  }
+
+  // Refresh the UI
+  let nameInput = select("#characterName");
+  if (nameInput) {
+    nameInput.value(characterName);
+  }
+  createStatsUI(); // This will refresh the dropdowns via createAdditionalAttributesUI
+  createInventoryUI();
+  createEquipmentUI();
+  createAbilitiesUI();
 }
 function updateTypeVisibility() {
   if (typeof updating === 'undefined' || updating) return; // Prevent recursion
@@ -969,7 +1250,7 @@ const statDescriptions = {
 };
 
 // Additional attributes
-const additionalAttributes = [
+let additionalAttributes = [
   {
     name: "Athletics",
     desc:
