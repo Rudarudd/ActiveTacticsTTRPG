@@ -1,7 +1,3 @@
-// Clear localStorage at startup (remove after testing)
-localStorage.removeItem('inventory');
-localStorage.removeItem('equippedItems');
-
 // Global resource variables
 let max_hp = 25,
   current_hp = 25;
@@ -35,6 +31,10 @@ function setButtonDisabled(button, isDisabled) {
 //Talent Point Pool
 let totalTalentPoints = 0; // Total Talent Points based on level
 let spentTalentPoints = 0; // Talent Points spent on talents
+
+//Ability Point Pool
+let totalAbilityPoints = 2; // Total Ability Points based on level
+let spentAbilityPoints = 0; // Ability Points spent on abilities
 
 // Inventory Startup & Categories
 let inventory = [];
@@ -3130,11 +3130,40 @@ function createStatsUI() {
         lockCheckbox.checked(false);
         return;
       }
-      // Revert totalTalentPoints to calculated value when locking
-      totalTalentPoints = 1 + Math.floor(level / 5);
+
+      // Check Total Talent Points
+      let calculatedTalentPoints = 1 + Math.floor(level / 5);
+      if (totalTalentPoints > calculatedTalentPoints) {
+        showConfirmationModal(
+          `Your current Total Talent Points (${totalTalentPoints}) exceed the available points for your level (${calculatedTalentPoints} points). Please adjust your Total Talent Points to within the limit before enabling Lock to Level.`,
+          () => {},
+          true
+        );
+        lockCheckbox.checked(false);
+        return;
+      }
+
+      // Check Total Ability Points
+      let calculatedAbilityPoints = 2 + Math.floor((level - 1) / 2);
+      if (totalAbilityPoints > calculatedAbilityPoints) {
+        showConfirmationModal(
+          `Your current Total Ability Points (${totalAbilityPoints}) exceed the available points for your level (${calculatedAbilityPoints} points). Please adjust your Total Ability Points to within the limit before enabling Lock to Level.`,
+          () => {},
+          true
+        );
+        lockCheckbox.checked(false);
+        return;
+      }
+
+      // If all checks pass, apply the lock
+      totalTalentPoints = calculatedTalentPoints;
+      totalAbilityPoints = calculatedAbilityPoints;
+      // Ensure abilityPoints doesn't exceed totalAbilityPoints
+      abilityPoints = totalAbilityPoints - spentAbilityPoints;
     }
     lockToLevel = lockCheckbox.checked();
     createStatsUI(); // Refresh UI to update input states
+    createAbilitiesUI(); // Refresh Abilities UI to reflect updated abilityPoints
   });
 
   // Display available points based on level
@@ -3145,17 +3174,18 @@ function createStatsUI() {
   let pointsDiv = createDiv().parent(statsContainer).style("margin", "5px");
   createSpan(`Points Available: ${distributablePoints - distributablePointsSpent}/${distributablePoints}`).parent(pointsDiv);
 
-  // Calculate and display Ability Points and Total Talent Points
-  let abilityPoints = Math.floor((level - 1) / 2); // 1 point every 2 levels starting at level 3
+  // Calculate and display Total Talent Points and Total Ability Points
   let calculatedTalentPoints = 1 + Math.floor(level / 5); // 1 point at level 1, plus 1 every 5 levels
+  let calculatedAbilityPoints = 2 + Math.floor((level - 1) / 2); // 2 points at level 1, plus 1 every 2 levels
   if (lockToLevel) {
-    totalTalentPoints = calculatedTalentPoints; // Enforce calculated value when locked
+    totalTalentPoints = calculatedTalentPoints;
+    totalAbilityPoints = calculatedAbilityPoints;
+    // Ensure abilityPoints doesn't exceed totalAbilityPoints
+    abilityPoints = totalAbilityPoints - spentAbilityPoints;
   }
   let pointsInfoDiv = createDiv().parent(statsContainer).style("margin", "5px");
-  createSpan(`Ability Points: ${abilityPoints} (future use)`).parent(pointsInfoDiv).style("margin-right", "10px");
-
-  // Display Total Talent Points with editable input
-  let talentPointsDiv = createDiv().parent(statsContainer).style("margin", "5px");
+  // Total Talent Points with editable input
+  let talentPointsDiv = createDiv().parent(pointsInfoDiv).style("margin", "5px");
   let talentPointsLabel = createSpan("Total Talent Points: ").parent(talentPointsDiv);
   let talentPointsInput = createInput(totalTalentPoints.toString(), "number")
     .parent(talentPointsDiv)
@@ -3170,6 +3200,27 @@ function createStatsUI() {
     newValue = constrain(newValue, 1, 99); // Minimum 1, maximum 99
     totalTalentPoints = newValue;
     createStatsUI(); // Refresh UI to update displays
+  });
+
+  // Total Ability Points with editable input
+  let abilityPointsDiv = createDiv().parent(pointsInfoDiv).style("margin", "5px");
+  let abilityPointsLabel = createSpan("Total Ability Points: ").parent(abilityPointsDiv);
+  let abilityPointsInput = createInput(totalAbilityPoints.toString(), "number")
+    .parent(abilityPointsDiv)
+    .style("width", "50px");
+  if (lockToLevel) {
+    abilityPointsInput.attribute("readonly", "true").style("background-color", "#e0e0e0");
+  } else {
+    abilityPointsInput.removeAttribute("readonly").style("background-color", "white");
+  }
+  abilityPointsInput.changed(() => {
+    let newValue = int(abilityPointsInput.value());
+    newValue = constrain(newValue, 1, 99); // Minimum 1, maximum 99
+    totalAbilityPoints = newValue;
+    // Recalculate abilityPoints based on spentAbilityPoints
+    abilityPoints = totalAbilityPoints - spentAbilityPoints;
+    createStatsUI(); // Refresh UI to update displays
+    createAbilitiesUI(); // Refresh Abilities UI to reflect updated abilityPoints
   });
 
   // Stats without total or bonus display
@@ -3190,7 +3241,7 @@ function createStatsUI() {
   // Add Total Defense row
   let defenseDiv = createDiv().parent(statsContainer).style("margin", "5px");
   let defenseLabel = createSpan("Defense: ").parent(defenseDiv).style("cursor", "pointer");
-  defenseLabel.mouseClicked(() => showStatDescription("Defense", "Defense: Total defense from equipped armor."));
+  defenseLabel.mouseClicked(() => showStatDescription("Defense", "Total defense from equipped armor."));
   statLabelElements["Defense"] = defenseLabel;
   let totalDefense = calculateTotalDefense();
   let defenseInput = createInput(totalDefense.toString(), "text")
@@ -6839,27 +6890,27 @@ function meetsStatRequirements(statReq) {
 
 // Learn a weapon-specific ability
 function learnAbility(category, ability) {
-  if (abilityPoints >= ability.pointCost && meetsStatRequirements(ability.statReq)) {
-    if (!learnedAbilities[category]) learnedAbilities[category] = [];
-    if (!learnedAbilities[category].includes(ability.name)) {
-      learnedAbilities[category].push(ability.name);
-      abilityPoints -= ability.pointCost;
-      console.log(`Learned ${ability.name} for ${category}`);
-      createAbilitiesUI(); // Refresh UI
-    }
-  } else {
-    showConfirmationModal("Cannot learn ability: insufficient points or stats.", () => {}, true);
+  if (abilityPoints < ability.pointCost) {
+    return; // Not enough points
   }
+  if (!learnedAbilities[category]) {
+    learnedAbilities[category] = [];
+  }
+  learnedAbilities[category].push(ability.name);
+  spentAbilityPoints += ability.pointCost;
+  abilityPoints = totalAbilityPoints - spentAbilityPoints;
+  createAbilitiesUI();
 }
-//Unlearn a weapon-specific ability
+
 function unlearnAbility(category, ability) {
-  if (learnedAbilities[category] && learnedAbilities[category].includes(ability.name)) {
-    // Remove the ability from learnedAbilities
-    learnedAbilities[category] = learnedAbilities[category].filter(name => name !== ability.name);
-    // Refund the ability points
-    abilityPoints += ability.pointCost;
-    // Refresh the UI
-    createAbilitiesUI();
+  if (learnedAbilities[category]) {
+    let idx = learnedAbilities[category].indexOf(ability.name);
+    if (idx !== -1) {
+      learnedAbilities[category].splice(idx, 1);
+      spentAbilityPoints -= ability.pointCost;
+      abilityPoints = totalAbilityPoints - spentAbilityPoints;
+      createAbilitiesUI();
+    }
   }
 }
 //Use Crystal Ability
@@ -6969,6 +7020,11 @@ function createAbilitiesUI() {
     .style("color", "#666")
     .style("display", "block")
     .style("margin-bottom", "10px");
+  
+  
+  createP(`Available Ability Points: ${abilityPoints}`)
+    .parent(abilitiesContainer)
+    .style("margin-top", "10px");
 
   let buttonRow = createDiv().parent(abilitiesContainer).class("resource-row");
   createButton("Create Custom Ability")
@@ -7137,9 +7193,6 @@ function createAbilitiesUI() {
     }
   });
 
-  createP(`Available Ability Points: ${abilityPoints}`)
-    .parent(abilitiesContainer)
-    .style("margin-top", "10px");
 }
 function showAbilityDescription(ability) {
   if (modalDiv) modalDiv.remove();
