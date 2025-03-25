@@ -402,7 +402,11 @@ function setup() {
       // Optionally clear localStorage if the data is corrupted
       localStorage.removeItem("characterData");
     }
+  } else {
+    // Only initialize inventory if no saved data was found
+    initializeInventory();
   }
+
   let resourceBarsContainer = select("#resource-bars");
   if (!resourceBarsContainer) {
     console.error("No #resource-bars div found in HTML!");
@@ -428,7 +432,6 @@ function setup() {
   skillsContainer = createDiv().id("skillsContainer");
 
   // Initialize all UI components
-  initializeInventory();
   createResourceUI();
   createStatsUI();
   createTalentsUI();
@@ -480,16 +483,16 @@ function setup() {
   // Simulate click on default tab
   document.querySelector(".tablink.active").click();
 
-// Scroll listener to force redraw when #resource-bars is in view
-window.addEventListener('scroll', () => {
-  if (currentTab === 'resources') {
-    let barsDiv = select('#resource-bars');
-    let barBounds = barsDiv.elt.getBoundingClientRect(); // Changed 'rect' to 'barBounds'
-    if (barBounds.top >= 0 && barBounds.bottom <= window.innerHeight) {
-      redraw();
+  // Scroll listener to force redraw when #resource-bars is in view
+  window.addEventListener('scroll', () => {
+    if (currentTab === 'resources') {
+      let barsDiv = select('#resource-bars');
+      let barBounds = barsDiv.elt.getBoundingClientRect();
+      if (barBounds.top >= 0 && barBounds.bottom <= window.innerHeight) {
+        redraw();
+      }
     }
-  }
-});
+  });
 function createTopUI() {
 // Character Name Input
   let nameInput = select("#characterName");
@@ -3145,7 +3148,7 @@ function showAddEditEquipmentModal() {
           }
           inventory.push(eqObj);
           console.log("Added to inventory and updated master list:", eqObj);
-          localStorage.setItem('inventory', JSON.stringify(inventory));
+          // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
           updateAvailableEquipment();
           updateEquipmentOptions();
           createInventoryUI();
@@ -3186,7 +3189,7 @@ function showAddEditEquipmentModal() {
         inventory.push(eqObj);
         availableItems["Equipment"].push({ ...eqObj });
         console.log("Added new equipment to inventory and master list:", eqObj);
-        localStorage.setItem('inventory', JSON.stringify(inventory));
+        // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
         updateAvailableEquipment();
         updateEquipmentOptions();
         createInventoryUI();
@@ -3342,7 +3345,7 @@ function showAddEditEquipmentModal() {
         }
       }
 
-      localStorage.setItem('inventory', JSON.stringify(inventory));
+      // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
       updateAvailableEquipment();
       updateEquipmentOptions();
       createInventoryUI();
@@ -3433,7 +3436,7 @@ function showAddEditEquipmentModal() {
             console.log(`After removal, availableItems["Equipment"]:`, availableItems["Equipment"]);
           }
 
-          localStorage.setItem('inventory', JSON.stringify(inventory));
+          // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
           updatestatbonusesDisplay();
           updateResourcesBasedOnStats();
           updateAvailableEquipment();
@@ -3940,7 +3943,19 @@ function createEquipmentUI() {
   let disableOnHand = twoHandedInOffHand;
   let disableOffHand = twoHandedInOnHand;
 
-  Object.keys(equippedItems).forEach((slot) => {
+  // Define all possible equipment slots
+  const equipmentSlots = [
+    "On-Hand",
+    "Off-Hand",
+    "Chest",
+    "Helm",
+    "Gloves",
+    "Greaves",
+    "Accessory 1",
+    "Accessory 2"
+  ];
+
+  equipmentSlots.forEach((slot) => {
     let row = createElement("tr").parent(equipmentTable);
     let slotCell = createElement("td")
       .parent(row)
@@ -4001,16 +4016,18 @@ function createEquipmentUI() {
       return inventoryQty > equippedCountExcludingCurrent;
     });
 
-    filteredDropdownItems.forEach(item => {
+    filteredDropdownItems = filteredDropdownItems.filter(item => {
       let isAlreadyEquipped = false;
       if (slot === "Accessory 1" && equippedItems["Accessory 2"] && equippedItems["Accessory 2"].name === item.name) {
         isAlreadyEquipped = true;
       } else if (slot === "Accessory 2" && equippedItems["Accessory 1"] && equippedItems["Accessory 1"].name === item.name) {
         isAlreadyEquipped = true;
       }
-      if (!isAlreadyEquipped) {
-        itemSelect.option(item.name, item.name);
-      }
+      return !isAlreadyEquipped;
+    });
+
+    filteredDropdownItems.forEach(item => {
+      itemSelect.option(item.name, item.name);
     });
 
     itemSelect.value(itemName);
@@ -4500,7 +4517,7 @@ function showModifyCrystalsModal() {
             availableItems["Crystals"].push(crystalObj);
           }
           inventory.push(crystalObj);
-          localStorage.setItem('inventory', JSON.stringify(inventory));
+          // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
           updateAvailableEquipment();
           updateAbilities();
           createInventoryUI();
@@ -4541,7 +4558,7 @@ function showModifyCrystalsModal() {
         inventory.push(crystalObj);
         if (!availableItems["Crystals"]) availableItems["Crystals"] = [];
         availableItems["Crystals"].push({ ...crystalObj });
-        localStorage.setItem('inventory', JSON.stringify(inventory));
+        // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
         updateAvailableEquipment();
         updateAbilities();
         createInventoryUI();
@@ -4655,7 +4672,7 @@ function showModifyCrystalsModal() {
         }
       }
 
-      localStorage.setItem('inventory', JSON.stringify(inventory));
+      // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
       updateAvailableEquipment();
       updateAbilities();
       createInventoryUI();
@@ -4742,7 +4759,7 @@ function showModifyCrystalsModal() {
             );
           }
 
-          localStorage.setItem('inventory', JSON.stringify(inventory));
+          // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
           updateAvailableEquipment();
           updateAbilities();
           createInventoryUI();
@@ -6413,7 +6430,7 @@ function createInventoryUI() {
           }
         });
         console.log("Restored default equipment list:", availableItems["Equipment"]);
-        localStorage.setItem('inventory', JSON.stringify(inventory));
+        // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
         updateAvailableEquipment();
         createInventoryUI();
         createEquipmentUI();
@@ -6440,7 +6457,7 @@ function createInventoryUI() {
           QuestItems: availableItems["Quest Items"],
           Miscellaneous: availableItems["Miscellaneous"]
         });
-        localStorage.setItem('inventory', JSON.stringify(inventory));
+        // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
         updateAvailableEquipment();
         createInventoryUI();
         createEquipmentUI();
@@ -6551,7 +6568,7 @@ function createInventoryUI() {
           });
 
           let tableWrapper = createDiv().parent(typeContentDiv).class("table-wrapper").style("overflow-x", "auto");
-let table = createElement("table").parent(tableWrapper).class("rules-table");
+          let table = createElement("table").parent(tableWrapper).class("rules-table");
           let header = createElement("tr").parent(table);
           createElement("th", "Item Name").parent(header).style("width", "20%");
           createElement("th", "Description").parent(header).style("width", "30%");
@@ -6604,7 +6621,7 @@ let table = createElement("table").parent(tableWrapper).class("rules-table");
                 inventory.push({ ...item, quantity: newQuantity });
               }
               console.log("Updated inventory:", JSON.stringify(inventory, null, 2));
-              localStorage.setItem('inventory', JSON.stringify(inventory));
+              // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
               nameSpan.html(`${item.name}`);
               this.value(newQuantity.toString());
               createInventoryUI();
@@ -6634,7 +6651,7 @@ let table = createElement("table").parent(tableWrapper).class("rules-table");
                       }
                     });
                     inventory.splice(inventoryIdx, 1);
-                    localStorage.setItem('inventory', JSON.stringify(inventory));
+                    // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
                     updateAvailableEquipment();
                     createInventoryUI();
                     createEquipmentUI();
@@ -6723,7 +6740,7 @@ let table = createElement("table").parent(tableWrapper).class("rules-table");
               inventory.push({ ...item, quantity: newQuantity });
             }
             console.log("Updated inventory:", JSON.stringify(inventory, null, 2));
-            localStorage.setItem('inventory', JSON.stringify(inventory));
+            // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
             nameSpan.html(`${item.name}`);
             this.value(newQuantity.toString());
             createInventoryUI();
@@ -6753,7 +6770,7 @@ let table = createElement("table").parent(tableWrapper).class("rules-table");
                     }
                   });
                   inventory.splice(inventoryIdx, 1);
-                  localStorage.setItem('inventory', JSON.stringify(inventory));
+                  // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
                   updateAvailableEquipment();
                   createInventoryUI();
                   createEquipmentUI();
@@ -7017,7 +7034,7 @@ function showModifyItemsModal() {
           }
           inventory.push(itemObj);
           console.log("Added to inventory and updated master list:", itemObj);
-          localStorage.setItem('inventory', JSON.stringify(inventory));
+          // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
           updateAvailableEquipment();
           updateEquipmentOptions();
           createInventoryUI();
@@ -7055,7 +7072,7 @@ function showModifyItemsModal() {
         if (!availableItems[selectedType]) availableItems[selectedType] = [];
         availableItems[selectedType].push({ ...itemObj });
         console.log("Added new item to inventory and master list:", itemObj);
-        localStorage.setItem('inventory', JSON.stringify(inventory));
+        // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
         updateAvailableEquipment();
         updateEquipmentOptions();
         createInventoryUI();
@@ -7157,7 +7174,7 @@ function showModifyItemsModal() {
         });
       }
 
-      localStorage.setItem('inventory', JSON.stringify(inventory));
+      // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
       updateAvailableEquipment();
       updateEquipmentOptions();
       createInventoryUI();
@@ -7231,7 +7248,7 @@ function showModifyItemsModal() {
             console.log(`After removal, availableItems["${selectedType}"]:`, availableItems[selectedType]);
           }
 
-          localStorage.setItem('inventory', JSON.stringify(inventory));
+          // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
           updateAvailableEquipment();
           updateEquipmentOptions();
           createInventoryUI();
