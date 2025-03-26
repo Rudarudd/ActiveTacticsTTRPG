@@ -22,13 +22,21 @@ let level = 1,
   movement = 65; // Base movement starts at 65 ft
 let statbonusElements = {};
 
+//Dice History & Roll Check
+let rollHistory = [];
+let rollingInProgress = false;
+
+//Ability check for dice roller
+let currentAbility = null;
+let equippedCrystalAbilities = []; // List of currently available Crystal abilities (e.g., ["Fire", "Cure"])
+
 // Helper function to enable/disable buttons
 // Using elt.disabled instead of .attribute("disabled", ...) due to inconsistent behavior with p5.js attribute method
 function setButtonDisabled(button, isDisabled) {
   button.elt.disabled = isDisabled;
 }
 //Character Name
-let characterName = "Enter Name"; // Default name
+let characterName = ""; // Default name
 
 //Talent Point Pool
 let totalTalentPoints = 0; // Total Talent Points based on level
@@ -386,7 +394,7 @@ let skillsContainer;
 let maxHpInput, setMaxHpButton, maxMpInput, setMaxMpButton;
 let maxStaminaInput, setMaxStaminaButton, maxATGInput, setMaxATGButton;
 let hpPlus, hpMinus, mpPlus, mpMinus, staminaPlus, staminaMinus, ATGPlus, ATGMinus;
-let resetButton, staminaATGLink = false, staminaATGLinkButton;
+let resetButton, staminaATGLink = true, staminaATGLinkButton;
 
 // Setup Function
 function setup() {
@@ -494,14 +502,29 @@ function setup() {
     }
   });
 function createTopUI() {
-// Character Name Input
+  // Character Name Input
   let nameInput = select("#characterName");
   if (nameInput) {
-    nameInput.value(characterName);
+    nameInput.value(characterName || ""); // Start with characterName or empty
+    nameInput.attribute("placeholder", "Enter Name"); // Add placeholder
     nameInput.input(() => {
-      characterName = nameInput.value().trim() || "Unnamed Character";
-      nameInput.value(characterName);
+      let newName = nameInput.value().trim(); // Trim whitespace
+      if (newName) {
+        characterName = newName; // Only update if non-empty
+      } else {
+        characterName = ""; // Allow characterName to be empty
+      }
     });
+
+    // Add CSS to style the placeholder (grayed-out, italic text)
+    let style = document.createElement("style");
+    style.innerHTML = `
+      #characterName::placeholder {
+        color: #888;
+        font-style: italic;
+      }
+    `;
+    document.head.appendChild(style);
   } else {
     console.error("Character Name input (#characterName) not found in HTML!");
   }
@@ -563,7 +586,7 @@ function createTopUI() {
 function resetToDefaultCharacter() {
   // Reset all character data to default values
   // Core character data
-  characterName = "Enter Name";
+  characterName = "";
   level = 1;
   exp = 1;
   movement = 65;
@@ -835,7 +858,7 @@ function handleFileLoad(evt) {
 
 function restoreCharacterData(characterData) {
   // Restore character data
-  characterName = characterData.characterName || "Unnamed Character";
+  characterName = characterData.characterName || "";
   level = characterData.level || 1;
   exp = characterData.exp || 0;
   stat_str = characterData.stat_str || 1;
@@ -888,6 +911,9 @@ function restoreCharacterData(characterData) {
   talents = characterData.talents || [];
   existingTalents = characterData.existingTalents || [...defaultTalents];
 
+  // Update equippedCrystalAbilities based on restored equippedItems
+  updateCharacterAbilities();
+
   // Refresh the UI
   let nameInput = select("#characterName");
   if (nameInput) {
@@ -898,7 +924,11 @@ function restoreCharacterData(characterData) {
   createEquipmentUI();
   createAbilitiesUI();
   createTraitsUI();
-  createTalentsUI(); // Refresh the Talents tab UI
+  createTalentsUI();
+  redrawResourceBars();
+  if (window.refreshDiceRoller) {
+    window.refreshDiceRoller();
+  }
 }
 function updateTypeVisibility() {
   if (typeof updating === 'undefined' || updating) return; // Prevent recursion
@@ -1058,9 +1088,6 @@ function displayBars() {
   fill(255);
   text(`ATG: ${current_ATG}/${max_ATG}`, x + bar_width / 2, y_ATG + bar_height / 2);
 }
-
-// ### Resource UI ###
-
 function createResourceUI() {
   let rUI = resourceUIContainer;
   rUI.html("");
@@ -1079,12 +1106,14 @@ function createResourceUI() {
     .class("resource-button small-button")
     .mousePressed(() => {
       current_hp = min(current_hp + 10, max_hp);
+      redrawResourceBars();
     });
   hpMinus = createButton("-10")
     .parent(hpRow)
     .class("resource-button small-button")
     .mousePressed(() => {
       current_hp = max(current_hp - 10, 0);
+      redrawResourceBars();
     });
 
   let mpRow = createDiv().parent(rUI).class("resource-row");
@@ -1101,12 +1130,14 @@ function createResourceUI() {
     .class("resource-button small-button")
     .mousePressed(() => {
       current_mp = min(current_mp + 5, max_mp);
+      redrawResourceBars();
     });
   mpMinus = createButton("-5")
     .parent(mpRow)
     .class("resource-button small-button")
     .mousePressed(() => {
       current_mp = max(current_mp - 5, 0);
+      redrawResourceBars();
     });
 
   let staminaRow = createDiv().parent(rUI).class("resource-row");
@@ -1123,6 +1154,7 @@ function createResourceUI() {
     .class("resource-button small-button")
     .mousePressed(() => {
       current_stamina = min(current_stamina + 25, max_stamina);
+      redrawResourceBars();
     });
   staminaMinus = createButton("-25")
     .parent(staminaRow)
@@ -1132,6 +1164,7 @@ function createResourceUI() {
       if (staminaATGLink) {
         current_ATG = min(current_ATG + 25, max_ATG);
       }
+      redrawResourceBars();
     });
 
   let ATGRow = createDiv().parent(rUI).class("resource-row");
@@ -1148,12 +1181,14 @@ function createResourceUI() {
     .class("resource-button small-button")
     .mousePressed(() => {
       current_ATG = min(current_ATG + 25, max_ATG);
+      redrawResourceBars();
     });
   ATGMinus = createButton("-50")
     .parent(ATGRow)
     .class("resource-button small-button")
     .mousePressed(() => {
       current_ATG = max(current_ATG - 50, 0);
+      redrawResourceBars();
     });
 
   let adjustmentRow = createDiv().parent(rUI).class("resource-row");
@@ -1205,6 +1240,444 @@ function createResourceUI() {
     .parent(resetRow)
     .class("resource-button")
     .mousePressed(resetResources);
+
+  // --- Dice Roller Section ---
+  let diceRollerDiv = createDiv().parent(rUI)
+    .style("margin-top", "20px")
+    .style("padding", "10px")
+    .style("border", "1px solid #ccc")
+    .style("border-radius", "5px")
+    .style("background", "#f9f9f9");
+
+  createElement("h3", "Dice Roller").parent(diceRollerDiv)
+    .style("margin-top", "0")
+    .style("margin-bottom", "10px")
+    .style("color", "#333")
+    .style("font-size", "16px");
+
+  // Source Dropdown (Equipment, Ability, Crystals, Skills, Custom)
+  let sourceRow = createDiv().parent(diceRollerDiv).class("resource-row");
+  createSpan("Roll Source:").parent(sourceRow);
+  let sourceSelect = createSelect()
+    .parent(sourceRow)
+    .class("resource-input");
+  sourceSelect.option("Equipment", "Equipment");
+  sourceSelect.option("Ability", "Ability");
+  sourceSelect.option("Crystals", "Crystals");
+  sourceSelect.option("Skills", "Skills");
+  sourceSelect.option("Custom", "Custom");
+
+  // Item Dropdown (populated based on source)
+  let itemRow = createDiv().parent(diceRollerDiv).class("resource-row");
+  createSpan("Select Item:").parent(itemRow);
+  let itemSelect = createSelect()
+    .parent(itemRow)
+    .class("resource-input");
+
+  // Dice Expression inputs
+  let diceRow = createDiv().parent(diceRollerDiv).class("resource-row");
+  createSpan("Dice Expression:").parent(diceRow);
+  let diceInputsWrapper = createDiv().parent(diceRow)
+    .style("display", "flex")
+    .style("align-items", "center")
+    .style("gap", "5px");
+  let numDiceInput = createInput("1", "number")
+    .parent(diceInputsWrapper)
+    .class("resource-input")
+    .style("width", "50px")
+    .attribute("min", "1")
+    .attribute("disabled", "true");
+  createSpan("d").parent(diceInputsWrapper)
+    .style("font-size", "14px")
+    .style("color", "#555");
+  let sidesInput = createInput("6", "number")
+    .parent(diceInputsWrapper)
+    .class("resource-input")
+    .style("width", "50px")
+    .attribute("min", "1")
+    .attribute("disabled", "true");
+
+  let modifierRow = createDiv().parent(diceRollerDiv).class("resource-row");
+  createSpan("Modifier:").parent(modifierRow);
+  let modifierInput = createInput("0", "number")
+    .parent(modifierRow)
+    .class("resource-input")
+    .attribute("disabled", "true");
+
+  // Embed the dice roller UI once, storing the returned elements
+  const diceRollerElements = showDiceRollModal("1d6", 0, "Dice Roller", false, false, diceRollerDiv, sourceSelect.value(), numDiceInput, sidesInput, modifierInput);
+
+  // Define performRoll inside createResourceUI to access itemSelect
+  function performRoll() {
+    if (rollingInProgress) return;
+    rollingInProgress = true;
+    diceRollerElements.rollButton.elt.disabled = true;
+    diceRollerElements.rollButton.style("background-color", "#a0a0a0");
+    diceRollerElements.rollButton.style("cursor", "not-allowed");
+
+    // Use sourceSelect.value() directly instead of currentRollType
+    let rollType = sourceSelect.value();
+    if (rollType === "Ability" || rollType === "Crystals") {
+      if (!currentAbility) {
+        diceRollerElements.resultDiv.html('<span style="color: red;">No ability selected.</span>');
+        rollingInProgress = false;
+        diceRollerElements.rollButton.elt.disabled = false;
+        diceRollerElements.rollButton.style("background-color", "#4CAF50");
+        diceRollerElements.rollButton.style("cursor", "pointer");
+        return;
+      }
+
+      // Check if the ability is a Crystal ability
+      console.log("Selected Item Value:", itemSelect ? itemSelect.value() : "itemSelect is undefined");
+      console.log("Crystal Abilities:", existingAbilities["Crystals"].map(a => a.name));
+      let isCrystalAbility = rollType === "Crystals" || (itemSelect && existingAbilities["Crystals"].some(a => a.name === itemSelect.value()));
+      console.log(`Rolling ability: ${itemSelect ? itemSelect.value() : "unknown"} - Is Crystal Ability: ${isCrystalAbility}`);
+      if (isCrystalAbility) {
+        // Find the Crystal that grants this ability
+        let associatedCrystal = inventory.find(item => 
+          item.category === "Crystals" && item.abilities && item.abilities.includes(itemSelect.value())
+        );
+        console.log("Associated Crystal:", associatedCrystal);
+        if (associatedCrystal) {
+          // Check if the Crystal is equipped
+          let isEquipped = false;
+          for (let slot in equippedItems) {
+            let equipped = equippedItems[slot];
+            if (equipped && equipped.equippedCrystals) {
+              if (equipped.equippedCrystals.some(crystal => crystal && crystal.name === associatedCrystal.name)) {
+                isEquipped = true;
+                break;
+              }
+            }
+          }
+          console.log("Is Crystal Equipped:", isEquipped);
+          if (!isEquipped) {
+            diceRollerElements.resultDiv.html('<span style="color: red;">Cannot use this Crystal ability: The associated Crystal is not equipped.</span>');
+            rollingInProgress = false;
+            diceRollerElements.rollButton.elt.disabled = false;
+            diceRollerElements.rollButton.style("background-color", "#4CAF50");
+            diceRollerElements.rollButton.style("cursor", "pointer");
+            return;
+          }
+        }
+      } else {
+        console.log(`Treating ${itemSelect ? itemSelect.value() : "unknown"} as a weapon-specific ability`);
+      }
+
+      console.log("Before Roll - Current MP:", current_mp);
+      console.log("Before Roll - Current ATG:", current_ATG);
+      console.log("Before Roll - Ability:", currentAbility);
+
+      if (current_ATG < currentAbility.ATGCost) {
+        diceRollerElements.resultDiv.html('<span style="color: red;">Not enough ATG to use this ability.</span>');
+        rollingInProgress = false;
+        diceRollerElements.rollButton.elt.disabled = false;
+        diceRollerElements.rollButton.style("background-color", "#4CAF50");
+        diceRollerElements.rollButton.style("cursor", "pointer");
+        return;
+      }
+      let mpCost = currentAbility.effect.mpCost || 0;
+      console.log("MP Cost:", mpCost);
+      if (mpCost > 0 && current_mp < mpCost) {
+        diceRollerElements.resultDiv.html('<span style="color: red;">Not enough MP to use this ability.</span>');
+        rollingInProgress = false;
+        diceRollerElements.rollButton.elt.disabled = false;
+        diceRollerElements.rollButton.style("background-color", "#4CAF50");
+        diceRollerElements.rollButton.style("cursor", "pointer");
+        return;
+      }
+      current_ATG -= currentAbility.ATGCost;
+      console.log("After ATG Deduction - New ATG:", current_ATG);
+      if (mpCost > 0) {
+        current_mp -= mpCost;
+        console.log("After MP Deduction - New MP:", current_mp);
+      } else {
+        console.log("No MP deduction needed (mpCost is 0)");
+      }
+      redrawResourceBars();
+      console.log("After Redraw - MP should be:", current_mp);
+      console.log("After Redraw - ATG should be:", current_ATG);
+
+      let resultText;
+      let result = null; // Declare result outside the if block
+      if (currentAbility.effect.dice && currentAbility.effect.dice !== "0d0") {
+        let numDiceValue = parseInt(numDiceInput.value()) || 1;
+        let sidesValue = parseInt(sidesInput.value()) || 6;
+        let dice = `${numDiceValue}d${sidesValue}`;
+        let mod = parseInt(modifierInput.value()) || 0;
+        let adv = diceRollerElements.advantageCheckbox.checked();
+        let disadv = diceRollerElements.disadvantageCheckbox.checked();
+        result = rollDice(dice, mod, adv, disadv);
+        resultText = `<strong>Result: ${result.total}</strong><br>${result.display}`;
+      } else {
+        resultText = `<strong>Effect: ${currentAbility.effect.description}</strong>`;
+      }
+      resultText += `<br>ATG Cost: ${currentAbility.ATGCost}`;
+      if (currentAbility.effect.mpCost) {
+        resultText += `<br>MP Cost: ${currentAbility.effect.mpCost}`;
+      }
+
+      diceRollerElements.resultDiv.html("Activating...");
+      let animationSteps = 10;
+      let step = 0;
+      activeInterval = setInterval(() => {
+        step++;
+        diceRollerElements.resultDiv.html(`Activating... (${step}/${animationSteps})`);
+        if (step >= animationSteps) {
+          clearInterval(activeInterval);
+          activeInterval = null;
+          diceRollerElements.resultDiv.html(resultText);
+          rollHistory.push(result ? result.display : currentAbility.effect.description);
+          if (rollHistory.length > 10) rollHistory.shift();
+          diceRollerElements.updateHistory();
+          diceRollerElements.rollButton.elt.disabled = false;
+          diceRollerElements.rollButton.style("background-color", "#4CAF50");
+          diceRollerElements.rollButton.style("cursor", "pointer");
+          rollingInProgress = false;
+          console.log("Roll Complete - Final MP:", current_mp);
+          console.log("Roll Complete - Final ATG:", current_ATG);
+        }
+      }, 100);
+      return;
+    }
+
+    // Rest of performRoll remains unchanged
+    if (rollType !== "Custom") {
+      if (current_stamina < 25) {
+        diceRollerElements.resultDiv.html('<span style="color: red;">Not enough stamina to attack! You need at least 25 stamina.</span>');
+        rollingInProgress = false;
+        diceRollerElements.rollButton.elt.disabled = false;
+        diceRollerElements.rollButton.style("background-color", "#4CAF50");
+        diceRollerElements.rollButton.style("cursor", "pointer");
+        return;
+      }
+      current_stamina -= 25;
+      if (staminaATGLink) {
+        current_ATG = min(current_ATG + 25, max_ATG);
+      }
+      redrawResourceBars();
+    }
+
+    let numDiceValue = parseInt(numDiceInput.value()) || 1;
+    let sidesValue = parseInt(sidesInput.value()) || 6;
+    let dice = `${numDiceValue}d${sidesValue}`;
+    let mod = parseInt(modifierInput.value()) || 0;
+    let adv = diceRollerElements.advantageCheckbox.checked();
+    let disadv = diceRollerElements.disadvantageCheckbox.checked();
+    let result = rollDice(dice, mod, adv, disadv);
+
+    let resultText = `<strong>Result: ${result.total}</strong><br>${result.display}`;
+    diceRollerElements.resultDiv.html("Rolling...");
+    let animationSteps = 10;
+    let step = 0;
+    activeInterval = setInterval(() => {
+      step++;
+      diceRollerElements.resultDiv.html(`Rolling... (${step}/${animationSteps})`);
+      if (step >= animationSteps) {
+        clearInterval(activeInterval);
+        activeInterval = null;
+        diceRollerElements.resultDiv.html(resultText);
+        rollHistory.push(result.display);
+        if (rollHistory.length > 10) rollHistory.shift();
+        diceRollerElements.updateHistory();
+        diceRollerElements.rollButton.elt.disabled = false;
+        diceRollerElements.rollButton.style("background-color", "#4CAF50");
+        diceRollerElements.rollButton.style("cursor", "pointer");
+        rollingInProgress = false;
+      }
+    }, 100);
+  }
+
+  // Attach performRoll to the roll button
+  diceRollerElements.rollButton.mousePressed(performRoll);
+
+  // --- Update item dropdown based on source ---
+  function updateItemDropdown() {
+    itemSelect.html("");
+    itemSelect.option("Select an item", "");
+    let source = sourceSelect.value();
+
+    if (source === "Equipment") {
+      // Populate with equipped weapons (On-Hand and Off-Hand slots with damageDice)
+      for (let slot in equippedItems) {
+        let item = equippedItems[slot];
+        if (item && item.damageDice && (slot === "On-Hand" || slot === "Off-Hand")) {
+          itemSelect.option(`${slot}: ${item.name}`, `${slot}:${item.name}`);
+        }
+      }
+    } else if (source === "Ability") {
+      let abilitiesAdded = false;
+      // Add abilities from the equipped weapon’s category
+      let equippedCategory = getEquippedWeaponCategory();
+      if (equippedCategory && learnedAbilities[equippedCategory]) {
+        learnedAbilities[equippedCategory].forEach(abilityName => {
+          let ability = existingAbilities[equippedCategory].find(a => a.name === abilityName);
+          if (ability) { // Allow non-dice abilities
+            itemSelect.option(abilityName, abilityName);
+            abilitiesAdded = true;
+          }
+        });
+      }
+      // If no ability was added, show a placeholder
+      if (!abilitiesAdded) {
+        itemSelect.option("No ability available", "");
+      }
+    } else if (source === "Crystals") {
+      let abilitiesAdded = false;
+      // Add abilities from equipped Crystals
+      if (equippedCrystalAbilities && equippedCrystalAbilities.length > 0) {
+        equippedCrystalAbilities.forEach(abilityName => {
+          let ability = existingAbilities["Crystals"].find(a => a.name === abilityName);
+          if (ability) { // Allow non-dice abilities
+            itemSelect.option(abilityName, abilityName);
+            abilitiesAdded = true;
+          }
+        });
+      }
+      // If no ability was added, show a placeholder
+      if (!abilitiesAdded) {
+        itemSelect.option("No crystal ability available", "");
+      }
+    } else if (source === "Skills") {
+      // Populate with additional attributes (e.g., Athletics, Endurance)
+      additionalAttributes.forEach(attr => {
+        itemSelect.option(attr.name, attr.name);
+      });
+    } else if (source === "Custom") {
+      // No items for Custom; hide the item dropdown
+      itemRow.style("display", "none");
+      return;
+    }
+    itemRow.style("display", "block");
+    updateDiceExpression();
+  }
+
+  // --- Update dice expression and modifier based on selected item ---
+  function updateDiceExpression() {
+    let selectedItem = itemSelect.value();
+    let source = sourceSelect.value();
+    let numDice = 1;
+    let sides = source === "Skills" ? 12 : 6;
+    let mod = 0;
+    currentAbility = null; // Reset current ability
+
+    if (source === "Custom") {
+      numDice = 1;
+      sides = 6;
+      mod = 0;
+    } else if (selectedItem && selectedItem !== "") {
+      if (source === "Equipment") {
+        let [slot, itemName] = selectedItem.split(":");
+        let item = equippedItems[slot];
+        if (item && item.damageDice) {
+          const [parsedNumDice, parsedSides] = item.damageDice.split("d").map(Number);
+          numDice = parsedNumDice || 1;
+          sides = parsedSides || 6;
+          mod = item.modifier || 0;
+        }
+      } else if (source === "Ability") {
+        // Look up the ability from the equipped weapon category
+        let equippedCategory = getEquippedWeaponCategory();
+        let foundAbility = null;
+        if (equippedCategory && learnedAbilities[equippedCategory]) {
+          learnedAbilities[equippedCategory].forEach(abilityName => {
+            if (abilityName === selectedItem) {
+              foundAbility = existingAbilities[equippedCategory].find(a => a.name === abilityName);
+            }
+          });
+        }
+        console.log("Selected Item (Ability):", selectedItem);
+        console.log("Found Ability (Ability):", foundAbility);
+        if (foundAbility) {
+          currentAbility = foundAbility;
+          console.log("Set currentAbility (Ability):", currentAbility);
+          if (foundAbility.effect && foundAbility.effect.dice && foundAbility.effect.dice !== "0d0") {
+            const [parsedNumDice, parsedSides] = foundAbility.effect.dice.split("d").map(Number);
+            numDice = parsedNumDice || 1;
+            sides = parsedSides || 6;
+          }
+          mod = 0; // For abilities, the roll does not add an extra modifier here
+        } else {
+          console.log("No ability found for selected item (Ability)");
+        }
+      } else if (source === "Crystals") {
+        // Look up the ability from equipped Crystals
+        let foundAbility = null;
+        if (equippedCrystalAbilities.includes(selectedItem)) {
+          foundAbility = existingAbilities["Crystals"].find(a => a.name === selectedItem);
+        }
+        console.log("Selected Item (Crystals):", selectedItem);
+        console.log("Equipped Crystal Abilities:", equippedCrystalAbilities);
+        console.log("Found Ability (Crystals):", foundAbility);
+        if (foundAbility) {
+          currentAbility = foundAbility;
+          console.log("Set currentAbility (Crystals):", currentAbility);
+          if (foundAbility.effect && foundAbility.effect.dice && foundAbility.effect.dice !== "0d0") {
+            const [parsedNumDice, parsedSides] = foundAbility.effect.dice.split("d").map(Number);
+            numDice = parsedNumDice || 1;
+            sides = parsedSides || 6;
+          }
+          mod = 0; // For abilities, the roll does not add an extra modifier here
+        } else {
+          console.log("No crystal ability found for selected item");
+        }
+      } else if (source === "Skills") {
+        numDice = 1;
+        sides = 12;
+        let skillName = selectedItem;
+        let linkedStat = attributeLinkMapping[skillName] || "None";
+        if (linkedStat !== "None") {
+          let statValue = 0;
+          switch (linkedStat) {
+            case "STR": statValue = stat_str; break;
+            case "DEX": statValue = stat_dex; break;
+            case "VIT": statValue = stat_vit; break;
+            case "MAG": statValue = stat_mag; break;
+            case "WIL": statValue = stat_wil; break;
+            case "SPR": statValue = stat_spr; break;
+            case "LCK": statValue = stat_lck; break;
+          }
+          mod = statValue;
+        }
+      }
+    }
+
+    numDiceInput.value(numDice.toString());
+    sidesInput.value(sides.toString());
+    modifierInput.value(mod.toString());
+  }
+
+  // --- Refresh dice roller ---
+  function refreshDiceRoller() {
+    console.log("refreshDiceRoller called");
+    // Force update of both "Ability" and "Crystals" dropdowns to reflect changes
+    let currentSource = sourceSelect.value();
+    sourceSelect.value("Ability");
+    updateItemDropdown();
+    sourceSelect.value("Crystals");
+    updateItemDropdown();
+    sourceSelect.value(currentSource);
+    updateItemDropdown();
+  }
+
+  // --- Event Listeners ---
+  sourceSelect.changed(() => {
+    updateItemDropdown();
+    // Unlock parameters if "Custom" is selected
+    if (sourceSelect.value() === "Custom") {
+      diceRollerElements.lockCheckbox.checked(false);
+      // Trigger the changed event to enable the inputs
+      diceRollerElements.lockCheckbox.elt.dispatchEvent(new Event("change"));
+    }
+  });
+  itemSelect.changed(updateDiceExpression);
+
+  // Initial population
+  updateItemDropdown();
+
+  // Expose refreshDiceRoller globally
+  console.log("Setting window.refreshDiceRoller");
+  window.refreshDiceRoller = refreshDiceRoller;
 }
 
 function adjustResource(resource, value, isAddition) {
@@ -1230,6 +1703,7 @@ function adjustResource(resource, value, isAddition) {
       current_ATG = constrain(current_ATG + adjustment, 0, max_ATG);
       break;
   }
+  redrawResourceBars();
 }
 
 function setMaxHp() {
@@ -1237,6 +1711,7 @@ function setMaxHp() {
   if (!isNaN(value) && value > 0) {
     max_hp = value;
     current_hp = min(current_hp, value);
+    redrawResourceBars();
   }
 }
 
@@ -1245,6 +1720,7 @@ function setMaxMp() {
   if (!isNaN(value) && value > 0) {
     max_mp = value;
     current_mp = min(current_mp, value);
+    redrawResourceBars();
   }
 }
 
@@ -1253,6 +1729,7 @@ function setMaxStamina() {
   if (!isNaN(value) && value > 0) {
     max_stamina = value;
     current_stamina = min(current_stamina, value);
+    redrawResourceBars();
   }
 }
 
@@ -1261,6 +1738,7 @@ function setMaxATG() {
   if (!isNaN(value) && value > 0) {
     max_ATG = value;
     current_ATG = min(current_ATG, value);
+    redrawResourceBars();
   }
 }
 
@@ -1269,21 +1747,18 @@ function resetResources() {
   current_mp = max_mp;
   current_stamina = max_stamina;
   current_ATG = 0;
+  redrawResourceBars();
 }
 
 function toggleStaminaATGLink() {
   staminaATGLink = !staminaATGLink;
   staminaATGLinkButton.html(staminaATGLink ? "Link: ON" : "Link: OFF");
-  staminaATGLinkButton.style(
-    "background-color",
-    staminaATGLink ? "green" : "red"
-  );
+  staminaATGLinkButton.style("background-color", staminaATGLink ? "green" : "red");
 }
 
 // Function to redraw the resource bars
 function redrawResourceBars() {
-  // Replace this with your actual code to draw the bars
-  displayBars(); // Assuming this is your function to render the bars
+  displayBars();
 }
 // ### Stats UI ###
 
@@ -1989,32 +2464,25 @@ function canWieldItem(item) {
 
   return true;
 }
-function updateAbilities() {
+// Update equippedCrystalAbilities based on currently equipped Crystals
+function updateCharacterAbilities() {
   console.log("Updating abilities...");
-  characterAbilities = []; // Reset the abilities array
-
-  // Collect abilities from equipped crystals
+  equippedCrystalAbilities = []; // Reset the list of Crystal abilities
   for (let slot in equippedItems) {
     let item = equippedItems[slot];
     if (item && item.equippedCrystals) {
       item.equippedCrystals.forEach(crystal => {
         if (crystal && crystal.abilities) {
           crystal.abilities.forEach(ability => {
-            if (!characterAbilities.includes(ability)) {
-              characterAbilities.push(ability);
+            if (!equippedCrystalAbilities.includes(ability)) {
+              equippedCrystalAbilities.push(ability);
             }
           });
         }
       });
     }
   }
-
-  // Optionally, refresh the Abilities UI if it’s the active tab
-  if (currentTab === "abilities") {
-    createAbilitiesUI();
-  }
-
-  console.log("Updated characterAbilities:", characterAbilities);
+  console.log("Updated equippedCrystalAbilities:", equippedCrystalAbilities);
 }
 function showConfirmationModal(message, onConfirm, isError = false) {
   if (modalDiv) modalDiv.remove();
@@ -2365,9 +2833,12 @@ function showEquipmentDescription(slot, item, allowCrystalEquip = false) {
 
           updateCrystalDescriptions();
           errorMessage.style("display", "none");
+            updateCharacterAbilities();
+  if (window.refreshDiceRoller) {
+    window.refreshDiceRoller();
+  }
           updatestatbonusesDisplay();
           updateResourcesBasedOnStats();
-          updateAbilities();
           createEquipmentUI();
           createAbilitiesUI();
         });
@@ -3352,7 +3823,6 @@ function showAddEditEquipmentModal() {
       createEquipmentUI();
       updatestatbonusesDisplay();
       updateResourcesBasedOnStats();
-      updateAbilities();
       successMessage.html("Equipment Updated in Master List and Inventory");
       successMessage.style("display", "block");
       contentWrapper.elt.scrollTop = 0;
@@ -3441,7 +3911,6 @@ function showAddEditEquipmentModal() {
           updateResourcesBasedOnStats();
           updateAvailableEquipment();
           console.log(`After updateAvailableEquipment, availableItems["Equipment"]:`, availableItems["Equipment"]);
-          updateAbilities();
           createInventoryUI();
           createEquipmentUI();
           modalDiv.remove();
@@ -4090,10 +4559,14 @@ function createEquipmentUI() {
       calculateMovement();
       updatestatbonusesDisplay();
       updateResourcesBasedOnStats();
-      updateAbilities();
+      updateCharacterAbilities(); // Update equippedCrystalAbilities
       createInventoryUI();
       createEquipmentUI();
       createStatsUI();
+      // Refresh the dice roller UI since equippedCrystalAbilities may have changed
+      if (window.refreshDiceRoller) {
+        window.refreshDiceRoller();
+      }
     });
 
     let itemData = equippedItems[slot];
@@ -4115,41 +4588,7 @@ function createEquipmentUI() {
       .parent(row)
       .style("border", "1px solid #ccc")
       .style("padding", "5px");
-    if (itemData && itemData.damageDice) {
-      createSpan(dmgDefText)
-        .parent(dmgDefCell)
-        .style("cursor", "pointer")
-        .style("color", "blue")
-        .style("text-decoration", "underline")
-        .mousePressed(() => {
-          if (current_stamina < 25) {
-            showConfirmationModal(
-              "Not enough stamina to attack! You need at least 25 stamina.",
-              () => {},
-              true
-            );
-            return;
-          }
-          let previousATG = current_ATG;
-          current_stamina -= 25;
-          if (staminaATGLink) {
-            current_ATG += 25;
-            if (typeof max_ATG !== "undefined" && current_ATG > max_ATG) {
-              current_ATG = max_ATG;
-            }
-          }
-          let rollResult = rollDice(itemData.damageDice, itemData.modifier || 0);
-          let atgMessage = staminaATGLink ? `ATG: ${previousATG} → ${current_ATG}` : `ATG: ${current_ATG}`;
-          showConfirmationModal(
-            `${rollResult.display}\nWeapon: ${itemData.name}\nStamina: ${current_stamina}\n${atgMessage}`,
-            () => {},
-            true
-          );
-          redraw();
-        });
-    } else {
-      dmgDefCell.html(dmgDefText);
-    }
+    dmgDefCell.html(dmgDefText);
 
     createElement("td", itemData && itemData.movementPenalty !== undefined ? itemData.movementPenalty.toString() : "-")
       .parent(row)
@@ -4199,7 +4638,7 @@ function showModifyCrystalsModal() {
     .style("left", "50%")
     .style("transform", "translateX(-50%)")
     .style("background", "#fff")
-    .style("padding", "20px")
+    .style("padding", "15px") // Reduced from 20px for compactness
     .style("border", "2px solid #000")
     .style("z-index", "1000")
     .style("width", "300px")
@@ -4217,28 +4656,30 @@ function showModifyCrystalsModal() {
     .parent(modalDiv)
     .class("modal-buttons")
     .style("flex", "0 0 auto")
-    .style("padding-top", "10px")
+    .style("padding-top", "5px") // Reduced from 10px
     .style("border-top", "1px solid #ccc")
     .style("display", "flex")
     .style("justify-content", "space-between")
     .style("gap", "5px");
 
-  createElement("h3", "Modify Crystals").parent(contentWrapper);
+  createElement("h3", "Modify Crystals").parent(contentWrapper)
+    .style("margin-top", "0")
+    .style("margin-bottom", "5px"); // Reduced from implicit default
 
   let successMessage = createP("")
     .parent(contentWrapper)
     .style("color", "green")
     .style("display", "none")
-    .style("margin-bottom", "10px");
+    .style("margin-bottom", "5px"); // Reduced from 10px
 
   let errorMessage = createP("")
     .parent(contentWrapper)
     .style("color", "red")
     .style("display", "none")
-    .style("margin-bottom", "10px");
+    .style("margin-bottom", "5px"); // Reduced from 10px
 
   // Fields
-  let crystalSelectDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  let crystalSelectDiv = createDiv().parent(contentWrapper).style("margin-bottom", "5px"); // Reduced from 10px
   createSpan("Crystal:").parent(crystalSelectDiv).style("display", "block");
   let crystalSelect = createSelect()
     .parent(crystalSelectDiv)
@@ -4252,7 +4693,7 @@ function showModifyCrystalsModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  let nameDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  let nameDiv = createDiv().parent(contentWrapper).style("margin-bottom", "5px"); // Reduced from 10px
   createSpan("Name:").parent(nameDiv).style("display", "block");
   let nameInput = createInput("")
     .parent(nameDiv)
@@ -4267,7 +4708,7 @@ function showModifyCrystalsModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  let qualityDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  let qualityDiv = createDiv().parent(contentWrapper).style("margin-bottom", "5px"); // Reduced from 10px
   createSpan("Quality:").parent(qualityDiv).style("display", "block");
   let qualitySelect = createSelect()
     .parent(qualityDiv)
@@ -4283,7 +4724,7 @@ function showModifyCrystalsModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  let descDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  let descDiv = createDiv().parent(contentWrapper).style("margin-bottom", "5px"); // Reduced from 10px
   createSpan("Description:").parent(descDiv).style("display", "block");
   let descriptionInput = createElement("textarea")
     .parent(descDiv)
@@ -4299,7 +4740,7 @@ function showModifyCrystalsModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  let statbonusDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  let statbonusDiv = createDiv().parent(contentWrapper).style("margin-bottom", "5px"); // Reduced from 10px
   createSpan("Stat Bonus:").parent(statbonusDiv).style("display", "inline-block").style("width", "100px");
   let statSelect = createSelect()
     .parent(statbonusDiv)
@@ -4321,7 +4762,7 @@ function showModifyCrystalsModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  let statReqDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  let statReqDiv = createDiv().parent(contentWrapper).style("margin-bottom", "5px"); // Reduced from 10px
   createSpan("Stat Requirement:").parent(statReqDiv).style("display", "inline-block").style("width", "100px");
   let statReqSelect = createSelect()
     .parent(statReqDiv)
@@ -4343,7 +4784,7 @@ function showModifyCrystalsModal() {
     .style("color", "#666")
     .style("display", "block");
 
-  let abilityDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  let abilityDiv = createDiv().parent(contentWrapper).style("margin-bottom", "5px"); // Reduced from 10px
   createSpan("Ability:").parent(abilityDiv).style("display", "block");
   let abilitySelect = createSelect()
     .parent(abilityDiv)
@@ -4432,10 +4873,10 @@ function showModifyCrystalsModal() {
     let stat = Object.keys(statbonuses).length > 0 ? Object.keys(statbonuses)[0] : "None";
     statSelect.value(stat);
     amountInput.value(stat !== "None" && statbonuses[stat] ? statbonuses[stat] : "0");
-    let statReqs = item.statReq || {};
-    let reqStat = Object.keys(statReqs).length > 0 ? Object.keys(statReqs)[0] : "None";
+    let statRequirements = item.statRequirements || {};
+    let reqStat = Object.keys(statRequirements).length > 0 ? Object.keys(statRequirements)[0] : "None";
     statReqSelect.value(reqStat);
-    statReqInput.value(reqStat !== "None" && statReqs[reqStat] ? statReqs[reqStat] : "0");
+    statReqInput.value(reqStat !== "None" && statRequirements[reqStat] ? statRequirements[reqStat] : "0");
     abilitySelect.value(item.abilities && item.abilities.length > 0 ? item.abilities[0] : "");
   }
 
@@ -4464,7 +4905,7 @@ function showModifyCrystalsModal() {
       category: "Crystals",
       quality: qualitySelect.value(),
       statbonuses: stat !== "None" ? { [stat]: amount } : {},
-      statReq: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
+      statRequirements: reqStat !== "None" ? { [reqStat]: reqAmount } : {},
       abilities: abilitySelect.value() ? [abilitySelect.value()] : [],
       quantity: preservedQuantity
     };
@@ -4517,9 +4958,8 @@ function showModifyCrystalsModal() {
             availableItems["Crystals"].push(crystalObj);
           }
           inventory.push(crystalObj);
-          // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
           updateAvailableEquipment();
-          updateAbilities();
+          updateCharacterAbilities(); // Update equippedCrystalAbilities
           createInventoryUI();
           createEquipmentUI();
           createStatsUI();
@@ -4535,6 +4975,10 @@ function showModifyCrystalsModal() {
             setTimeout(() => {
               crystalSelect.value(newFilteredIdx.toString());
             }, 0);
+          }
+          // Refresh the dice roller UI
+          if (window.refreshDiceRoller) {
+            window.refreshDiceRoller();
           }
         } else {
           errorMessage.html("Invalid crystal selection.");
@@ -4558,9 +5002,8 @@ function showModifyCrystalsModal() {
         inventory.push(crystalObj);
         if (!availableItems["Crystals"]) availableItems["Crystals"] = [];
         availableItems["Crystals"].push({ ...crystalObj });
-        // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
         updateAvailableEquipment();
-        updateAbilities();
+        updateCharacterAbilities(); // Update equippedCrystalAbilities
         createInventoryUI();
         createEquipmentUI();
         createStatsUI();
@@ -4576,6 +5019,10 @@ function showModifyCrystalsModal() {
           setTimeout(() => {
             crystalSelect.value(newFilteredIdx.toString());
           }, 0);
+        }
+        // Refresh the dice roller UI
+        if (window.refreshDiceRoller) {
+          window.refreshDiceRoller();
         }
       } else {
         errorMessage.html("Please select an available crystal or 'Add New' to add.");
@@ -4672,9 +5119,8 @@ function showModifyCrystalsModal() {
         }
       }
 
-      // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
       updateAvailableEquipment();
-      updateAbilities();
+      updateCharacterAbilities(); // Update equippedCrystalAbilities
       createInventoryUI();
       createEquipmentUI();
       createStatsUI();
@@ -4684,6 +5130,10 @@ function showModifyCrystalsModal() {
       contentWrapper.elt.scrollTop = 0;
       // Refresh the dropdown after saving
       updateCrystalOptions();
+      // Refresh the dice roller UI
+      if (window.refreshDiceRoller) {
+        window.refreshDiceRoller();
+      }
     });
 
   // REMOVE => Remove crystal from master list and inventory
@@ -4759,15 +5209,18 @@ function showModifyCrystalsModal() {
             );
           }
 
-          // Removed: localStorage.setItem('inventory', JSON.stringify(inventory));
           updateAvailableEquipment();
-          updateAbilities();
+          updateCharacterAbilities(); // Update equippedCrystalAbilities
           createInventoryUI();
           createEquipmentUI();
           createStatsUI();
           createAbilitiesUI();
           updateCrystalOptions(); // Refresh the dropdown after removal
           modalDiv.remove();
+          // Refresh the dice roller UI
+          if (window.refreshDiceRoller) {
+            window.refreshDiceRoller();
+          }
         }
       );
     });
@@ -7305,10 +7758,19 @@ function learnAbility(category, ability) {
   if (!learnedAbilities[category]) {
     learnedAbilities[category] = [];
   }
-  learnedAbilities[category].push(ability.name);
-  spentAbilityPoints += ability.pointCost;
-  abilityPoints = totalAbilityPoints - spentAbilityPoints;
-  createAbilitiesUI();
+  if (!learnedAbilities[category].includes(ability.name)) {
+    learnedAbilities[category].push(ability.name);
+    spentAbilityPoints += ability.pointCost;
+    abilityPoints = totalAbilityPoints - spentAbilityPoints;
+    createAbilitiesUI();
+    console.log("learnAbility: Calling refreshDiceRoller, window.refreshDiceRoller defined:", !!window.refreshDiceRoller);
+    // Refresh the dice roller UI since learnedAbilities changed
+    if (window.refreshDiceRoller) {
+      window.refreshDiceRoller();
+    } else {
+      console.error("refreshDiceRoller is not defined in learnAbility");
+    }
+  }
 }
 
 function unlearnAbility(category, ability) {
@@ -7319,10 +7781,18 @@ function unlearnAbility(category, ability) {
       spentAbilityPoints -= ability.pointCost;
       abilityPoints = totalAbilityPoints - spentAbilityPoints;
       createAbilitiesUI();
+      console.log("unlearnAbility: Calling refreshDiceRoller, window.refreshDiceRoller defined:", !!window.refreshDiceRoller);
+      // Refresh the dice roller UI since learnedAbilities changed
+      if (window.refreshDiceRoller) {
+        window.refreshDiceRoller();
+      } else {
+        console.error("refreshDiceRoller is not defined in unlearnAbility");
+      }
     }
   }
 }
 //Use Crystal Ability
+// Use Crystal Ability
 function useCrystalAbility(abilityName) {
   const ability = existingAbilities["Crystals"].find(a => a.name === abilityName);
   if (!ability) {
@@ -7330,7 +7800,7 @@ function useCrystalAbility(abilityName) {
     return;
   }
 
-  if (!characterAbilities.includes(abilityName)) {
+  if (!equippedCrystalAbilities.includes(abilityName)) {
     showConfirmationModal("Cannot use this ability: Crystal not equipped.", () => {}, true);
     return;
   }
@@ -7370,10 +7840,12 @@ function useCrystalAbility(abilityName) {
 
   // Check MP cost
   let mpCost = ability.effect.mpCost || 0;
-  if (current_mp < mpCost) {
+  if (mpCost > 0 && current_mp < mpCost) {
     showConfirmationModal("Not enough MP to use this ability.", () => {}, true);
     return;
   }
+
+  console.log(`Using ${ability.name}: current_MP before deduction: ${current_mp}, mpCost: ${mpCost}`);
 
   // Deduct resources if applicable
   if (atgCost > 0) {
@@ -7383,13 +7855,17 @@ function useCrystalAbility(abilityName) {
     current_mp -= mpCost;
   }
 
+  console.log(`After deduction: current_MP is now: ${current_mp}`);
+
   const rollResult = rollDice(ability.effect.dice);
-  showConfirmationModal(
-    `${rollResult.display}\nEffect: ${ability.effect.description}\nATG Cost: ${atgCost}\nMP Cost: ${mpCost}`,
-    () => {},
-    true
-  );
-  redraw();
+  let message = `${rollResult.display}\nEffect: ${ability.effect.description}\nATG Cost: ${atgCost}`;
+  if (mpCost > 0) {
+    message += `\nMP Cost: ${mpCost}`;
+  }
+  showConfirmationModal(message, () => {}, true);
+
+  // Update the resource display (ensure your UI reflects current_mp)
+  redrawResourceBars();
 }
 
 // Use a weapon-specific ability
@@ -7403,15 +7879,24 @@ function useAbility(ability, category) {
     showConfirmationModal("Not enough ATG to use this ability.", () => {}, true);
     return;
   }
+  // Check MP cost
+  let mpCost = ability.effect.mpCost || 0;
+  if (mpCost > 0 && current_mp < mpCost) {
+    showConfirmationModal("Not enough MP to use this ability.", () => {}, true);
+    return;
+  }
   if (ability.ATGCost > 0) {
     current_ATG -= ability.ATGCost;
   }
+  if (mpCost > 0) {
+    current_mp -= mpCost;
+  }
   const rollResult = rollDice(ability.effect.dice);
-  showConfirmationModal(
-    `${rollResult.display}\nEffect: ${ability.effect.description}\nATG Cost: ${ability.ATGCost}`,
-    () => {},
-    true
-  );
+  let message = `${rollResult.display}\nEffect: ${ability.effect.description}\nATG Cost: ${ability.ATGCost}`;
+  if (mpCost > 0) {
+    message += `\nMP Cost: ${mpCost}`;
+  }
+  showConfirmationModal(message, () => {}, true);
   redraw();
 }
 function createAbilitiesUI() {
@@ -7429,8 +7914,7 @@ function createAbilitiesUI() {
     .style("color", "#666")
     .style("display", "block")
     .style("margin-bottom", "10px");
-  
-  
+
   createP(`Available Ability Points: ${abilityPoints}`)
     .parent(abilitiesContainer)
     .style("margin-top", "10px");
@@ -7456,6 +7940,10 @@ function createAbilitiesUI() {
           learnedAbilities = {};
           abilityPoints = 1;
           createAbilitiesUI();
+          // Refresh the dice roller UI since learnedAbilities changed
+          if (window.refreshDiceRoller) {
+            window.refreshDiceRoller();
+          }
         }
       );
     });
@@ -7492,10 +7980,7 @@ function createAbilitiesUI() {
       createElement("th", "Stat Req").parent(header).style("width", "20%");
       createElement("th", "Point Cost").parent(header).style("width", "15%");
       createElement("th", "Effect").parent(header).style("width", "30%");
-      if (category === "Crystals") {
-        createElement("th", "MP Cost").parent(header).style("width", "15%");
-      }
-      createElement("th", "Status").parent(header).style("width", "15%");
+      createElement("th", "MP Cost").parent(header).style("width", "15%"); // Added MP Cost column for all categories
       createElement("th", "Actions").parent(header).style("width", "15%");
 
       abilities.forEach(ability => {
@@ -7513,79 +7998,27 @@ function createAbilitiesUI() {
         createElement("td", category === "Crystals" ? "-" : String(ability.pointCost)).parent(row);
         let effectText = ability.effect.dice ? `${ability.effect.dice} - ${ability.effect.description}` : ability.effect.description;
         createElement("td", effectText).parent(row);
-        if (category === "Crystals") {
-          createElement("td", String(ability.effect.mpCost || 0)).parent(row);
-        }
-        let statusCell = createElement("td").parent(row);
+        createElement("td", String(ability.effect.mpCost || 0)).parent(row); // Display MP cost for all abilities
         let actionCell = createElement("td").parent(row);
 
         if (category === "Crystals") {
-          let isEquipped = characterAbilities.includes(ability.name);
-          let meetsStats = true;
-          let canUse = isEquipped && meetsStats;
-
-          if (isEquipped) {
-            statusCell.html("Equipped");
-          } else {
-            statusCell.html("Not Equipped");
-          }
-
-          let useButton = createButton("Use")
-            .parent(actionCell)
-            .class("resource-button small-button");
-          setButtonDisabled(useButton, !canUse);
-          useButton.mousePressed(() => {
-            if (canUse) {
-              useCrystalAbility(ability.name);
-            } else {
-              showConfirmationModal(
-                "Cannot use this ability: Crystal not equipped or stat requirements not met.",
-                () => {},
-                true
-              );
-            }
-          });
+          // No action needed; player will use the dice roller in the Resources page
         } else {
           let isLearned = isAbilityLearned(category, ability.name);
-          let reasons = [];
           let meetsStats = meetsStatRequirements(ability.statReq);
           let hasEnoughPoints = abilityPoints >= ability.pointCost;
 
-          if (!meetsStats) reasons.push("Stats too low");
-          if (!hasEnoughPoints) reasons.push("Not enough points");
-
           if (isLearned) {
-            createSpan("Learned")
-              .parent(statusCell)
-              .style("cursor", "pointer")
-              .style("color", "#0000EE")
-              .style("text-decoration", "underline")
-              .attribute("title", "Click to unlearn this ability")
-              .mousePressed(() => {
-                showConfirmationModal(
-                  `Are you sure you want to unlearn "${ability.name}"?`,
-                  () => {
-                    unlearnAbility(category, ability);
-                  }
-                );
-              });
-          } else {
-            statusCell.html(reasons.length > 0 ? reasons.join(", ") : "Not Learned");
-          }
-
-          if (isLearned) {
-            let equippedCategory = getEquippedWeaponCategory();
-            let canUse = equippedCategory === category;
-            let useButton = createButton("Use")
+            let unlearnButton = createButton("Unlearn")
               .parent(actionCell)
               .class("resource-button small-button");
-            setButtonDisabled(useButton, !canUse);
-            useButton.mousePressed(() => {
-              if (canUse) {
-                useAbility(ability, category);
-              } else {
-                showConfirmationModal("Cannot use this ability: Wrong weapon equipped.", () => {}, true);
-              }
+            unlearnButton.mousePressed(() => {
+              showConfirmationModal(
+                `Are you sure you want to unlearn "${ability.name}"?`,
+                () => {
+                  unlearnAbility(category, ability);
+                }
+              );
             });
           } else {
             let canLearn = meetsStats && hasEnoughPoints;
@@ -7601,7 +8034,6 @@ function createAbilitiesUI() {
       });
     }
   });
-
 }
 function showAbilityDescription(ability) {
   if (modalDiv) modalDiv.remove();
@@ -8170,29 +8602,444 @@ function showModifyAbilitiesModal() {
     .mousePressed(() => modalDiv.remove());
 }
 //Dice Roller
-function rollDice(diceStr, modifier = 0) {
+function rollDice(diceStr, modifier = 0, advantage = false, disadvantage = false) {
   if (!diceStr || typeof diceStr !== "string") {
-    return { total: 0, rolls: [], display: "No dice specified" };
+    return { total: 0, rolls: [], display: "No dice specified", details: [] };
   }
 
-  const [numDice, sides] = diceStr.split("d").map(Number);
-  if (isNaN(numDice) || isNaN(sides) || numDice <= 0 || sides <= 0) {
-    return { total: 0, rolls: [], display: "Invalid dice format" };
-  }
-
-  const rolls = [];
+  // Split the dice string into individual dice expressions (e.g., "2d6+1d8" -> ["2d6", "1d8"])
+  const diceParts = diceStr.split("+").map(part => part.trim());
   let total = 0;
-  for (let i = 0; i < numDice; i++) {
-    const roll = Math.floor(Math.random() * sides) + 1;
-    rolls.push(roll);
-    total += roll;
+  let allRolls = [];
+  let details = [];
+
+  for (let part of diceParts) {
+    const [numDice, sides] = part.split("d").map(Number);
+    if (isNaN(numDice) || isNaN(sides) || numDice <= 0 || sides <= 0) {
+      return { total: 0, rolls: [], display: "Invalid dice format", details: [] };
+    }
+
+    let rollsForPart = [];
+    let partTotal = 0;
+
+    // If advantage or disadvantage, roll twice and take the higher/lower total
+    if (advantage || disadvantage) {
+      let firstRolls = [];
+      let secondRolls = [];
+      let firstTotal = 0;
+      let secondTotal = 0;
+
+      // First roll
+      for (let i = 0; i < numDice; i++) {
+        const roll = Math.floor(Math.random() * sides) + 1;
+        firstRolls.push(roll);
+        firstTotal += roll;
+      }
+
+      // Second roll
+      for (let i = 0; i < numDice; i++) {
+        const roll = Math.floor(Math.random() * sides) + 1;
+        secondRolls.push(roll);
+        secondTotal += roll;
+      }
+
+      // Choose the rolls based on advantage/disadvantage
+      if (advantage) {
+        if (firstTotal >= secondTotal) {
+          rollsForPart = firstRolls;
+          partTotal = firstTotal;
+          details.push(`Roll 1: [${firstRolls.join(", ")}], Roll 2: [${secondRolls.join(", ")}], Result: ${firstTotal}`);
+        } else {
+          rollsForPart = secondRolls;
+          partTotal = secondTotal;
+          details.push(`Roll 1: [${firstRolls.join(", ")}], Roll 2: [${secondRolls.join(", ")}], Result: ${secondTotal}`);
+        }
+      } else if (disadvantage) {
+        if (firstTotal <= secondTotal) {
+          rollsForPart = firstRolls;
+          partTotal = firstTotal;
+          details.push(`Roll 1: [${firstRolls.join(", ")}], Roll 2: [${secondRolls.join(", ")}], Result: ${firstTotal}`);
+        } else {
+          rollsForPart = secondRolls;
+          partTotal = secondTotal;
+          details.push(`Roll 1: [${firstRolls.join(", ")}], Roll 2: [${secondRolls.join(", ")}], Result: ${secondTotal}`);
+        }
+      }
+    } else {
+      // Normal roll
+      for (let i = 0; i < numDice; i++) {
+        const roll = Math.floor(Math.random() * sides) + 1;
+        rollsForPart.push(roll);
+        partTotal += roll;
+      }
+      details.push(`${part}: [${rollsForPart.join(", ")}]`);
+    }
+
+    allRolls.push(...rollsForPart);
+    total += partTotal;
   }
 
   // Add the modifier to the total
   total += modifier;
 
-  // Format the display string, including the modifier if it exists
+  // Format the display string
   const modifierText = modifier !== 0 ? ` ${modifier > 0 ? "+" : ""}${modifier}` : "";
-  const display = `Rolled ${diceStr}${modifierText}: [${rolls.join(", ")}]${modifierText} = ${total}`;
-  return { total, rolls, display };
+  const display = `Rolled ${diceStr}${modifierText}: ${details.join(" + ")}${modifierText} = ${total}`;
+  return { total, rolls: allRolls, display, details };
+}
+function showDiceRollModal(diceExpression, modifier = 0, label = "Roll", advantage = false, disadvantage = false, parent = null, rollType = "Equipment", numDiceInput = null, sidesInput = null, modifierInput = null) {
+  let isModal = !parent;
+  let containerDiv;
+
+  if (isModal) {
+    if (modalDiv) {
+      modalDiv.remove();
+      modalDiv = null;
+    }
+    containerDiv = createDiv()
+      .style("position", "fixed")
+      .style("top", "50%")
+      .style("left", "50%")
+      .style("transform", "translate(-50%, -50%)")
+      .style("background", "linear-gradient(145deg, #f0f0f0, #ffffff)")
+      .style("padding", "15px")
+      .style("border", "2px solid #444")
+      .style("border-radius", "8px")
+      .style("z-index", "1000")
+      .style("max-width", "350px")
+      .style("max-height", "70vh")
+      .style("overflow-y", "auto")
+      .style("box-shadow", "0 4px 8px rgba(0,0,0,0.2)")
+      .style("font-family", "Arial, sans-serif");
+    modalDiv = containerDiv;
+  } else {
+    containerDiv = createDiv().parent(parent)
+      .style("padding", "10px")
+      .style("border", "1px solid #ccc")
+      .style("border-radius", "5px")
+      .style("background", "#f9f9f9");
+  }
+
+  // Title
+  createElement("h3", label).parent(containerDiv)
+    .style("margin-top", "0")
+    .style("margin-bottom", "10px")
+    .style("color", "#333")
+    .style("text-align", "center")
+    .style("font-size", "16px");
+
+  // Parse the initial dice expression
+  let numDice = 1;
+  let sides = rollType === "Skills" ? 12 : 6;
+  if (diceExpression && typeof diceExpression === "string") {
+    const [parsedNumDice, parsedSides] = diceExpression.split("d").map(Number);
+    if (!isNaN(parsedNumDice) && !isNaN(parsedSides) && parsedNumDice > 0 && parsedSides > 0) {
+      numDice = parsedNumDice;
+      sides = parsedSides;
+    }
+  }
+
+  // Dice Expression Inputs
+  let localNumDiceInput, localSidesInput, localModifierInput;
+  if (numDiceInput && sidesInput && modifierInput) {
+    localNumDiceInput = numDiceInput;
+    localSidesInput = sidesInput;
+    localModifierInput = modifierInput;
+  } else {
+    let diceInputDiv = createDiv().parent(containerDiv).style("margin-bottom", "5px");
+    createSpan("Dice Expression:").parent(diceInputDiv)
+      .style("display", "block")
+      .style("font-size", "14px")
+      .style("color", "#555")
+      .style("margin-bottom", "3px");
+    let diceInputsWrapper = createDiv().parent(diceInputDiv)
+      .style("display", "flex")
+      .style("align-items", "center")
+      .style("gap", "5px");
+    localNumDiceInput = createInput(numDice.toString(), "number")
+      .parent(diceInputsWrapper)
+      .style("width", "50px")
+      .style("padding", "5px")
+      .style("border", "1px solid #ccc")
+      .style("border-radius", "4px")
+      .style("box-sizing", "border-box")
+      .style("font-size", "14px")
+      .attribute("min", "1")
+      .attribute("disabled", "true");
+    createSpan("d").parent(diceInputsWrapper)
+      .style("font-size", "14px")
+      .style("color", "#555");
+    localSidesInput = createInput(sides.toString(), "number")
+      .parent(diceInputsWrapper)
+      .style("width", "50px")
+      .style("padding", "5px")
+      .style("border", "1px solid #ccc")
+      .style("border-radius", "4px")
+      .style("box-sizing", "border-box")
+      .style("font-size", "14px")
+      .attribute("min", "1")
+      .attribute("disabled", "true");
+
+    let modifierDiv = createDiv().parent(containerDiv).style("margin-bottom", "5px");
+    createSpan("Modifier:").parent(modifierDiv)
+      .style("display", "block")
+      .style("font-size", "14px")
+      .style("color", "#555")
+      .style("margin-bottom", "3px");
+    localModifierInput = createInput(modifier.toString(), "number")
+      .parent(modifierDiv)
+      .style("width", "100%")
+      .style("padding", "5px")
+      .style("border", "1px solid #ccc")
+      .style("border-radius", "4px")
+      .style("box-sizing", "border-box")
+      .style("font-size", "14px")
+      .attribute("disabled", "true");
+  }
+
+  // Lock Parameters Checkbox
+  let lockDiv = createDiv().parent(containerDiv).style("margin-bottom", "5px");
+  createSpan("Lock Parameters: ").parent(lockDiv).style("font-size", "14px").style("color", "#555");
+  let lockCheckbox = createCheckbox("", true) // Start checked (locked)
+    .parent(lockDiv)
+    .style("margin-left", "5px");
+  lockCheckbox.changed(() => {
+    if (lockCheckbox.checked()) {
+      // Locked: disable inputs
+      localNumDiceInput.elt.disabled = true;
+      localSidesInput.elt.disabled = true;
+      localModifierInput.elt.disabled = true;
+      localNumDiceInput.value(numDice.toString()); // Reset to original values
+      localSidesInput.value(sides.toString());
+      localModifierInput.value(modifier.toString());
+    } else {
+      // Unlocked: enable inputs
+      localNumDiceInput.elt.disabled = false;
+      localSidesInput.elt.disabled = false;
+      localModifierInput.elt.disabled = false;
+    }
+  });
+
+  // Advantage/Disadvantage Checkboxes
+  let advDisadvDiv = createDiv().parent(containerDiv)
+    .style("margin-bottom", "5px")
+    .style("display", "flex")
+    .style("justify-content", "space-between");
+  let advDiv = createDiv().parent(advDisadvDiv);
+  createSpan("Advantage: ").parent(advDiv).style("font-size", "14px").style("color", "#555");
+  let advantageCheckbox = createCheckbox("", advantage)
+    .parent(advDiv)
+    .style("margin-left", "5px");
+  let disadvDiv = createDiv().parent(advDisadvDiv);
+  createSpan("Disadvantage: ").parent(disadvDiv).style("font-size", "14px").style("color", "#555");
+  let disadvantageCheckbox = createCheckbox("", disadvantage)
+    .parent(disadvDiv)
+    .style("margin-left", "5px");
+
+  advantageCheckbox.changed(() => {
+    if (advantageCheckbox.checked()) {
+      disadvantageCheckbox.checked(false);
+    }
+  });
+  disadvantageCheckbox.changed(() => {
+    if (disadvantageCheckbox.checked()) {
+      advantageCheckbox.checked(false);
+    }
+  });
+
+  // Result Display
+  let resultDiv = createDiv().parent(containerDiv)
+    .style("margin-bottom", "5px")
+    .style("padding", "5px")
+    .style("background", "#f9f9f9")
+    .style("border-radius", "4px")
+    .style("border", "1px solid #ddd")
+    .style("min-height", "40px");
+
+  // Roll History with Toggle
+  let historyHeaderDiv = createDiv().parent(containerDiv)
+    .style("margin-top", "5px")
+    .style("display", "flex")
+    .style("justify-content", "space-between")
+    .style("align-items", "center");
+  createElement("h4", "Roll History").parent(historyHeaderDiv)
+    .style("margin", "0")
+    .style("font-size", "14px")
+    .style("color", "#444");
+  let toggleHistoryButton = createButton("Hide")
+    .parent(historyHeaderDiv)
+    .style("padding", "2px 8px")
+    .style("font-size", "12px")
+    .style("background-color", "#ccc")
+    .style("color", "black")
+    .style("border", "none")
+    .style("border-radius", "4px")
+    .style("cursor", "pointer");
+
+  let historyDiv = createDiv().parent(containerDiv)
+    .style("border", "1px solid #ddd")
+    .style("border-radius", "4px")
+    .style("padding", "5px")
+    .style("background", "#fafafa");
+  let historyList = createElement("ul").parent(historyDiv)
+    .style("list-style", "none")
+    .style("padding", "0")
+    .style("margin", "0")
+    .style("max-height", "100px")
+    .style("overflow-y", "auto");
+
+  function updateHistory() {
+    historyList.html("");
+    rollHistory.forEach((entry, index) => {
+      let li = createElement("li").parent(historyList)
+        .style("padding", "3px 0")
+        .style("border-bottom", index < rollHistory.length - 1 ? "1px solid #eee" : "none")
+        .style("font-size", "12px")
+        .style("color", "#666");
+      li.html(`[${index + 1}] ${entry}`);
+    });
+  }
+  updateHistory();
+
+  toggleHistoryButton.mousePressed(() => {
+    if (historyDiv.style("display") === "none") {
+      historyDiv.style("display", "block");
+      toggleHistoryButton.html("Hide");
+    } else {
+      historyDiv.style("display", "none");
+      toggleHistoryButton.html("Show");
+    }
+  });
+
+  // Buttons
+  let buttonContainer = createDiv()
+    .parent(containerDiv)
+    .style("display", "flex")
+    .style("justify-content", "space-between")
+    .style("margin-top", "10px")
+    .style("flex-wrap", "wrap")
+    .style("gap", "5px");
+
+  let rollButton = createButton("Roll")
+    .parent(buttonContainer)
+    .style("padding", "6px 15px")
+    .style("background-color", "#4CAF50")
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "4px")
+    .style("cursor", "pointer")
+    .style("font-size", "14px")
+    .style("transition", "background-color 0.2s")
+    .mouseOver(() => {
+      if (!rollButton.elt.disabled) {
+        rollButton.style("background-color", "#45a049");
+      }
+    })
+    .mouseOut(() => {
+      if (!rollButton.elt.disabled) {
+        rollButton.style("background-color", "#4CAF50");
+      }
+    });
+
+  let clearHistoryButton = createButton("Clear History")
+    .parent(buttonContainer)
+    .style("padding", "6px 15px")
+    .style("background-color", "#f44336")
+    .style("color", "white")
+    .style("border", "none")
+    .style("border-radius", "4px")
+    .style("cursor", "pointer")
+    .style("font-size", "14px")
+    .style("transition", "background-color 0.2s")
+    .mouseOver(() => clearHistoryButton.style("background-color", "#e53935"))
+    .mouseOut(() => clearHistoryButton.style("background-color", "#f44336"));
+
+  let closeButton = null;
+  if (isModal) {
+    closeButton = createButton("Close")
+      .parent(buttonContainer)
+      .style("padding", "6px 15px")
+      .style("background-color", "#ccc")
+      .style("color", "black")
+      .style("border", "none")
+      .style("border-radius", "4px")
+      .style("cursor", "pointer")
+      .style("font-size", "14px")
+      .style("transition", "background-color 0.2s")
+      .mouseOver(() => closeButton.style("background-color", "#bbb"))
+      .mouseOut(() => closeButton.style("background-color", "#ccc"));
+
+    // For modal use, define a simple performRoll that doesn't rely on itemSelect
+    let currentRollType = rollType;
+    function setRollType(newRollType) {
+      currentRollType = newRollType;
+    }
+    function performRoll() {
+      if (rollingInProgress) return;
+      rollingInProgress = true;
+      rollButton.elt.disabled = true;
+      rollButton.style("background-color", "#a0a0a0");
+      rollButton.style("cursor", "not-allowed");
+
+      let numDiceValue = parseInt(localNumDiceInput.value()) || 1;
+      let sidesValue = parseInt(localSidesInput.value()) || 6;
+      let dice = `${numDiceValue}d${sidesValue}`;
+      let mod = parseInt(localModifierInput.value()) || 0;
+      let adv = advantageCheckbox.checked();
+      let disadv = disadvantageCheckbox.checked();
+      let result = rollDice(dice, mod, adv, disadv);
+
+      let resultText = `<strong>Result: ${result.total}</strong><br>${result.display}`;
+      resultDiv.html("Rolling...");
+      let animationSteps = 10;
+      let step = 0;
+      activeInterval = setInterval(() => {
+        step++;
+        resultDiv.html(`Rolling... (${step}/${animationSteps})`);
+        if (step >= animationSteps) {
+          clearInterval(activeInterval);
+          activeInterval = null;
+          resultDiv.html(resultText);
+          rollHistory.push(result.display);
+          if (rollHistory.length > 10) rollHistory.shift();
+          updateHistory();
+          rollButton.elt.disabled = false;
+          rollButton.style("background-color", "#4CAF50");
+          rollButton.style("cursor", "pointer");
+          rollingInProgress = false;
+        }
+      }, 100);
+    }
+
+    rollButton.mousePressed(performRoll);
+  }
+
+  clearHistoryButton.mousePressed(() => {
+    rollHistory = [];
+    updateHistory();
+  });
+
+  if (closeButton) {
+    closeButton.mousePressed(() => {
+      if (activeInterval) {
+        clearInterval(activeInterval);
+        activeInterval = null;
+      }
+      modalDiv.remove();
+      modalDiv = null;
+    });
+  }
+
+  return {
+    numDiceInput: localNumDiceInput,
+    sidesInput: localSidesInput,
+    modifierInput: localModifierInput,
+    advantageCheckbox,
+    disadvantageCheckbox,
+    rollButton,
+    resultDiv,
+    setRollType: isModal ? setRollType : undefined, // Only return setRollType for modal use
+    updateHistory,
+    lockCheckbox
+  };
 }
