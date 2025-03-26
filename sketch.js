@@ -602,10 +602,9 @@ function resetToDefaultCharacter() {
   statbonusElements = {};
 
   // Resource Bar settings
-  max_hp = 25;
-  current_hp = 25;
-  max_mp = 10;
-  current_mp = 10;
+  // Do not set max_hp and max_mp here; they will be calculated by updateResourcesBasedOnStats
+  current_hp = 25; // Default starting value, will be constrained after updateResourcesBasedOnStats
+  current_mp = 10; // Default starting value, will be constrained after updateResourcesBasedOnStats
   max_stamina = 100;
   current_stamina = 100;
   max_ATG = 100;
@@ -640,6 +639,12 @@ function resetToDefaultCharacter() {
   talents = [];
   existingTalents = [...defaultTalents];
 
+  // Recalculate max_hp and max_mp based on level and stats
+  updateResourcesBasedOnStats();
+  // Ensure current_hp and current_mp are constrained to the new maximums
+  current_hp = min(current_hp, max_hp);
+  current_mp = min(current_mp, max_mp);
+
   // Clear localStorage
   localStorage.removeItem("characterData");
 
@@ -654,6 +659,7 @@ function resetToDefaultCharacter() {
   createAbilitiesUI();
   createTraitsUI();
   createTalentsUI();
+  redrawResourceBars(); // Ensure the resource bar UI updates
 }
 // Resize canvas when entering/exiting fullscreen
 function resizeCanvasForFullscreen() {
@@ -855,9 +861,8 @@ function handleFileLoad(evt) {
   // Reset the file input to allow re-selecting the same file
   evt.target.value = "";
 }
-
+//Restore Character Data
 function restoreCharacterData(characterData) {
-  // Restore character data
   characterName = characterData.characterName || "";
   level = characterData.level || 1;
   exp = characterData.exp || 0;
@@ -890,6 +895,12 @@ function restoreCharacterData(characterData) {
   current_stamina = characterData.current_stamina || max_stamina;
   max_ATG = characterData.max_ATG || 100;
   current_ATG = characterData.current_ATG || 0;
+
+  // Recalculate max_hp and max_mp based on level and stats
+  updateResourcesBasedOnStats();
+  // Ensure current_hp and current_mp are constrained to the new maximums
+  current_hp = min(current_hp, max_hp);
+  current_mp = min(current_mp, max_mp);
 
   // Restore additional attributes assignments
   attributeLinkMapping = characterData.attributeLinkMapping || {};
@@ -1930,6 +1941,7 @@ function setMaxATG() {
 }
 
 function resetResources() {
+  updateResourcesBasedOnStats(); // Ensure max_hp and max_mp are up-to-date
   current_hp = max_hp;
   current_mp = max_mp;
   current_stamina = max_stamina;
@@ -4471,10 +4483,16 @@ function createStatInput(abbrev, name, initialValue, container, statName, linkab
 function tryChangeStat(statName, newValue) {
   let newValueInt = constrain(int(newValue), 1, 99); // Minimum is 1
 
-  // Skip Level and EXP as they don't use points
+  // Handle Level and EXP changes
   if (statName === "Level" || statName === "EXP") {
-    if (statName === "Level") level = newValueInt;
-    else if (statName === "EXP") exp = newValueInt;
+    if (statName === "Level") {
+      level = newValueInt;
+      updateResourcesBasedOnStats(); // Update resources based on new level
+      redrawResourceBars(); // Redraw the resource bars
+    } else if (statName === "EXP") {
+      exp = newValueInt;
+    }
+    createStatsUI(); // Refresh UI to update points display
     return true;
   }
 
@@ -7083,12 +7101,12 @@ function getTotalStat(statName) {
 
 function updateResourcesBasedOnStats() {
   let totalVIT = getTotalStat("VIT");
-  max_hp = 25 + (totalVIT - 1) * 5;
+  max_hp = 25 + (level - 1) * 5 + (totalVIT - 1) * 5; // Base 25 + 5 per level + 5 per VIT point above 1
   current_hp = min(current_hp, max_hp);
   maxHpInput.value(max_hp);
 
   let totalWIL = getTotalStat("WIL");
-  max_mp = 10 + (totalWIL - 1) * 5;
+  max_mp = 10 + (level - 1) * 5 + (totalWIL - 1) * 5; // Base 10 + 5 per level + 5 per WIL point above 1
   current_mp = min(current_mp, max_mp);
   maxMpInput.value(max_mp);
 }
