@@ -1271,7 +1271,9 @@ function createResourceUI() {
   createSpan("Roll Source:").parent(sourceRow);
   let sourceSelect = createSelect()
     .parent(sourceRow)
-    .class("resource-input");
+    .class("resource-input")
+    .style("width", "150px"); // Increased width to display full text
+
   sourceSelect.option("Equipment", "Equipment");
   sourceSelect.option("Ability", "Ability");
   sourceSelect.option("Crystals", "Crystals");
@@ -1283,7 +1285,8 @@ function createResourceUI() {
   createSpan("Select Item:").parent(itemRow);
   let itemSelect = createSelect()
     .parent(itemRow)
-    .class("resource-input");
+    .class("resource-input")
+    .style("width", "150px"); // Increased width to display full text
 
   // Dice Expression inputs
   let diceRow = createDiv().parent(diceRollerDiv).class("resource-row");
@@ -1942,87 +1945,6 @@ function setMaxATG() {
 
 function resetResources() {
   updateResourcesBasedOnStats(); // Ensure max_hp and max_mp are up-to-date
-  current_hp = max_hp;
-  current_mp = max_mp;
-  current_stamina = max_stamina;
-  current_ATG = 0;
-  redrawResourceBars();
-}
-
-function toggleStaminaATGLink() {
-  staminaATGLink = !staminaATGLink;
-  staminaATGLinkButton.html(staminaATGLink ? "Link: ON" : "Link: OFF");
-  staminaATGLinkButton.style("background-color", staminaATGLink ? "green" : "red");
-}
-
-// Function to redraw the resource bars
-function redrawResourceBars() {
-  displayBars();
-}
-
-function adjustResource(resource, value, isAddition) {
-  if (isNaN(value)) {
-    showConfirmationModal("Please enter a valid number.", () => {}, true);
-    return;
-  }
-  let adjustment = isAddition ? value : -value;
-  switch (resource) {
-    case "HP":
-      current_hp = constrain(current_hp + adjustment, 0, max_hp);
-      break;
-    case "MP":
-      current_mp = constrain(current_mp + adjustment, 0, max_mp);
-      break;
-    case "STA":
-      current_stamina = constrain(current_stamina + adjustment, 0, max_stamina);
-      if (!isAddition && staminaATGLink) {
-        current_ATG = min(current_ATG + value, max_ATG);
-      }
-      break;
-    case "ATG":
-      current_ATG = constrain(current_ATG + adjustment, 0, max_ATG);
-      break;
-  }
-  redrawResourceBars();
-}
-
-function setMaxHp() {
-  let value = parseInt(maxHpInput.value());
-  if (!isNaN(value) && value > 0) {
-    max_hp = value;
-    current_hp = min(current_hp, value);
-    redrawResourceBars();
-  }
-}
-
-function setMaxMp() {
-  let value = parseInt(maxMpInput.value());
-  if (!isNaN(value) && value > 0) {
-    max_mp = value;
-    current_mp = min(current_mp, value);
-    redrawResourceBars();
-  }
-}
-
-function setMaxStamina() {
-  let value = parseInt(maxStaminaInput.value());
-  if (!isNaN(value) && value > 0) {
-    max_stamina = value;
-    current_stamina = min(current_stamina, value);
-    redrawResourceBars();
-  }
-}
-
-function setMaxATG() {
-  let value = parseInt(maxATGInput.value());
-  if (!isNaN(value) && value > 0) {
-    max_ATG = value;
-    current_ATG = min(current_ATG, value);
-    redrawResourceBars();
-  }
-}
-
-function resetResources() {
   current_hp = max_hp;
   current_mp = max_mp;
   current_stamina = max_stamina;
