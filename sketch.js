@@ -1304,8 +1304,51 @@ function createResourceUI() {
     .class("resource-input")
     .attribute("disabled", "true");
 
+  // Linked Stat display/selector (only for Equipment, Ability, Crystals)
+  let linkedStatRow = createDiv().parent(diceRollerDiv).class("resource-row");
+  let linkedStatLabel = createSpan("Linked Stat:").parent(linkedStatRow);
+  let linkedStatElement = createSelect()
+    .parent(linkedStatRow)
+    .class("resource-input");
+  linkedStatElement.option("---", "None");
+  linkedStatElement.option("STR", "STR");
+  linkedStatElement.option("MAG", "MAG");
+  linkedStatElement.value("None"); // Default to "None"
+  linkedStatElement.attribute("disabled", "true"); // Start disabled (locked)
+
+  // Stat Modifier display (shows the stat-based modifier in parentheses)
+  let statModifierSpan = createSpan("").parent(linkedStatRow)
+    .style("margin-left", "5px")
+    .style("font-size", "14px")
+    .style("color", "#555");
+
   // Embed the dice roller UI once, storing the returned elements
   const diceRollerElements = showDiceRollModal("1d6", 0, "Dice Roller", false, false, diceRollerDiv, sourceSelect.value(), numDiceInput, sidesInput, modifierInput);
+
+  // Track whether the linked stat was manually set
+  let linkedStatManuallySet = false;
+
+  // Update linked stat element based on lock state
+  diceRollerElements.lockCheckbox.changed(() => {
+    if (diceRollerElements.lockCheckbox.checked()) {
+      // Locked: disable inputs and linked stat selector
+      numDiceInput.elt.disabled = true;
+      sidesInput.elt.disabled = true;
+      modifierInput.elt.disabled = true;
+      linkedStatElement.elt.disabled = true;
+      linkedStatElement.style("background", "#e0e0e0");
+      linkedStatManuallySet = false; // Reset manual selection when locking
+      // Reset linked stat based on current selection
+      updateDiceExpression();
+    } else {
+      // Unlocked: enable inputs and linked stat selector
+      numDiceInput.elt.disabled = false;
+      sidesInput.elt.disabled = false;
+      modifierInput.elt.disabled = false;
+      linkedStatElement.elt.disabled = false;
+      linkedStatElement.style("background", "white");
+    }
+  });
 
   // Define performRoll inside createResourceUI to access itemSelect
   function performRoll() {
@@ -1317,6 +1360,66 @@ function createResourceUI() {
 
     // Use sourceSelect.value() directly instead of currentRollType
     let rollType = sourceSelect.value();
+    if (rollType === "Equipment") {
+      if (!itemSelect.value() || itemSelect.value() === "") {
+        diceRollerElements.resultDiv.html('<span style="color: red;">No equipment selected.</span>');
+        rollingInProgress = false;
+        diceRollerElements.rollButton.elt.disabled = false;
+        diceRollerElements.rollButton.style("background-color", "#4CAF50");
+        diceRollerElements.rollButton.style("cursor", "pointer");
+        return;
+      }
+      if (current_stamina < 25) {
+        diceRollerElements.resultDiv.html('<span style="color: red;">Not enough stamina to attack! You need at least 25 stamina.</span>');
+        rollingInProgress = false;
+        diceRollerElements.rollButton.elt.disabled = false;
+        diceRollerElements.rollButton.style("background-color", "#4CAF50");
+        diceRollerElements.rollButton.style("cursor", "pointer");
+        return;
+      }
+      current_stamina -= 25;
+      if (staminaATGLink) {
+        current_ATG = min(current_ATG + 25, max_ATG);
+      }
+      redrawResourceBars();
+
+      let numDiceValue = parseInt(numDiceInput.value()) || 1;
+      let sidesValue = parseInt(sidesInput.value()) || 6;
+      let dice = `${numDiceValue}d${sidesValue}`;
+      let baseMod = parseInt(modifierInput.value()) || 0;
+      let statMod = 0;
+      let linkedStat = linkedStatElement.value();
+      if (linkedStat && linkedStat !== "None") {
+        statMod = getTotalStat(linkedStat);
+      }
+      let totalMod = baseMod + statMod;
+      let adv = diceRollerElements.advantageCheckbox.checked();
+      let disadv = diceRollerElements.disadvantageCheckbox.checked();
+      let result = rollDice(dice, totalMod, adv, disadv);
+
+      let resultText = `<strong>Result: ${result.total}</strong><br>${result.display}`;
+      diceRollerElements.resultDiv.html("Rolling...");
+      let animationSteps = 10;
+      let step = 0;
+      activeInterval = setInterval(() => {
+        step++;
+        diceRollerElements.resultDiv.html(`Rolling... (${step}/${animationSteps})`);
+        if (step >= animationSteps) {
+          clearInterval(activeInterval);
+          activeInterval = null;
+          diceRollerElements.resultDiv.html(resultText);
+          rollHistory.push(result.display);
+          if (rollHistory.length > 10) rollHistory.shift();
+          diceRollerElements.updateHistory();
+          diceRollerElements.rollButton.elt.disabled = false;
+          diceRollerElements.rollButton.style("background-color", "#4CAF50");
+          diceRollerElements.rollButton.style("cursor", "pointer");
+          rollingInProgress = false;
+        }
+      }, 100);
+      return;
+    }
+
     if (rollType === "Ability" || rollType === "Crystals") {
       if (!currentAbility) {
         diceRollerElements.resultDiv.html('<span style="color: red;">No ability selected.</span>');
@@ -1404,10 +1507,16 @@ function createResourceUI() {
         let numDiceValue = parseInt(numDiceInput.value()) || 1;
         let sidesValue = parseInt(sidesInput.value()) || 6;
         let dice = `${numDiceValue}d${sidesValue}`;
-        let mod = parseInt(modifierInput.value()) || 0;
+        let baseMod = parseInt(modifierInput.value()) || 0;
+        let statMod = 0;
+        let linkedStat = linkedStatElement.value();
+        if (linkedStat && linkedStat !== "None") {
+          statMod = getTotalStat(linkedStat);
+        }
+        let totalMod = baseMod + statMod;
         let adv = diceRollerElements.advantageCheckbox.checked();
         let disadv = diceRollerElements.disadvantageCheckbox.checked();
-        result = rollDice(dice, mod, adv, disadv);
+        result = rollDice(dice, totalMod, adv, disadv);
         resultText = `<strong>Result: ${result.total}</strong><br>${result.display}`;
       } else {
         resultText = `<strong>Effect: ${currentAbility.effect.description}</strong>`;
@@ -1441,23 +1550,48 @@ function createResourceUI() {
       return;
     }
 
-    // Rest of performRoll remains unchanged
-    if (rollType !== "Custom") {
-      if (current_stamina < 25) {
-        diceRollerElements.resultDiv.html('<span style="color: red;">Not enough stamina to attack! You need at least 25 stamina.</span>');
+    if (rollType === "Skills") {
+      if (!itemSelect.value() || itemSelect.value() === "") {
+        diceRollerElements.resultDiv.html('<span style="color: red;">No skill selected.</span>');
         rollingInProgress = false;
         diceRollerElements.rollButton.elt.disabled = false;
         diceRollerElements.rollButton.style("background-color", "#4CAF50");
         diceRollerElements.rollButton.style("cursor", "pointer");
         return;
       }
-      current_stamina -= 25;
-      if (staminaATGLink) {
-        current_ATG = min(current_ATG + 25, max_ATG);
-      }
-      redrawResourceBars();
+
+      let numDiceValue = parseInt(numDiceInput.value()) || 1;
+      let sidesValue = parseInt(sidesInput.value()) || 6;
+      let dice = `${numDiceValue}d${sidesValue}`;
+      let mod = parseInt(modifierInput.value()) || 0;
+      let adv = diceRollerElements.advantageCheckbox.checked();
+      let disadv = diceRollerElements.disadvantageCheckbox.checked();
+      let result = rollDice(dice, mod, adv, disadv);
+
+      let resultText = `<strong>Result: ${result.total}</strong><br>${result.display}`;
+      diceRollerElements.resultDiv.html("Rolling...");
+      let animationSteps = 10;
+      let step = 0;
+      activeInterval = setInterval(() => {
+        step++;
+        diceRollerElements.resultDiv.html(`Rolling... (${step}/${animationSteps})`);
+        if (step >= animationSteps) {
+          clearInterval(activeInterval);
+          activeInterval = null;
+          diceRollerElements.resultDiv.html(resultText);
+          rollHistory.push(result.display);
+          if (rollHistory.length > 10) rollHistory.shift();
+          diceRollerElements.updateHistory();
+          diceRollerElements.rollButton.elt.disabled = false;
+          diceRollerElements.rollButton.style("background-color", "#4CAF50");
+          diceRollerElements.rollButton.style("cursor", "pointer");
+          rollingInProgress = false;
+        }
+      }, 100);
+      return;
     }
 
+    // Custom roll
     let numDiceValue = parseInt(numDiceInput.value()) || 1;
     let sidesValue = parseInt(sidesInput.value()) || 6;
     let dice = `${numDiceValue}d${sidesValue}`;
@@ -1496,6 +1630,15 @@ function createResourceUI() {
     itemSelect.html("");
     itemSelect.option("Select an item", "");
     let source = sourceSelect.value();
+
+    // Show/hide Linked Stat row based on roll source
+    if (source === "Equipment" || source === "Ability" || source === "Crystals") {
+      linkedStatRow.style("display", "block");
+    } else {
+      linkedStatRow.style("display", "none");
+      linkedStatElement.value("None"); // Reset linked stat for Skills and Custom
+      linkedStatManuallySet = false;
+    }
 
     if (source === "Equipment") {
       // Populate with equipped weapons (On-Hand and Off-Hand slots with damageDice)
@@ -1558,13 +1701,20 @@ function createResourceUI() {
     let source = sourceSelect.value();
     let numDice = 1;
     let sides = source === "Skills" ? 12 : 6;
-    let mod = 0;
+    let baseMod = 0;
+    let statMod = 0;
     currentAbility = null; // Reset current ability
+
+    // Reset linked stat for Abilities and Crystals only if not manually set
+    if ((source === "Ability" || source === "Crystals") && !linkedStatManuallySet) {
+      linkedStatElement.value("None");
+    }
 
     if (source === "Custom") {
       numDice = 1;
       sides = 6;
-      mod = 0;
+      baseMod = 0;
+      statMod = 0;
     } else if (selectedItem && selectedItem !== "") {
       if (source === "Equipment") {
         let [slot, itemName] = selectedItem.split(":");
@@ -1573,7 +1723,21 @@ function createResourceUI() {
           const [parsedNumDice, parsedSides] = item.damageDice.split("d").map(Number);
           numDice = parsedNumDice || 1;
           sides = parsedSides || 6;
-          mod = item.modifier || 0;
+          baseMod = item.modifier || 0;
+          // Update linked stat display
+          if (diceRollerElements.lockCheckbox.checked()) {
+            linkedStatElement.value(item.linkedStat && item.linkedStat !== "None" ? item.linkedStat : "None");
+            linkedStatManuallySet = false;
+          }
+          // Calculate stat-based modifier
+          let linkedStat = linkedStatElement.value();
+          if (linkedStat && linkedStat !== "None") {
+            statMod = getTotalStat(linkedStat);
+            statModifierSpan.html(`(${statMod})`);
+          } else {
+            statMod = 0;
+            statModifierSpan.html("");
+          }
         }
       } else if (source === "Ability") {
         // Look up the ability from the equipped weapon category
@@ -1596,7 +1760,16 @@ function createResourceUI() {
             numDice = parsedNumDice || 1;
             sides = parsedSides || 6;
           }
-          mod = 0; // For abilities, the roll does not add an extra modifier here
+          baseMod = 0; // Base modifier for abilities
+          // Add linked stat modifier if selected
+          let linkedStat = linkedStatElement.value();
+          if (linkedStat && linkedStat !== "None") {
+            statMod = getTotalStat(linkedStat);
+            statModifierSpan.html(`(${statMod})`);
+          } else {
+            statMod = 0;
+            statModifierSpan.html("");
+          }
         } else {
           console.log("No ability found for selected item (Ability)");
         }
@@ -1617,7 +1790,16 @@ function createResourceUI() {
             numDice = parsedNumDice || 1;
             sides = parsedSides || 6;
           }
-          mod = 0; // For abilities, the roll does not add an extra modifier here
+          baseMod = 0; // Base modifier for Crystals
+          // Add linked stat modifier if selected
+          let linkedStat = linkedStatElement.value();
+          if (linkedStat && linkedStat !== "None") {
+            statMod = getTotalStat(linkedStat);
+            statModifierSpan.html(`(${statMod})`);
+          } else {
+            statMod = 0;
+            statModifierSpan.html("");
+          }
         } else {
           console.log("No crystal ability found for selected item");
         }
@@ -1626,25 +1808,18 @@ function createResourceUI() {
         sides = 12;
         let skillName = selectedItem;
         let linkedStat = attributeLinkMapping[skillName] || "None";
+        baseMod = 0;
         if (linkedStat !== "None") {
-          let statValue = 0;
-          switch (linkedStat) {
-            case "STR": statValue = stat_str; break;
-            case "DEX": statValue = stat_dex; break;
-            case "VIT": statValue = stat_vit; break;
-            case "MAG": statValue = stat_mag; break;
-            case "WIL": statValue = stat_wil; break;
-            case "SPR": statValue = stat_spr; break;
-            case "LCK": statValue = stat_lck; break;
-          }
-          mod = statValue;
+          baseMod = getTotalStat(linkedStat);
         }
+        statMod = 0; // No linked stat for Skills
+        statModifierSpan.html("");
       }
     }
 
     numDiceInput.value(numDice.toString());
     sidesInput.value(sides.toString());
-    modifierInput.value(mod.toString());
+    modifierInput.value(baseMod.toString());
   }
 
   // --- Refresh dice roller ---
@@ -1662,15 +1837,27 @@ function createResourceUI() {
 
   // --- Event Listeners ---
   sourceSelect.changed(() => {
-    updateItemDropdown();
-    // Unlock parameters if "Custom" is selected
+    // Auto-lock parameters for non-Custom roll sources
     if (sourceSelect.value() === "Custom") {
       diceRollerElements.lockCheckbox.checked(false);
-      // Trigger the changed event to enable the inputs
-      diceRollerElements.lockCheckbox.elt.dispatchEvent(new Event("change"));
+    } else {
+      diceRollerElements.lockCheckbox.checked(true);
     }
+    // Trigger the changed event to update the UI
+    diceRollerElements.lockCheckbox.elt.dispatchEvent(new Event("change"));
+
+    updateItemDropdown();
   });
-  itemSelect.changed(updateDiceExpression);
+
+  itemSelect.changed(() => {
+    updateDiceExpression();
+  });
+
+  // Update linked stat when it changes
+  linkedStatElement.changed(() => {
+    linkedStatManuallySet = true;
+    updateDiceExpression();
+  });
 
   // Initial population
   updateItemDropdown();
@@ -1678,6 +1865,87 @@ function createResourceUI() {
   // Expose refreshDiceRoller globally
   console.log("Setting window.refreshDiceRoller");
   window.refreshDiceRoller = refreshDiceRoller;
+}
+
+function adjustResource(resource, value, isAddition) {
+  if (isNaN(value)) {
+    showConfirmationModal("Please enter a valid number.", () => {}, true);
+    return;
+  }
+  let adjustment = isAddition ? value : -value;
+  switch (resource) {
+    case "HP":
+      current_hp = constrain(current_hp + adjustment, 0, max_hp);
+      break;
+    case "MP":
+      current_mp = constrain(current_mp + adjustment, 0, max_mp);
+      break;
+    case "STA":
+      current_stamina = constrain(current_stamina + adjustment, 0, max_stamina);
+      if (!isAddition && staminaATGLink) {
+        current_ATG = min(current_ATG + value, max_ATG);
+      }
+      break;
+    case "ATG":
+      current_ATG = constrain(current_ATG + adjustment, 0, max_ATG);
+      break;
+  }
+  redrawResourceBars();
+}
+
+function setMaxHp() {
+  let value = parseInt(maxHpInput.value());
+  if (!isNaN(value) && value > 0) {
+    max_hp = value;
+    current_hp = min(current_hp, value);
+    redrawResourceBars();
+  }
+}
+
+function setMaxMp() {
+  let value = parseInt(maxMpInput.value());
+  if (!isNaN(value) && value > 0) {
+    max_mp = value;
+    current_mp = min(current_mp, value);
+    redrawResourceBars();
+  }
+}
+
+function setMaxStamina() {
+  let value = parseInt(maxStaminaInput.value());
+  if (!isNaN(value) && value > 0) {
+    max_stamina = value;
+    current_stamina = min(current_stamina, value);
+    redrawResourceBars();
+  }
+}
+
+function setMaxATG() {
+  let value = parseInt(maxATGInput.value());
+  if (!isNaN(value) && value > 0) {
+    max_ATG = value;
+    current_ATG = min(current_ATG, value);
+    redrawResourceBars();
+  }
+}
+
+function resetResources() {
+  current_hp = max_hp;
+  current_mp = max_mp;
+  current_stamina = max_stamina;
+  current_ATG = 0;
+  redrawResourceBars();
+}
+
+function toggleStaminaATGLink() {
+  staminaATGLink = !staminaATGLink;
+  staminaATGLinkButton.html(staminaATGLink ? "Link: ON" : "Link: OFF");
+  staminaATGLinkButton.style("background-color", staminaATGLink ? "green" : "red");
+}
+
+// Function to redraw the resource bars
+function redrawResourceBars() {
+  displayBars();
 }
 
 function adjustResource(resource, value, isAddition) {
@@ -4580,6 +4848,11 @@ function createEquipmentUI() {
     if (itemData) {
       if (itemData.damageDice) {
         dmgDefText = `${itemData.damageDice}${itemData.modifier ? (itemData.modifier > 0 ? `+${itemData.modifier}` : itemData.modifier) : ""}`;
+        // Add total stat-based modifier in parentheses, including bonuses
+        if (itemData.linkedStat && itemData.linkedStat !== "None") {
+          let statValue = getTotalStat(itemData.linkedStat);
+          dmgDefText += ` (${statValue})`;
+        }
       } else if (typeof itemData.defense !== "undefined") {
         dmgDefText = `${itemData.defense}${itemData.modifier ? (itemData.modifier > 0 ? `+${itemData.modifier}` : itemData.modifier) : ""}`;
       }
