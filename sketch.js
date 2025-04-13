@@ -320,58 +320,58 @@ let learnedAbilities = {}; // Object to track learned abilities by category, e.g
 // Define available abilities with placeholders
 let availableAbilities = {
   "Melee - Heavy": [
-    { name: "Cleave", ATGCost: 50, statReq: { STR: 1 }, pointCost: 1, effect: { dice: "1d8", description: "Hits all enemies" } },
-    { name: "Smash", ATGCost: 75, statReq: { STR: 15 }, pointCost: 2, effect: { dice: "1d10", description: "Single target" } }
+    { name: "Cleave", ATGCost: 50, statReq: { STR: 1 }, pointCost: 1, effect: { dice: "1d8", description: "Hits all enemies" }, linkedStat: "STR" },
+    { name: "Smash", ATGCost: 75, statReq: { STR: 15 }, pointCost: 2, effect: { dice: "1d10", description: "Single target" }, linkedStat: "STR" }
   ],
   "Melee - Balanced": [
-    { name: "Balanced Strike", ATGCost: 40, statReq: { STR: 8, DEX: 8 }, pointCost: 1, effect: { dice: "1d8", description: "Balanced attack" } }
+    { name: "Balanced Strike", ATGCost: 40, statReq: { STR: 8, DEX: 8 }, pointCost: 1, effect: { dice: "1d8", description: "Balanced attack" }, linkedStat: "STR" }
   ],
   "Melee - Light": [
-    { name: "Quick Slash", ATGCost: 30, statReq: { DEX: 10 }, pointCost: 1, effect: { dice: "1d6", description: "Fast attack" } }
+    { name: "Quick Slash", ATGCost: 30, statReq: { DEX: 10 }, pointCost: 1, effect: { dice: "1d6", description: "Fast attack" }, linkedStat: "DEX" }
   ],
   "Ranged - Short": [
-    { name: "Rapid Shot", ATGCost: 35, statReq: { DEX: 10 }, pointCost: 1, effect: { dice: "1d6", description: "Quick ranged attack, 20-30 ft" } }
+    { name: "Rapid Shot", ATGCost: 35, statReq: { DEX: 10 }, pointCost: 1, effect: { dice: "1d6", description: "Quick ranged attack, 20-30 ft" }, linkedStat: "DEX" }
   ],
   "Ranged - Long": [
-    { name: "Sniper Shot", ATGCost: 60, statReq: { DEX: 12 }, pointCost: 2, effect: { dice: "1d10", description: "Long-range precision shot, 60-100 ft" } }
+    { name: "Sniper Shot", ATGCost: 60, statReq: { DEX: 12 }, pointCost: 2, effect: { dice: "1d10", description: "Long-range precision shot, 60-100 ft" }, linkedStat: "DEX" }
   ],
   "Magical - Offensive": [
-    { name: "Fireball", ATGCost: 80, statReq: { MAG: 10 }, pointCost: 2, effect: { dice: "3d6", description: "Elemental fire damage to all enemies", mpCost: 10 } }
+    { name: "Fireball", ATGCost: 80, statReq: { MAG: 10 }, pointCost: 2, effect: { dice: "3d6", description: "Elemental fire damage to all enemies", mpCost: 10 }, linkedStat: "MAG" }
   ],
   "Magical - Support": [
-    { name: "Healing Aura", ATGCost: 70, statReq: { SPR: 10 }, pointCost: 2, effect: { dice: "2d8", description: "Heals all allies", mpCost: 8 } }
+    { name: "Healing Aura", ATGCost: 70, statReq: { SPR: 10 }, pointCost: 2, effect: { dice: "2d8", description: "Heals all allies", mpCost: 8 }, linkedStat: "SPR" }
   ],
   "Shields": [
-    { name: "Shield Bash", ATGCost: 40, statReq: { STR: 8 }, pointCost: 1, effect: { dice: "1d4", description: "Stuns enemy for 1 turn" } }
+    { name: "Shield Bash", ATGCost: 40, statReq: { STR: 8 }, pointCost: 1, effect: { dice: "1d4", description: "Stuns enemy for 1 turn" }, linkedStat: "STR" }
   ],
   "Hybrid": [
-    { name: "Gunblade Slash", ATGCost: 50, statReq: { STR: 8, DEX: 8 }, pointCost: 1, effect: { dice: "1d8", description: "Melee attack in Melee mode" } },
-    { name: "Gunblade Shot", ATGCost: 50, statReq: { DEX: 10 }, pointCost: 1, effect: { dice: "1d6", description: "Ranged attack in Ranged mode" } }
+    { name: "Gunblade Slash", ATGCost: 50, statReq: { STR: 8, DEX: 8 }, pointCost: 1, effect: { dice: "1d8", description: "Melee attack in Melee mode" }, linkedStat: "STR" },
+    { name: "Gunblade Shot", ATGCost: 50, statReq: { DEX: 10 }, pointCost: 1, effect: { dice: "1d6", description: "Ranged attack in Ranged mode" }, linkedStat: "DEX" }
   ],
-"Crystals": [
-  // Existing Abilities (description removed, effect.description enhanced)
-  { name: "Fire", ATGCost: 25, statReq: { MAG: 5 }, effect: { dice: "2d6", description: "Deals elemental fire damage to a single target", mpCost: 5 } },
-  { name: "Cure", ATGCost: 25, statReq: { WIL: 3 }, effect: { dice: "1d8", description: "Heals the user or an ally", mpCost: 3 } },
-  // New Common Abilities
-  { name: "Ice", ATGCost: 25, statReq: { MAG: 3 }, effect: { dice: "2d6", description: "Deals elemental ice damage to a single target", mpCost: 5 } },
-  { name: "Gust", ATGCost: 20, statReq: { DEX: 2 }, effect: { dice: "1d6", description: "Deals elemental wind damage and pushes the target back 10 ft", mpCost: 4 } },
-  { name: "Flash", ATGCost: 20, statReq: { SPR: 2 }, effect: { dice: "", description: "Blinds the target for 1 turn, reducing their accuracy", mpCost: 3 } },
-  // New Uncommon Abilities
-  { name: "Thunder", ATGCost: 30, statReq: { MAG: 5 }, effect: { dice: "3d6", description: "Deals elemental lightning damage to a single target", mpCost: 8 } },
-  { name: "Shield", ATGCost: 25, statReq: { WIL: 4 }, effect: { dice: "", description: "Grants +3 defense to the user for 3 turns", mpCost: 6 } },
-  { name: "Haste", ATGCost: 20, statReq: { DEX: 3 }, effect: { dice: "", description: "Grants +2 DEX to the user for 3 turns", mpCost: 5 } },
-  // New Rare Abilities
-  { name: "Blizzard", ATGCost: 40, statReq: { MAG: 7 }, effect: { dice: "4d6", description: "Deals elemental ice damage to all enemies", mpCost: 12 } },
-  { name: "Regen", ATGCost: 30, statReq: { WIL: 6 }, effect: { dice: "1d4", description: "Heals the user or an ally each turn for 3 turns", mpCost: 10 } },
-  { name: "Invisibility", ATGCost: 35, statReq: { DEX: 5 }, effect: { dice: "", description: "Grants +5 evasion to the user for 3 turns", mpCost: 8 } }
-]
+  "Crystals": [
+    // Existing Abilities
+    { name: "Fire", ATGCost: 25, statReq: { MAG: 5 }, effect: { dice: "2d6", description: "Deals elemental fire damage to a single target", mpCost: 5 }, linkedStat: "MAG" },
+    { name: "Cure", ATGCost: 25, statReq: { WIL: 3 }, effect: { dice: "1d8", description: "Heals the user or an ally", mpCost: 3 }, linkedStat: "WIL" },
+    // New Common Abilities
+    { name: "Ice", ATGCost: 25, statReq: { MAG: 3 }, effect: { dice: "2d6", description: "Deals elemental ice damage to a single target", mpCost: 5 }, linkedStat: "MAG" },
+    { name: "Gust", ATGCost: 20, statReq: { DEX: 2 }, effect: { dice: "1d6", description: "Deals elemental wind damage and pushes the target back 10 ft", mpCost: 4 }, linkedStat: "DEX" },
+    { name: "Flash", ATGCost: 20, statReq: { SPR: 2 }, effect: { dice: "", description: "Blinds the target for 1 turn, reducing their accuracy", mpCost: 3 }, linkedStat: "SPR" },
+    // New Uncommon Abilities
+    { name: "Thunder", ATGCost: 30, statReq: { MAG: 5 }, effect: { dice: "3d6", description: "Deals elemental lightning damage to a single target", mpCost: 8 }, linkedStat: "MAG" },
+    { name: "Shield", ATGCost: 25, statReq: { WIL: 4 }, effect: { dice: "", description: "Grants +3 defense to the user for 3 turns", mpCost: 6 }, linkedStat: "WIL" },
+    { name: "Haste", ATGCost: 20, statReq: { DEX: 3 }, effect: { dice: "", description: "Grants +2 DEX to the user for 3 turns", mpCost: 5 }, linkedStat: "DEX" },
+    // New Rare Abilities
+    { name: "Blizzard", ATGCost: 40, statReq: { MAG: 7 }, effect: { dice: "4d6", description: "Deals elemental ice damage to all enemies", mpCost: 12 }, linkedStat: "MAG" },
+    { name: "Regen", ATGCost: 30, statReq: { WIL: 6 }, effect: { dice: "1d4", description: "Heals the user or an ally each turn for 3 turns", mpCost: 10 }, linkedStat: "WIL" },
+    { name: "Invisibility", ATGCost: 35, statReq: { DEX: 5 }, effect: { dice: "", description: "Grants +5 evasion to the user for 3 turns", mpCost: 8 }, linkedStat: "DEX" }
+  ]
 };
+
 // Create a pristine copy of the initial availableAbilities
 let pristineAvailableAbilities = JSON.parse(JSON.stringify(availableAbilities));
 
 // Working copy of abilities that can be modified
 let existingAbilities = JSON.parse(JSON.stringify(availableAbilities));
-
 const weaponCategories = [
   "Melee - Heavy",
   "Melee - Balanced",
@@ -707,6 +707,9 @@ function saveCharacter() {
     current_stamina: current_stamina,
     max_ATG: max_ATG,
     current_ATG: current_ATG,
+    hp_adjustment: hp_adjustment, // Add HP adjustment
+    mp_adjustment: mp_adjustment, // Add MP adjustment
+    staminaATGLink: staminaATGLink, // Add STA-ATG link state
     attributeLinkMapping: attributeLinkMapping || {},
     // Traits data
     traits: traits || [],
@@ -863,6 +866,7 @@ function handleFileLoad(evt) {
 }
 //Restore Character Data
 function restoreCharacterData(characterData) {
+  // Restore character data
   characterName = characterData.characterName || "";
   level = characterData.level || 1;
   exp = characterData.exp || 0;
@@ -875,10 +879,7 @@ function restoreCharacterData(characterData) {
   stat_lck = characterData.stat_lck || 1;
   movement = characterData.movement || 30;
   totalTalentPoints = characterData.totalTalentPoints || 1;
-  spentTalentPoints = characterData.spentTalentPoints || 0;
   totalAbilityPoints = characterData.totalAbilityPoints || 2;
-  spentAbilityPoints = characterData.spentAbilityPoints || 0;
-  abilityPoints = characterData.abilityPoints || (totalAbilityPoints - spentAbilityPoints);
   equippedItems = characterData.equippedItems || {};
   inventory = characterData.inventory || [];
   learnedAbilities = characterData.learnedAbilities || {};
@@ -886,21 +887,44 @@ function restoreCharacterData(characterData) {
   lockToLevel = characterData.lockToLevel !== undefined ? characterData.lockToLevel : true;
   additionalAttributes = characterData.additionalAttributes || [];
 
-  // Restore Resource Bar settings
-  max_hp = characterData.max_hp || 25;
-  current_hp = characterData.current_hp || max_hp;
-  max_mp = characterData.max_mp || 10;
-  current_mp = characterData.current_mp || max_mp;
-  max_stamina = characterData.max_stamina || 100;
-  current_stamina = characterData.current_stamina || max_stamina;
-  max_ATG = characterData.max_ATG || 100;
-  current_ATG = characterData.current_ATG || 0;
+  // Recalculate spentAbilityPoints based on learnedAbilities
+  spentAbilityPoints = 0;
+  for (let category in learnedAbilities) {
+    if (learnedAbilities[category]) {
+      learnedAbilities[category].forEach(abilityName => {
+        let ability = existingAbilities[category].find(a => a.name === abilityName);
+        if (ability && ability.pointCost) {
+          spentAbilityPoints += ability.pointCost;
+        }
+      });
+    }
+  }
+  // Ensure spentAbilityPoints doesn't exceed totalAbilityPoints
+  spentAbilityPoints = min(spentAbilityPoints, totalAbilityPoints);
+  // Recalculate abilityPoints
+  abilityPoints = totalAbilityPoints - spentAbilityPoints;
 
-  // Recalculate max_hp and max_mp based on level and stats
-  updateResourcesBasedOnStats();
-  // Ensure current_hp and current_mp are constrained to the new maximums
-  current_hp = min(current_hp, max_hp);
-  current_mp = min(current_mp, max_mp);
+  // Restore Resource Bar settings
+  // Load maximums first
+  max_stamina = characterData.max_stamina || 100;
+  max_ATG = characterData.max_ATG || 100;
+
+  // Load HP and MP adjustments
+  hp_adjustment = characterData.hp_adjustment || 0;
+  mp_adjustment = characterData.mp_adjustment || 0;
+
+  // Recalculate base_max_hp and base_max_mp based on level and stats
+  updateResourcesBasedOnStats(); // This sets max_hp and max_mp using base_max_hp/mp + adjustments
+
+  // Now load current values and constrain them to the final maximums
+  current_hp = characterData.current_hp || 25;
+  current_hp = constrain(current_hp, 0, max_hp); // Constrain after max_hp is calculated
+  current_mp = characterData.current_mp || 10;
+  current_mp = constrain(current_mp, 0, max_mp); // Constrain after max_mp is calculated
+  current_stamina = characterData.current_stamina || max_stamina;
+  current_stamina = constrain(current_stamina, 0, max_stamina); // Constrain to ensure valid state
+  current_ATG = characterData.current_ATG || 0;
+  current_ATG = constrain(current_ATG, 0, max_ATG); // Constrain to ensure valid state
 
   // Restore additional attributes assignments
   attributeLinkMapping = characterData.attributeLinkMapping || {};
@@ -916,11 +940,20 @@ function restoreCharacterData(characterData) {
   // Restore Traits data
   traits = characterData.traits || [];
   maxTraits = characterData.maxTraits || 3;
-  existingTraits = characterData.existingTraits || [...defaultTraits];
 
   // Restore Talents data
   talents = characterData.talents || [];
   existingTalents = characterData.existingTalents || [...defaultTalents];
+  // Recalculate spentTalentPoints based on talents
+  spentTalentPoints = 0;
+  talents.forEach(talentName => {
+    let talent = existingTalents.find(t => t.name === talentName);
+    if (talent && talent.pointCost) {
+      spentTalentPoints += talent.pointCost;
+    }
+  });
+  // Ensure spentTalentPoints doesn't exceed totalTalentPoints
+  spentTalentPoints = min(spentTalentPoints, totalTalentPoints);
 
   // Update equippedCrystalAbilities based on restored equippedItems
   updateCharacterAbilities();
@@ -1103,8 +1136,9 @@ function createResourceUI() {
   let rUI = resourceUIContainer;
   rUI.html("");
 
+  // HP Row
   let hpRow = createDiv().parent(rUI).class("resource-row");
-  createSpan("HP:").parent(hpRow);
+  createSpan(`HP: ${current_hp}/${max_hp}`).parent(hpRow).style("margin-right", "10px");
   maxHpInput = createInput(max_hp.toString(), "number")
     .parent(hpRow)
     .class("resource-input");
@@ -1127,8 +1161,9 @@ function createResourceUI() {
       redrawResourceBars();
     });
 
+  // MP Row
   let mpRow = createDiv().parent(rUI).class("resource-row");
-  createSpan("MP:").parent(mpRow);
+  createSpan(`MP: ${current_mp}/${max_mp}`).parent(mpRow).style("margin-right", "10px");
   maxMpInput = createInput(max_mp.toString(), "number")
     .parent(mpRow)
     .class("resource-input");
@@ -1151,8 +1186,9 @@ function createResourceUI() {
       redrawResourceBars();
     });
 
+  // STA Row
   let staminaRow = createDiv().parent(rUI).class("resource-row");
-  createSpan("STA:").parent(staminaRow);
+  createSpan(`STA: ${current_stamina}/${max_stamina}`).parent(staminaRow).style("margin-right", "10px");
   maxStaminaInput = createInput(max_stamina.toString(), "number")
     .parent(staminaRow)
     .class("resource-input");
@@ -1171,15 +1207,18 @@ function createResourceUI() {
     .parent(staminaRow)
     .class("resource-button small-button")
     .mousePressed(() => {
+      let previousStamina = current_stamina;
       current_stamina = max(current_stamina - 25, 0);
       if (staminaATGLink) {
-        current_ATG = min(current_ATG + 25, max_ATG);
+        let staminaConsumed = previousStamina - current_stamina;
+        current_ATG = min(current_ATG + staminaConsumed, max_ATG);
       }
       redrawResourceBars();
     });
 
+  // ATG Row
   let ATGRow = createDiv().parent(rUI).class("resource-row");
-  createSpan("ATG:").parent(ATGRow);
+  createSpan(`ATG: ${current_ATG}/${max_ATG}`).parent(ATGRow).style("margin-right", "10px");
   maxATGInput = createInput(max_ATG.toString(), "number")
     .parent(ATGRow)
     .class("resource-input");
@@ -1202,6 +1241,7 @@ function createResourceUI() {
       redrawResourceBars();
     });
 
+  // Adjustment Row
   let adjustmentRow = createDiv().parent(rUI).class("resource-row");
   createSpan("Adjust: ").parent(adjustmentRow);
   let adjustmentInput = createInput("", "number")
@@ -1238,14 +1278,16 @@ function createResourceUI() {
       )
     );
 
+  // Link Row
   let linkRow = createDiv().parent(rUI).class("resource-row");
   staminaATGLinkButton = createButton(staminaATGLink ? "Link: ON" : "Link: OFF")
     .parent(linkRow)
     .class("resource-button")
     .mousePressed(toggleStaminaATGLink)
     .style("background-color", staminaATGLink ? "green" : "red");
-  createSpan("When ON, using STA adds to ATG").parent(linkRow);
+  createSpan("When ON, using STA adds to ATG (1:1 ratio)").parent(linkRow);
 
+  // Reset Row
   let resetRow = createDiv().parent(rUI).class("resource-row");
   resetButton = createButton("Reset All")
     .parent(resetRow)
@@ -1272,8 +1314,7 @@ function createResourceUI() {
   let sourceSelect = createSelect()
     .parent(sourceRow)
     .class("resource-input")
-    .style("width", "150px"); // Increased width to display full text
-
+    .style("width", "150px");
   sourceSelect.option("Equipment", "Equipment");
   sourceSelect.option("Ability", "Ability");
   sourceSelect.option("Crystals", "Crystals");
@@ -1286,7 +1327,7 @@ function createResourceUI() {
   let itemSelect = createSelect()
     .parent(itemRow)
     .class("resource-input")
-    .style("width", "150px"); // Increased width to display full text
+    .style("width", "150px");
 
   // Dice Expression inputs
   let diceRow = createDiv().parent(diceRollerDiv).class("resource-row");
@@ -1391,9 +1432,11 @@ function createResourceUI() {
         diceRollerElements.rollButton.style("cursor", "pointer");
         return;
       }
+      let previousStamina = current_stamina;
       current_stamina -= 25;
       if (staminaATGLink) {
-        current_ATG = min(current_ATG + 25, max_ATG);
+        let staminaConsumed = previousStamina - current_stamina;
+        current_ATG = min(current_ATG + staminaConsumed, max_ATG);
       }
       redrawResourceBars();
 
@@ -1775,6 +1818,11 @@ function createResourceUI() {
             sides = parsedSides || 6;
           }
           baseMod = 0; // Base modifier for abilities
+          // Update linked stat display
+          if (diceRollerElements.lockCheckbox.checked()) {
+            linkedStatElement.value(foundAbility.linkedStat && foundAbility.linkedStat !== "None" ? foundAbility.linkedStat : "None");
+            linkedStatManuallySet = false;
+          }
           // Add linked stat modifier if selected
           let linkedStat = linkedStatElement.value();
           if (linkedStat && linkedStat !== "None") {
@@ -1805,6 +1853,11 @@ function createResourceUI() {
             sides = parsedSides || 6;
           }
           baseMod = 0; // Base modifier for Crystals
+          // Update linked stat display
+          if (diceRollerElements.lockCheckbox.checked()) {
+            linkedStatElement.value(foundAbility.linkedStat && foundAbility.linkedStat !== "None" ? foundAbility.linkedStat : "None");
+            linkedStatManuallySet = false;
+          }
           // Add linked stat modifier if selected
           let linkedStat = linkedStatElement.value();
           if (linkedStat && linkedStat !== "None") {
@@ -1895,9 +1948,11 @@ function adjustResource(resource, value, isAddition) {
       current_mp = constrain(current_mp + adjustment, 0, max_mp);
       break;
     case "STA":
+      let previousStamina = current_stamina;
       current_stamina = constrain(current_stamina + adjustment, 0, max_stamina);
-      if (!isAddition && staminaATGLink) {
-        current_ATG = min(current_ATG + value, max_ATG);
+      if (staminaATGLink && adjustment < 0) { // Only apply link when STA is reduced
+        let staminaConsumed = previousStamina - current_stamina;
+        current_ATG = min(current_ATG + staminaConsumed, max_ATG);
       }
       break;
     case "ATG":
@@ -8193,7 +8248,8 @@ function createAbilitiesUI() {
       createElement("th", "Stat Req").parent(header).style("width", "20%");
       createElement("th", "Point Cost").parent(header).style("width", "15%");
       createElement("th", "Effect").parent(header).style("width", "30%");
-      createElement("th", "MP Cost").parent(header).style("width", "15%"); // Added MP Cost column for all categories
+      createElement("th", "MP Cost").parent(header).style("width", "15%");
+      createElement("th", "Linked Stat").parent(header).style("width", "15%"); // Added Linked Stat column
       createElement("th", "Actions").parent(header).style("width", "15%");
 
       abilities.forEach(ability => {
@@ -8211,7 +8267,8 @@ function createAbilitiesUI() {
         createElement("td", category === "Crystals" ? "-" : String(ability.pointCost)).parent(row);
         let effectText = ability.effect.dice ? `${ability.effect.dice} - ${ability.effect.description}` : ability.effect.description;
         createElement("td", effectText).parent(row);
-        createElement("td", String(ability.effect.mpCost || 0)).parent(row); // Display MP cost for all abilities
+        createElement("td", String(ability.effect.mpCost || 0)).parent(row);
+        createElement("td", ability.linkedStat || "-").parent(row); // Display the linked stat
         let actionCell = createElement("td").parent(row);
 
         if (category === "Crystals") {
@@ -8264,7 +8321,6 @@ function showAbilityDescription(ability) {
 
   createElement("h3", ability.name).parent(modalDiv);
 
-  // Use Effect Description instead of Ability Description
   createP(`Effect: ${ability.effect.dice ? ability.effect.dice + " - " : ""}${ability.effect.description || "No effect description provided."}`).parent(modalDiv);
 
   createP(`ATG Cost: ${ability.ATGCost || 0}`).parent(modalDiv);
@@ -8277,12 +8333,13 @@ function showAbilityDescription(ability) {
 
   createP(`MP Cost: ${ability.effect.mpCost !== undefined ? ability.effect.mpCost : "-"}`).parent(modalDiv);
 
+  createP(`Linked Stat: ${ability.linkedStat || "None"}`).parent(modalDiv); // Display the linked stat
+
   createButton("Close")
     .parent(modalDiv)
     .style("margin-top", "10px")
     .mousePressed(() => modalDiv.remove());
 }
-
 //Create Custom Ability
 function showCreateCustomAbilityModal() {
   const appWrapper = select("#app-wrapper");
@@ -8303,7 +8360,7 @@ function showCreateCustomAbilityModal() {
     .style("padding", "20px")
     .style("border", "2px solid #000")
     .style("z-index", "1000")
-    .style("width", "300px")  // match trait modal width
+    .style("width", "300px")
     .style("box-sizing", "border-box")
     .style("font-size", "14px");
 
@@ -8311,7 +8368,7 @@ function showCreateCustomAbilityModal() {
     .parent(modalDiv)
     .class("modal-content")
     .style("flex", "1 1 auto")
-    .style("overflow-y", "auto")  // revert to auto to match trait modal
+    .style("overflow-y", "auto")
     .style("max-height", `calc(${viewportHeight * maxHeightPercentage}px - 80px)`);
 
   let buttonContainer = createDiv()
@@ -8430,6 +8487,24 @@ function showCreateCustomAbilityModal() {
     .style("color", "#666")
     .style("display", "block");
 
+  // Add Linked Stat Dropdown
+  let linkedStatDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Linked Stat:").parent(linkedStatDiv).style("display", "block");
+  let linkedStatSelect = createSelect()
+    .parent(linkedStatDiv)
+    .style("width", "100%")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .id("ability-linked-stat-select");
+  linkedStatSelect.option("None", "None");
+  linkedStatSelect.option("STR", "STR");
+  linkedStatSelect.option("MAG", "MAG");
+  createSpan("Stat to add as a modifier when rolling this ability.")
+    .parent(linkedStatDiv)
+    .style("font-size", "12px")
+    .style("color", "#666")
+    .style("display", "block");
+
   createButton("Add")
     .parent(buttonContainer)
     .style("margin", "5px")
@@ -8454,7 +8529,8 @@ function showCreateCustomAbilityModal() {
           dice: effectDiceInput.value().trim(),
           description: effectDescInput.value().trim(),
           mpCost: parseInt(mpCostInput.value()) || 0
-        }
+        },
+        linkedStat: linkedStatSelect.value() // Add the linked stat
       };
 
       for (let stat in statReqInputs) {
@@ -8516,7 +8592,7 @@ function showModifyAbilitiesModal() {
     .style("padding", "20px")
     .style("border", "2px solid #000")
     .style("z-index", "1000")
-    .style("width", "300px") // match Trait modal width
+    .style("width", "300px")
     .style("box-sizing", "border-box")
     .style("font-size", "14px");
 
@@ -8634,6 +8710,24 @@ function showModifyAbilitiesModal() {
     .style("color", "#666")
     .style("display", "block");
 
+  // Add Linked Stat Dropdown
+  let linkedStatDiv = createDiv().parent(contentWrapper).style("margin-bottom", "10px");
+  createSpan("Linked Stat:").parent(linkedStatDiv).style("display", "block");
+  let linkedStatSelect = createSelect()
+    .parent(linkedStatDiv)
+    .style("width", "100%")
+    .style("border", "1px solid #ccc")
+    .style("box-sizing", "border-box")
+    .id("ability-linked-stat-select");
+  linkedStatSelect.option("None", "None");
+  linkedStatSelect.option("STR", "STR");
+  linkedStatSelect.option("MAG", "MAG");
+  createSpan("Stat to add as a modifier when rolling this ability.")
+    .parent(linkedStatDiv)
+    .style("font-size", "12px")
+    .style("color", "#666")
+    .style("display", "block");
+
   // Populate Ability Dropdown
   function updateAbilityOptions() {
     let selectedCategory = categorySelect.value();
@@ -8665,6 +8759,7 @@ function showModifyAbilitiesModal() {
       effectDiceInput.value("");
       effectDescInput.value("");
       mpCostInput.value("0");
+      linkedStatSelect.value("None"); // Reset linked stat
       return;
     }
 
@@ -8679,6 +8774,7 @@ function showModifyAbilitiesModal() {
     effectDiceInput.value(ability.effect.dice || "");
     effectDescInput.value(ability.effect.description || "");
     mpCostInput.value(ability.effect.mpCost || "0");
+    linkedStatSelect.value(ability.linkedStat || "None"); // Load linked stat
   }
 
   categorySelect.changed(() => {
@@ -8727,7 +8823,8 @@ function showModifyAbilitiesModal() {
           dice: effectDiceInput.value().trim(),
           description: effectDescInput.value().trim(),
           mpCost: parseInt(mpCostInput.value()) || 0
-        }
+        },
+        linkedStat: linkedStatSelect.value() // Update the linked stat
       };
 
       for (let stat in statReqInputs) {
